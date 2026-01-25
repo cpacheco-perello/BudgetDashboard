@@ -60,22 +60,36 @@
       <canvas id="chartGastosMes"></canvas>
     </div>
 
-    <!-- Fila 2: Ingresos, Gastos, Ahorros -->
-    <div class="chart-card card-success">
-      <h3 data-i18n="dashboard.ingresos"><i class="fas fa-arrow-up icon-success"></i> Ingresos</h3>
-      <canvas id="chartIngresos"></canvas>
-    </div>
 
-    <div class="chart-card card-danger">
-      <h3 data-i18n="dashboard.gastos"><i class="fas fa-arrow-down icon-danger"></i> Gastos</h3>
-      <canvas id="chartGastos"></canvas>
-    </div>
+  <!-- Fila 2: Ingresos, Gastos, Ahorros -->
+  <div class="chart-card card-success">
+    <h3 style="color: var(--success);">
+      <i class="fas fa-arrow-up icon-success"></i> 
+      <span data-i18n="dashboard.ingresos">Ingresos</span>
+    </h3>
+    <canvas id="chartIngresos"></canvas>
+  </div>
+
+  <div class="chart-card card-danger">
+    <h3 style="color: var(--danger);">
+      <i class="fas fa-arrow-down icon-danger"></i> 
+      <span data-i18n="dashboard.gastos">Gastos</span>
+    </h3>
+    <canvas id="chartGastos"></canvas>
+  </div>
+
 
     <!-- Fila 3: Ahorros full-width -->
     <div class="chart-card card-info full-width">
-      <h3 data-i18n="dashboard.ahorros"><i class="fas fa-piggy-bank icon-info"></i> Ahorros</h3>
+      <h3 class="chart-title" style="color: var(--info);">
+        <i class="fas fa-piggy-bank"></i> 
+        <span data-i18n="dashboard.ahorros">Ahorros</span>
+      </h3>
       <canvas id="chartAhorros"></canvas>
     </div>
+
+
+
 
     <!-- Fila 4: Distribución por categoría -->
     <div class="chart-card card-primary">

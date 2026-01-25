@@ -41,7 +41,7 @@ function cargarGastosForm() {
         tbodyP.innerHTML = '';
         data.gastos_puntuales.forEach(g => {
             const gDate = new Date(g.fecha);
-            if (!window.showOldGastos && gDate < today) return; // ocultar antiguos si flag desactivado
+            if (!window.showOldGastos && gDate <= today) return; // ocultar antiguos si flag desactivado
             const tr = document.createElement('tr');
             tr.dataset.id = g.id;
             tr.dataset.type = 'puntual';
@@ -75,7 +75,7 @@ function cargarGastosForm() {
                 return new Date(v);
             }
             const endDate = parseEndDate(g.hasta);
-            if (!window.showOldGastos && endDate < today) return;
+            if (!window.showOldGastos && endDate <= today) return;
             const tr = document.createElement('tr');
             tr.dataset.id = g.id;
             tr.dataset.type = 'mensual';

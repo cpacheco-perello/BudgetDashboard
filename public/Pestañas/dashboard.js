@@ -42,6 +42,33 @@ function cargarDashboardForm() {
         return `rgba(${r}, ${g}, ${b}, ${porcentaje})`;
     }
 
+function calcularMedia(arr) {
+    const validos = arr.filter(v => !isNaN(v));
+    if (validos.length === 0) return 0;
+    return validos.reduce((a, b) => a + b, 0) / validos.length;
+}
+
+function calcularVarianza(arr) {
+    const validos = arr.filter(v => !isNaN(v));
+    const n = validos.length;
+    if (n <= 1) return 0;
+
+    const media = calcularMedia(validos);
+
+    // Varianza muestral (n - 1) → correcta para análisis financiero
+    const suma = validos.reduce((acc, val) => {
+        return acc + Math.pow(val - media, 2);
+    }, 0);
+
+    return suma / (n - 1);
+}
+
+
+function calcularDesviacion(arr) {
+    return Math.sqrt(calcularVarianza(arr));
+}
+
+
     // ===== Cargar categorías =====
     async function cargarCategorias() {
         const desde = document.getElementById('dashDesde').value;
@@ -199,7 +226,7 @@ function cargarDashboardForm() {
                                 return '€' + value.toFixed(0);
                             }
                         },
-                        grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                        grid: { color: 'rgba(0, 0, 0, 0.19)' }
                     },
                     x: {
                         ticks: { color: '#666', font: { size: 11 } },
@@ -240,13 +267,18 @@ function cargarDashboardForm() {
             });
 
             // ===== GRÁFICO INGRESOS POR MES =====
+
+            // Media y varianza
+            const mediaIngresos = calcularMedia(ingresosMes);
+            const varianzaIngresos = calcularDesviacion(ingresosMes);
+
             chartIngresos = new Chart(document.getElementById('chartIngresos'), {
-                type:'bar',
+                type: 'bar',
                 data:{
-                    labels:meses,
+                    labels: meses,
                     datasets:[{ 
                         label:'Ingresos €', 
-                        data:ingresosMes, 
+                        data: ingresosMes, 
                         backgroundColor: aclararColor(temasGraficos.success, 0.7),
                         borderColor: temasGraficos.success,
                         borderWidth: 2,
@@ -254,47 +286,165 @@ function cargarDashboardForm() {
                         tension: 0.4
                     }]
                 },
-                options:optComun
+            options:{ 
+                                ...optComun, 
+
+                    plugins:{
+                        ...optComun.plugins,
+
+                        // ===== TÍTULO CON MEDIA Y VARIANZA =====
+                        title: {
+                            display: true,
+                            text: `Media: €${mediaIngresos.toFixed(2)}   |   Varianza: ${varianzaIngresos.toFixed(2)}`,
+                            font: { size: 13, weight: '600' },
+                            padding: { top: 5, bottom: 10 }
+                        },
+
+                        // ===== LÍNEA HORIZONTAL DE MEDIA =====
+                        annotation: {
+                            annotations: {
+                                lineaMedia: {
+                                    type: 'line',
+                                    yMin: mediaIngresos,
+                                    yMax: mediaIngresos,
+                                    borderColor: temasGraficos.info,
+                                    borderWidth: 2,
+                                    borderDash: [6, 6],
+                                    label: {
+                                        display: true,
+                                        content: `Media €${mediaIngresos.toFixed(2)}`,
+                                        position: 'end',
+                                        backgroundColor: 'rgba(0,0,0,0.7)',
+                                        color: '#fff',
+                                        padding: 6
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             });
+
 
             // ===== GRÁFICO GASTOS POR MES =====
-            chartGastos = new Chart(document.getElementById('chartGastos'), {
-                type:'bar',
-                data:{
-                    labels:meses,
-                    datasets:[{ 
-                        label:'Gastos €', 
-                        data:gastosMes, 
-                        backgroundColor: aclararColor(temasGraficos.danger, 0.7),
-                        borderColor: temasGraficos.danger,
+                const mediaGastos = calcularMedia(gastosMes);
+                const varianzaGastos = calcularDesviacion(gastosMes);
+
+                chartGastos = new Chart(document.getElementById('chartGastos'), {
+                    type: 'bar',
+                    data: {
+                        labels: meses,
+                        datasets: [{ 
+                            label: 'Gastos €', 
+                            data: gastosMes, 
+                            backgroundColor: aclararColor(temasGraficos.danger, 0.7),
+                            borderColor: temasGraficos.danger,
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            tension: 1
+                        }]
+                    },
+                   options:{ 
+                    ...optComun, 
+
+                        plugins: {
+                            ...optComun.plugins,
+
+                            // ===== TÍTULO CON MEDIA Y VARIANZA =====
+                            title: {
+                                display: true,
+                                text: `Media: €${mediaGastos.toFixed(2)}   |   Varianza: €${varianzaGastos.toFixed(2)}`,
+                                font: { size: 13, weight: '600' },
+                                padding: { top: 5, bottom: 10 }
+                            },
+
+                            // ===== LÍNEA HORIZONTAL DE MEDIA =====
+                            annotation: {
+                                annotations: {
+                                    lineaMedia: {
+                                        type: 'line',
+                                        yMin: mediaGastos,
+                                        yMax: mediaGastos,
+                                        borderColor: temasGraficos.warning,
+                                        borderWidth: 2,
+                                        borderDash: [6, 6],
+                                        label: {
+                                            display: true,
+                                            content: `Media €${mediaGastos.toFixed(2)}`,
+                                            position: 'end',
+                                            backgroundColor: 'rgba(0,0,0,0.7)',
+                                            color: '#fff',
+                                            padding: 6
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+
+// ===== GRÁFICO AHORROS POR MES =====
+
+// Calcular media y desviación
+const mediaAhorros = calcularMedia(ahorrosMes);
+const desviacionAhorros = calcularDesviacion(ahorrosMes);
+
+chartAhorros = new Chart(document.getElementById('chartAhorros'), {
+    type:'bar',
+    data:{
+        labels: meses,
+        datasets:[{ 
+            label:'Ahorros €', 
+            data: ahorrosMes, 
+            backgroundColor: aclararColor(temasGraficos.info, 0.3),
+            borderColor: temasGraficos.info,
+            borderWidth: 3,
+            borderRadius: 6,
+            tension: 0.4,
+            fill: true
+        }]
+    },
+    options:{
+        ...optComun,
+        plugins: {
+            ...optComun.plugins,
+
+            // ===== TÍTULO CON MEDIA Y DESVIACIÓN =====
+            title: {
+                display: true,
+                text: `Media: €${mediaAhorros.toFixed(2)}   |   Desviación: €${desviacionAhorros.toFixed(2)}`,
+                font: { size: 13, weight: '600' },
+                padding: { top: 5, bottom: 10 }
+            },
+
+            // ===== LÍNEA HORIZONTAL DE MEDIA =====
+            annotation: {
+                annotations: {
+                    lineaMedia: {
+                        type: 'line',
+                        yMin: mediaAhorros,
+                        yMax: mediaAhorros,
+                        borderColor: temasGraficos.success,
                         borderWidth: 2,
-                        borderRadius: 6,
-                        tension: 0.4
-                    }]
-                },
-                options:optComun
-            });
+                        borderDash: [6, 6],
+                        label: {
+                            display: true,
+                            content: `Media €${mediaAhorros.toFixed(2)}`,
+                            position: 'end',
+                            backgroundColor: 'rgba(0,0,0,0.7)',
+                            color: '#fff',
+                            padding: 6
+                        }
+                    }
+                }
+            }
+        }
+    }
+});
 
-            // ===== GRÁFICO AHORROS POR MES =====
-            chartAhorros = new Chart(document.getElementById('chartAhorros'), {
-                type:'bar',
-                data:{
-                    labels:meses,
-                    datasets:[{ 
-                        label:'Ahorros €', 
-                        data:ahorrosMes, 
-                        backgroundColor: aclararColor(temasGraficos.info, 0.3),
-                        borderColor: temasGraficos.info,
-                        borderWidth: 3,
-                        borderRadius: 6,
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options:optComun
-            });
 
-            // ===== GRÁFICO INGRESOS POR CATEGORÍA =====
+            // ===== GRÁFICO INGRESOS POR CATEGORÍA DONUT =====
             chartIngresosCat = new Chart(document.getElementById('chartIngresosCategoria'), {
                 type:'doughnut',
                 data:{
@@ -308,6 +458,7 @@ function cargarDashboardForm() {
                 },
                 options:{
                     ...optComun,
+                    scales: { x: { display: false }, y: { display: false } },
                     plugins:{
                         ...optComun.plugins,
                         legend:{ position:'bottom' },
@@ -319,12 +470,22 @@ function cargarDashboardForm() {
                                     return `${ctx.label}: €${ctx.raw.toFixed(2)} (${perc}%)`; 
                                 }
                             }
+                        },
+                        datalabels: {
+                            color: '#fff',
+                            font: { weight: 'bold', size: 12 },
+                            formatter: (value, ctx) => {
+                                const total = ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0);
+                                const perc = ((value / total) * 100).toFixed(1);
+                                return perc + '%';
+                            }
                         }
                     }
-                }
+                },
+                plugins: [ChartDataLabels]
             });
 
-            // ===== GRÁFICO GASTOS POR CATEGORÍA =====
+            // ===== GRÁFICO GASTOS POR CATEGORÍA DONUT =====
             chartGastosCat = new Chart(document.getElementById('chartGastosCategoria'), {
                 type:'doughnut',
                 data:{
@@ -338,6 +499,7 @@ function cargarDashboardForm() {
                 },
                 options:{
                     ...optComun,
+                    scales: { x: { display: false }, y: { display: false } },
                     plugins:{
                         ...optComun.plugins,
                         legend:{ position:'bottom' },
@@ -349,33 +511,84 @@ function cargarDashboardForm() {
                                     return `${ctx.label}: €${ctx.raw.toFixed(2)} (${perc}%)`; 
                                 }
                             }
+                        },
+                        datalabels: {
+                            color: '#fff',
+                            font: { weight: 'bold', size: 12 },
+                            formatter: (value, ctx) => {
+                                const total = ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0);
+                                const perc = ((value / total) * 100).toFixed(1);
+                                return perc + '%';
+                            }
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels]
+            });
+
+
+            // ===== GRÁFICO GASTOS POR MES Y CATEGORÍA =====
+
+            // Calcular totales por mes (suma de categorías)
+            const totalesMes = labelsMeses.map((mes, idx) => {
+                return datasetsMesCat.reduce((sum, ds) => sum + (ds.data[idx] || 0), 0);
+            });
+
+            // Media y varianza sobre el total mensual
+            const mediaGastosMes = calcularMedia(totalesMes);
+            const varianzaGastosMes = calcularDesviacion(totalesMes);
+
+            chartGastosMes = new Chart(document.getElementById('chartGastosMes'), {
+                type: 'bar',
+                data:{ 
+                    labels: labelsMeses, 
+                    datasets: datasetsMesCat 
+                },
+                options:{ 
+                                ...optComun, 
+                                
+                scales: {
+            x: { stacked: true },
+            y: { stacked: true }
+            },
+
+         
+        plugins: {
+            ...optComun.plugins,
+
+            // ===== TÍTULO CON MEDIA Y VARIANZA =====
+            title: {
+                display: true,
+                text: `Media mensual total: €${mediaGastosMes.toFixed(2)}   |   Varianza: ${varianzaGastosMes.toFixed(2)}`,
+                font: { size: 13, weight: '600' },
+                padding: { top: 5, bottom: 10 }
+            },
+
+            // ===== LÍNEA HORIZONTAL DE MEDIA (TOTAL STACK) =====
+            annotation: {
+                annotations: {
+                    lineaMedia: {
+                        type: 'line',
+                        yMin: mediaGastosMes,
+                        yMax: mediaGastosMes,
+                        borderColor: temasGraficos.info,
+                        borderWidth: 2,
+                        borderDash: [6, 6],
+                        label: {
+                            display: true,
+                            content: `Media total €${mediaGastosMes.toFixed(2)}`,
+                            position: 'end',
+                            backgroundColor: 'rgba(0,0,0,0.7)',
+                            color: '#fff',
+                            padding: 6
                         }
                     }
                 }
-            });
+            }
+        }
+    }
+});
 
-            // ===== GRÁFICO GASTOS POR MES Y CATEGORÍA =====
-            chartGastosMes = new Chart(document.getElementById('chartGastosMes'), {
-                type:'bar',
-                data:{ 
-                    labels:labelsMeses, 
-                    datasets:datasetsMesCat 
-                },
-                options:{ 
-                    ...optComun, 
-                    scales:{ 
-                        x:{ stacked:true }, 
-                        y:{ 
-                            stacked:true,
-                            ticks: {
-                                callback: function(value) {
-                                    return '€' + value.toFixed(0);
-                                }
-                            }
-                        } 
-                    } 
-                }
-            });
 
             console.log('✅ Dashboard actualizado correctamente');
 

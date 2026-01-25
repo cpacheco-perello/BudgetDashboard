@@ -43,7 +43,7 @@ function cargarIngresosForm() {
         tbodyP.innerHTML = '';
         data.ingresos_puntuales.forEach(i => {
             const iDate = new Date(i.fecha);
-            if (!window.showOldIngresos && iDate < today) return;
+            if (!window.showOldIngresos && iDate <= today) return;
             const tr = document.createElement('tr');
             tr.dataset.id = i.id;
             tr.dataset.type = 'puntual';
@@ -76,7 +76,7 @@ function cargarIngresosForm() {
                 return new Date(v);
             }
             const endDate = parseEndDate(i.hasta);
-            if (!window.showOldIngresos && endDate < today) return;
+            if (!window.showOldIngresos && endDate <= today) return;
             const tr = document.createElement('tr');
             tr.dataset.id = i.id;
             tr.dataset.type = 'mensual';
