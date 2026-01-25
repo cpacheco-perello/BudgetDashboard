@@ -1,0 +1,91 @@
+<section id="dashboard" class="dashboard-container">
+  <div class="dashboard-header">
+    <h2 data-i18n="dashboard.titulo"><i class="fas fa-chart-pie"></i> Resumen Financiero</h2>
+    
+    <!-- FILTROS MEJORADOS -->
+    <div class="filtros-dashboard">
+      <!-- SELECTORES DE TIEMPO RÁPIDO -->
+      <div class="filtro-group">
+        <label data-i18n="dashboard.periodoRapido">Período Rápido:</label>
+        <div class="quick-periods">
+          <button class="quick-period-btn" data-days="30" data-i18n="periodos.un_mes">
+            <i class="fas fa-calendar-day"></i> 1 Mes
+          </button>
+          <button class="quick-period-btn" data-days="90" data-i18n="periodos.tres_meses">
+            <i class="fas fa-calendar-week"></i> 3 Meses
+          </button>
+          <button class="quick-period-btn" data-days="180" data-i18n="periodos.seis_meses">
+            <i class="fas fa-calendar-alt"></i> 6 Meses
+          </button>
+          <button class="quick-period-btn" data-days="365" data-i18n="periodos.un_anio">
+            <i class="fas fa-calendar"></i> 1 Año
+          </button>
+          <button class="quick-period-btn" data-days="1825" data-i18n="periodos.cinco_anios">
+            <i class="fas fa-calendar-check"></i> 5 Años
+          </button>
+        </div>
+      </div>
+
+      <!-- FILTROS PERSONALIZADOS -->
+      <div class="filtro-group">
+        <label for="dashDesde" data-i18n="dashboard.desde">Desde:</label>
+        <input type="date" id="dashDesde" class="date-input">
+      </div>
+      <div class="filtro-group">
+        <label for="dashHasta" data-i18n="dashboard.hasta">Hasta:</label>
+        <input type="date" id="dashHasta" class="date-input">
+      </div>
+      <button id="btnCargarDashboard" class="btn-actualizar" data-i18n="dashboard.actualizar">
+        <i class="fas fa-sync-alt"></i> Actualizar
+      </button>
+    </div>
+  </div>
+
+  <!-- GRID DE GRÁFICOS -->
+  <div class="dashboard-grid">
+    
+    <!-- Fila 1: Totales y Gastos por mes -->
+    <div class="chart-card card-primary">
+      <h3 data-i18n="dashboard.totalPeriodo"><i class="fas fa-calculator icon-primary"></i> Totales Período</h3>
+      <canvas id="chartTotales"></canvas>
+    </div>
+
+    <div class="chart-card card-warning">
+      <div class="chart-header">
+        <h3 data-i18n="dashboard.gastosPorMes"><i class="fas fa-chart-bar icon-warning"></i> Gastos por Mes</h3>
+        <select id="filtroGastoCategoria" class="filtro-categoria" data-i18n="dashboard.todasCategorias">
+          <option value="">Todas las categorías</option>
+        </select>
+      </div>
+      <canvas id="chartGastosMes"></canvas>
+    </div>
+
+    <!-- Fila 2: Ingresos, Gastos, Ahorros -->
+    <div class="chart-card card-success">
+      <h3 data-i18n="dashboard.ingresos"><i class="fas fa-arrow-up icon-success"></i> Ingresos</h3>
+      <canvas id="chartIngresos"></canvas>
+    </div>
+
+    <div class="chart-card card-danger">
+      <h3 data-i18n="dashboard.gastos"><i class="fas fa-arrow-down icon-danger"></i> Gastos</h3>
+      <canvas id="chartGastos"></canvas>
+    </div>
+
+    <!-- Fila 3: Ahorros full-width -->
+    <div class="chart-card card-info full-width">
+      <h3 data-i18n="dashboard.ahorros"><i class="fas fa-piggy-bank icon-info"></i> Ahorros</h3>
+      <canvas id="chartAhorros"></canvas>
+    </div>
+
+    <!-- Fila 4: Distribución por categoría -->
+    <div class="chart-card card-primary">
+      <h3 data-i18n="dashboard.ingresosPorCategoria"><i class="fas fa-tag icon-primary"></i> Ingresos por Categoría</h3>
+      <canvas id="chartIngresosCategoria"></canvas>
+    </div>
+
+    <div class="chart-card card-warning">
+      <h3 data-i18n="dashboard.gastosPorCategoria"><i class="fas fa-tag icon-warning"></i> Gastos por Categoría</h3>
+      <canvas id="chartGastosCategoria"></canvas>
+    </div>
+  </div>
+</section>

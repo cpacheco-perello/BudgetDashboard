@@ -1,0 +1,8 @@
+node_modules/
+dist/
+win-unpacked/
+*.exe
+*.blockmap
+*.log
+*.dll
+*.dmg

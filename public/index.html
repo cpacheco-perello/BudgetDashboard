@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Finanzas</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+    <div class="header-container">
+        <h1 data-i18n="app.titulo"><i class="fas fa-chart-line"></i> Dashboard Económico</h1>
+        
+        <!-- Selectores de Tema e Idioma -->
+        <div class="header-controls">
+            <!-- Selector de temas -->
+            <div class="theme-selector">
+                <label for="themeSelect" data-i18n="tema.cambiarTema"><i class="fas fa-palette"></i> Tema:</label>
+<!-- Agregar estas opciones al selector de temas en index.html -->
+
+                <select id="themeSelect" class="theme-dropdown">
+                    <!-- Originales -->
+                    <option value="azul" data-i18n="temas.azul">Azul Profesional</option>
+                    <option value="verde" data-i18n="temas.verde">Verde Moderno</option>
+                    <option value="naranja" data-i18n="temas.naranja">Naranja Energético</option>
+                    <option value="turquesa" data-i18n="temas.turquesa">Turquesa Fresco</option>
+                    <option value="purpura" data-i18n="temas.purpura">Púrpura Moderno</option>
+                    <option value="rojo" data-i18n="temas.rojo">Rojo Elegante</option>
+                    <option value="indigo" data-i18n="temas.indigo">Índigo Suave</option>
+                    <option value="teal" data-i18n="temas.teal">Teal Profesional</option>
+                    <option value="gris" data-i18n="temas.gris">Gris Corporativo</option>
+                    <option value="rosado" data-i18n="temas.rosado">Rosado Moderno</option>
+                    
+                    <!-- Nuevos temas -->
+                    <option value="cian" data-i18n="temas.cian">Cian Vibrante</option>
+                    <option value="lima" data-i18n="temas.lima">Lima Fresco</option>
+                    <option value="esmeralda" data-i18n="temas.esmeralda">Esmeralda Premium</option>
+                    <option value="ambar" data-i18n="temas.ambar">Ámbar Dorado</option>
+                    <option value="violeta" data-i18n="temas.violeta">Violeta Místico</option>
+                    <option value="fresa" data-i18n="temas.fresa">Fresa Rosa</option>
+                    <option value="oceano" data-i18n="temas.oceano">Océano Profundo</option>
+                    <option value="bosque" data-i18n="temas.bosque">Bosque Verde</option>
+                    <option value="atardecer" data-i18n="temas.atardecer">Atardecer</option>
+                    <option value="medianoche" data-i18n="temas.medianoche">Medianoche Oscuro</option>
+                    <option value="neon" data-i18n="temas.neon">Neón Ciberpunk</option>
+                    <option value="mint" data-i18n="temas.mint">Mint Suave</option>
+                    <option value="coral" data-i18n="temas.coral">Coral Tropical</option>
+                    <option value="lavanda" data-i18n="temas.lavanda">Lavanda Elegante</option>
+                    <option value="grisminimal" data-i18n="temas.grisminimal">Gris Minimalista</option>
+                    <option value="bronce" data-i18n="temas.bronce">Bronce Vintage</option>
+                    <option value="cielo" data-i18n="temas.cielo">Cielo Claro</option>
+                </select>
+            </div>
+
+            <!-- Selector de idiomas -->
+            <div class="language-selector">
+                <label for="languageSelect" data-i18n="idioma.seleccionar"><i class="fas fa-globe"></i> Idioma:</label>
+                <select id="languageSelect" class="language-dropdown">
+                    <option value="es" data-i18n="idioma.espanol">Español</option>
+                    <option value="en" data-i18n="idioma.ingles">English</option>
+                    <option value="pt" data-i18n="idioma.portugues">Português</option>
+                    <option value="fr" data-i18n="idioma.frances">Français</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- SELECTOR DE PERÍODOS -->
+    <div class="periodo-selector">
+        <button class="btn-periodo active" data-periodo="1mes" data-i18n="periodos.un_mes">1 Mes</button>
+        <button class="btn-periodo" data-periodo="3meses" data-i18n="periodos.tres_meses">3 Meses</button>
+        <button class="btn-periodo" data-periodo="6meses" data-i18n="periodos.seis_meses">6 Meses</button>
+        <button class="btn-periodo" data-periodo="1año" data-i18n="periodos.un_anio">1 Año</button>
+        <button class="btn-periodo" data-periodo="5años" data-i18n="periodos.cinco_anios">5 Años</button>
+        <button class="btn-periodo" data-periodo="10años" data-i18n="periodos.diez_anios">10 Años</button>
+    </div>
+
+    <!-- TARJETAS DE RESUMEN -->
+    <div class="resumen">
+        <div class="card-stat ingresos">
+            <i class="fas fa-arrow-up"></i>
+            <div>
+                <p data-i18n="resumen.totalIngresos">Total Ingresos</p>
+                <span id="total-ingresos">€0</span>
+            </div>
+        </div>
+        <div class="card-stat gastos">
+            <i class="fas fa-arrow-down"></i>
+            <div>
+                <p data-i18n="resumen.totalGastos">Total Gastos</p>
+                <span id="total-gastos">€0</span>
+            </div>
+        </div>
+        <div class="card-stat saldo">
+            <i class="fas fa-wallet"></i>
+            <div>
+                <p data-i18n="resumen.saldo">Saldo</p>
+                <span id="saldo">€0</span>
+            </div>
+        </div>
+    </div>
+</header>
+
+<nav class="navbar">
+    <button class="tablink active" data-tab="categorias" data-i18n="nav.categorias"><i class="fas fa-tag"></i> Categorías</button>
+    <button class="tablink" data-tab="gastos" data-i18n="nav.gastos"><i class="fas fa-credit-card"></i> Gastos</button>
+    <button class="tablink" data-tab="ingresos" data-i18n="nav.ingresos"><i class="fas fa-money-bill"></i> Ingresos</button>
+    <button class="tablink" data-tab="dashboard" data-i18n="nav.dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</button>
+</nav>
+
+<main id="tab-content"></main>
+
+<!-- ⚠️ ORDEN CORRECTO DE SCRIPTS ⚠️ -->
+<!-- 1. Primero: Traducciones -->
+<script src="idiomas/traducciones.js"></script>
+
+<!-- 2. Segundo: Gestor de idiomas -->
+<script src="idiomas/idiomas.js"></script>
+
+<!-- 3. Tercero: Sistema de temas -->
+<script src="Temas/temas.js"></script>
+
+<!-- 4. Cuarto: Páginas/Pestañas -->
+<script src="Pestañas/categorias.js"></script>
+<script src="Pestañas/gastos.js"></script>
+<script src="Pestañas/ingresos.js"></script>
+<script src="Pestañas/dashboard.js"></script>
+
+<!-- 5. Último: Main.js -->
+<script src="main.js"></script>
+
+</body>
+</html>

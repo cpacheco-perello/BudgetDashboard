@@ -1,0 +1,94 @@
+<section id="ingresos" class="tab" style="display:block;">
+  <h2 data-i18n="nav.ingresos">Administrar Ingresos</h2>
+
+  <!-- Subpestañas -->
+  <div style="margin-bottom:15px;">
+    <button class="subtab-btn" data-target="ingresosPuntuales" data-i18n="ingresos.puntuales">Puntuales</button>
+    <button class="subtab-btn" data-target="ingresosMensuales" data-i18n="ingresos.mensuales">Mensuales</button>
+  </div>
+
+  <!-- INGRESOS PUNTUALES -->
+  <div id="ingresosPuntuales" class="subtab" style="display:block;">
+  <h3 data-i18n="ingresos.puntuales">Ingresos Puntuales</h3>
+  <div style="margin-bottom:8px;">
+    <button id="toggleIngresosAntiguos" class="small-btn">Mostrar antiguos</button>
+  </div>
+    <table id="tablaIngresosPuntuales">
+        <thead>
+            <tr>
+                <th data-i18n="formularios.fecha">Fecha</th>
+                <th data-i18n="formularios.descripcion">Descripción</th>
+                <th data-i18n="formularios.monto">Monto</th>
+                <th data-i18n="formularios.categoria">Categoría</th>
+                <th style="width:120px;">Acciones</th>
+            </tr>
+            <tr class="insert-row">
+                <td><input type="date" id="fechaIngresoPuntual"></td>
+                <td><input type="text" id="descIngresoPuntual" data-i18n="ingresos.descripcion" placeholder="Descripción..."></td>
+                <td>
+                  <div class="input-euro">
+                    <span>€</span>
+                    <input type="number" id="montoIngresoPuntual" step="0.01" data-i18n="formularios.monto" placeholder="0.00">
+                  </div>
+                </td>
+                <td><select id="categoriaIngresoPuntual"></select></td>
+                <td><button id="btnAgregarIngresoPuntual"><i class="fas fa-plus"></i></button></td>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- INGRESOS MENSUALES -->
+  <div id="ingresosMensuales" class="subtab" style="display:none;">
+    <h3 data-i18n="ingresos.mensuales">Ingresos Mensuales</h3>
+  <div style="margin-bottom:8px;">
+    <button id="toggleIngresosMensualesAntiguos" class="small-btn">Mostrar antiguos</button>
+  </div>
+  <table id="tablaIngresosMensuales">
+       
+        <thead>
+          <tr>
+            <th data-i18n="ingresos.desde">Desde</th>
+            <th data-i18n="ingresos.hasta">Hasta</th>
+            <th data-i18n="formularios.descripcion">Descripción</th>
+            <th data-i18n="formularios.monto">Monto</th>
+            <th data-i18n="formularios.categoria">Categoría</th>
+            <th style="width:120px;">Acciones</th>
+          </tr>
+          <tr class="insert-row">
+            <td>
+              <input 
+                type="text" 
+                id="desdeIngresoMensual" 
+                placeholder="YYYY-MM" 
+                maxlength="7"
+                pattern="\\d{4}-\\d{2}"
+                title="Formato: YYYY-MM"
+              >
+            </td>
+            <td>
+              <input 
+                type="text" 
+                id="hastaIngresoMensual" 
+                placeholder="YYYY-MM" 
+                maxlength="7"
+                pattern="\\d{4}-\\d{2}"
+                title="Formato: YYYY-MM"
+              >
+            </td>
+            <td><input type="text" id="descIngresoMensual" data-i18n="ingresos.descripcion" placeholder="Descripción..."></td>
+            <td>
+              <div class="input-euro">
+              <span>€</span>
+              <input type="number" id="montoIngresoMensual" step="0.01" data-i18n="formularios.monto" placeholder="0.00">
+              </div>
+            </td>
+            <td><select id="categoriaIngresoMensual"></select></td>
+            <td><button id="btnAgregarIngresoMensual"><i class="fas fa-plus"></i></button></td>
+          </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+  </div>
+</section>

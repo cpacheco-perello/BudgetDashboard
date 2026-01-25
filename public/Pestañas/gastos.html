@@ -1,0 +1,99 @@
+<section id="gastos" class="tab" style="display:block;">
+    <h2 data-i18n="nav.gastos">Administrar Gastos</h2>
+
+    <!-- BOTONES SUBPESTAÑAS -->
+    <div style="margin-bottom:15px;">
+        <button id="tabGastosPuntualesBtn" class="subtab-btn" data-target="tabGastosPuntuales" data-i18n="gastos.puntuales">Gastos Puntuales</button>
+        <button id="tabGastosMensualesBtn" class="subtab-btn" data-target="tabGastosMensuales" data-i18n="gastos.mensuales">Gastos Mensuales</button>
+    </div>
+
+    <!-- GASTOS PUNTUALES -->
+    <div id="tabGastosPuntuales" class="subtab">
+        <h3 data-i18n="gastos.puntuales">Gastos Puntuales</h3>
+        <div style="margin-bottom:8px;">
+            <button id="toggleGastosAntiguos" class="small-btn">Mostrar antiguos</button>
+        </div>
+        
+        <table id="tablaGastosPuntuales">
+            <thead>
+                <tr>
+                    <th data-i18n="formularios.fecha">Fecha</th>
+                    <th data-i18n="formularios.descripcion">Descripción</th>
+                    <th data-i18n="formularios.monto">Monto</th>
+                    <th data-i18n="formularios.categoria">Categoría</th>
+                    <th style="width:120px;">Acciones</th>
+                </tr>
+                <tr class="insert-row">
+                    <td><input type="date" id="fechaGasto"></td>
+                    <td><input type="text" id="descGasto" data-i18n="gastos.descripcion" placeholder="Descripción..."></td>
+                    <td>
+                        <div class="input-euro" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;">
+                            <span>€</span>
+                            <input type="number" id="montoGasto" step="0.01" data-i18n="formularios.monto" placeholder="0.00" style="width:100px;">
+                            <label for="fraccionarGasto" style="display:flex;align-items:center;gap:6px;margin-left:0;">
+                                <input type="checkbox" id="fraccionarGasto"> 
+                            </label>
+                            <input type="number" id="partesGasto" min="1" value="1" placeholder="Nº" style="width:60px;display:none;margin-left:6px;color:#000;background:#fff;padding:2px 4px;border:1px solid #ccc;" title="Número de partes" aria-hidden="true">
+                        </div>
+                    </td>
+                    <td><select id="categoriaGasto"></select></td>
+                    <td><button id="btnAgregarGastoPuntual"><i class="fas fa-plus"></i></button></td>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- GASTOS MENSUALES -->
+    <div id="tabGastosMensuales" class="subtab" style="display:none;">
+        <h3 data-i18n="gastos.mensuales">Gastos Mensuales</h3>
+        <div style="margin-bottom:8px;">
+            <button id="toggleGastosMensualesAntiguos" class="small-btn">Mostrar antiguos</button>
+        </div>
+        <table id="tablaGastosMensuales">
+            <thead>
+                <tr>
+                    <th data-i18n="gastos.desde">Desde</th>
+                    <th data-i18n="gastos.hasta">Hasta</th>
+                    <th data-i18n="formularios.descripcion">Descripción</th>
+                    <th data-i18n="formularios.monto">Monto</th>
+                    <th data-i18n="formularios.categoria">Categoría</th>
+                    <th style="width:120px;">Acciones</th>
+                </tr>
+                <tr class="insert-row">
+                    <td>
+                        <input 
+                            type="text"
+                            id="desdeGasto"
+                            placeholder="YYYY-MM"
+                            maxlength="7"
+                            pattern="\\d{4}-\\d{2}"
+                            title="Formato: YYYY-MM"
+                        >
+                    </td>
+                    <td>
+                        <input 
+                            type="text"
+                            id="hastaGasto"
+                            placeholder="YYYY-MM"
+                            maxlength="7"
+                            pattern="\\d{4}-\\d{2}"
+                            title="Formato: YYYY-MM"
+                        >
+                    </td>
+                    <td><input type="text" id="descMensual" data-i18n="gastos.descripcion" placeholder="Descripción..."></td>
+                    <td>
+                        <div class="input-euro">
+                            <span>€</span>
+                            <input type="number" id="montoMensual" step="0.01" data-i18n="formularios.monto" placeholder="0.00">
+                        </div>
+                    </td>
+                    <td><select id="categoriaMensual"></select></td>
+                    <td><button id="btnAgregarMensual"><i class="fas fa-plus"></i></button></td>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+</section>
