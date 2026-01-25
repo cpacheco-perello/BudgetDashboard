@@ -1,13 +1,31 @@
 # Economic Dashboard
 
-A lightweight personal finance dashboard to track your **income, expenses, and savings**. Visualize your financial data with **charts for monthly totals, category breakdowns, and trends**. Designed for simplicity and clarity, ideal for personal budgeting and financial planning.
+A lightweight **personal finance dashboard** to track your **income, expenses, and savings**. Visualize your financial data with **charts for monthly totals, category breakdowns, and trends**. Designed for simplicity and clarity, ideal for personal budgeting and financial planning.
+
+---
 
 ## Features
 
-- Track income, expenses, and savings over time  
+- Track **income, expenses, and savings** over time  
 - Visualize data by categories with **doughnut and stacked bar charts**  
 - Calculate **monthly averages and variances**  
 - Filter by **date range and category**  
-- **Multilingual support** and easy **theme customization**
+- **Multilingual support** and easy **theme customization**  
 
-> ⚠️ Currently in the early development stages. New features and improvements will be implemented over time.
+---
+
+## Screenshots
+
+### Monthly Overview
+![Preview 1](Images/Preview1.png)
+
+### Category Breakdown
+![Preview 2](Images/Preview2.png)
+
+---
+
+## ⚠️ Note
+This project is currently in the **early development stages**. New features and improvements will be implemented over time.
+
+---
+
