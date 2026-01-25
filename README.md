@@ -17,10 +17,10 @@ A lightweight **personal finance dashboard** to track your **income, expenses, a
 ## Screenshots
 
 ### Monthly Overview
-![Preview 1](Images/Preview1.png)
+![Preview 1](Imatges/Preview1.png)
 
 ### Category Breakdown
-![Preview 2](Images/Preview2.png)
+![Preview 2](Imatges/Preview2.png)
 
 ---
 
