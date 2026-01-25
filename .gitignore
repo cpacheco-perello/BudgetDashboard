@@ -6,3 +6,6 @@ win-unpacked/
 *.log
 *.dll
 *.dmg
+.vs/
+# Base de datos de usuario
+finanzas.db
