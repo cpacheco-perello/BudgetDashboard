@@ -4,9 +4,9 @@ const server = require('./app'); // apunta a tu app.js
 
 // Arrancar el backend
 const PORT = 3000;
-server.listen(PORT, () => {
-    console.log(`Backend escuchando en http://localhost:${PORT}`);
-});
+    server.listen(PORT, () => {
+        console.log(`Backend escuchando en http://localhost:${PORT}`);
+    });
 
 let mainWindow;
 

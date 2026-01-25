@@ -9,3 +9,4 @@ win-unpacked/
 .vs/
 # Base de datos de usuario
 finanzas.db
+commandosBuild.txt
