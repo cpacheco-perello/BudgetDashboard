@@ -20,6 +20,7 @@ async function loadTab(tabId) {
         if (tabId === 'categorias') initCategorias();
         if (tabId === 'gastos') cargarGastosForm();
         if (tabId === 'ingresos') cargarIngresosForm();
+        if (tabId === 'impuestos') inicializarTaxes();
         if (tabId === 'dashboard') cargarDashboardForm();
 
     } catch (error) {
@@ -41,49 +42,81 @@ document.addEventListener('DOMContentLoaded', () => {
     loadTab('categorias');
 });
 
-// ===== ESCUCHAR CAMBIOS DE IDIOMA =====
-document.addEventListener('idiomaActualizado', (e) => {
-    console.log(`🌐 Idioma cambiado a: ${e.detail.idioma}`);
-    
-    // Aplicar traducciones a la pestaña actual
-    if (typeof gestorIdiomas !== 'undefined') {
-        gestorIdiomas.actualizarTraduccionesHTML();
-    }
-    
-    // Recargar datos si es necesario
-    const activeTab = document.querySelector('.tablink.active');
-    if (activeTab) {
-        const tabId = activeTab.dataset.tab;
-        loadTab(tabId);
-    }
-});
+
 
 // ===== MANEJO DE PERÍODOS Y RESUMEN =====
 let periodoActual = '1mes';
+let resumenData = null;
+let cargandoResumen = false;
 
 async function cargarResumenPeriodos() {
+    if (cargandoResumen) return; // Evitar solicitudes múltiples simultáneas
+    cargandoResumen = true;
+
     try {
-        const res = await fetch('/resumen-periodos');
-        const data = await res.json();
-        
-        function actualizarResumen(periodo) {
-            const stats = data[periodo];
-            document.getElementById('total-ingresos').textContent = `€${stats.ingresos.toFixed(2)}`;
-            document.getElementById('total-gastos').textContent = `€${stats.gastos.toFixed(2)}`;
-            document.getElementById('saldo').textContent = `€${stats.ahorro.toFixed(2)}`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // timeout de 10 segundos
+
+        const res = await fetch('/resumen-periodos', { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
         }
 
-        // Botones de período
-        document.querySelectorAll('.btn-periodo').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.btn-periodo').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                periodoActual = btn.dataset.periodo;
-                actualizarResumen(periodoActual);
-                
-                console.log(`📊 Período actualizado a: ${periodoActual}`);
+        resumenData = await res.json();
+        
+        function actualizarResumen(periodo) {
+            if (!resumenData || !resumenData[periodo]) {
+                console.warn(`⚠️ Datos no disponibles para período: ${periodo}`);
+                return;
+            }
+
+            const stats = resumenData[periodo];
+            const ingresos = document.getElementById('total-ingresos');
+            const gastos = document.getElementById('total-gastos');
+            const saldo = document.getElementById('saldo');
+            const taxes = document.getElementById('total-taxes');
+
+            if (ingresos) ingresos.textContent = `€${stats.ingresos.toFixed(2)}`;
+            if (gastos) gastos.textContent = `€${stats.gastos.toFixed(2)}`;
+            if (saldo) saldo.textContent = `€${stats.ahorro.toFixed(2)}`;
+            if (taxes) taxes.textContent = `€${(stats.impuestos || 0).toFixed(2)}`;
+        }
+        
+        // Botones de período (solo agregar listeners si no existen)
+        const btnsPeriodo = document.querySelectorAll('.btn-periodo');
+        if (btnsPeriodo.length > 0 && !btnsPeriodo[0].dataset.listenerAdded) {
+            btnsPeriodo.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    btnsPeriodo.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    periodoActual = btn.dataset.periodo;
+                    actualizarResumen(periodoActual);
+                    console.log(`📊 Período actualizado a: ${periodoActual}`);
+                });
+                btn.dataset.listenerAdded = 'true';
             });
-        });
+        }
+
+        // Botón de refresh
+        const btnRefresh = document.getElementById('btn-refresh-resumen');
+        if (btnRefresh && !btnRefresh.dataset.listenerAdded) {
+            btnRefresh.addEventListener('click', async () => {
+                btnRefresh.classList.add('spinning');
+                const periodoGuardado = periodoActual;
+                await cargarResumenPeriodos();
+                const btnActivo = document.querySelector(`[data-periodo="${periodoGuardado}"]`);
+                if (btnActivo) {
+                    document.querySelectorAll('.btn-periodo').forEach(b => b.classList.remove('active'));
+                    btnActivo.classList.add('active');
+                    periodoActual = periodoGuardado;
+                    actualizarResumen(periodoGuardado);
+                }
+                setTimeout(() => btnRefresh.classList.remove('spinning'), 600);
+            });
+            btnRefresh.dataset.listenerAdded = 'true';
+        }
 
         // Cargar por defecto 1 mes
         actualizarResumen('1mes');
@@ -92,9 +125,23 @@ async function cargarResumenPeriodos() {
     } catch (error) {
         console.error('❌ Error cargando resumen de períodos:', error);
         // Mostrar valores por defecto si hay error
-        document.getElementById('total-ingresos').textContent = '€0.00';
-        document.getElementById('total-gastos').textContent = '€0.00';
-        document.getElementById('saldo').textContent = '€0.00';
+        const ingresos = document.getElementById('total-ingresos');
+        const gastos = document.getElementById('total-gastos');
+        const saldo = document.getElementById('saldo');
+        const taxes = document.getElementById('total-taxes');
+
+        if (ingresos) ingresos.textContent = '€0.00';
+        if (gastos) gastos.textContent = '€0.00';
+        if (saldo) saldo.textContent = '€0.00';
+        if (taxes) taxes.textContent = '€0.00';
+
+        // Reintentar en 5 segundos
+        setTimeout(() => {
+            cargandoResumen = false;
+            cargarResumenPeriodos();
+        }, 5000);
+    } finally {
+        cargandoResumen = false;
     }
 }
 
@@ -102,6 +149,13 @@ async function cargarResumenPeriodos() {
 document.addEventListener('DOMContentLoaded', () => {
     cargarResumenPeriodos();
 });
+
+// Recargar resumen cada 5 minutos automáticamente
+setInterval(() => {
+    if (!cargandoResumen) {
+        cargarResumenPeriodos();
+    }
+}, 5 * 60 * 1000);
 
 // ===== SELECTOR DE IDIOMA EN HEADER =====
 document.addEventListener('DOMContentLoaded', () => {
@@ -116,6 +170,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (typeof gestorIdiomas !== 'undefined') {
                 gestorIdiomas.cambiarIdioma(e.target.value);
                 console.log(`🌐 Idioma cambiado a: ${e.target.value}`);
+                const tabActiva = document.querySelector('.tablink.active');
+                if (tabActiva) {
+                    const tabId = tabActiva.dataset.tab;
+                    console.log(`🔄 Recargando pestaña ${tabId} por cambio de idioma`);
+                    loadTab(tabId);
+                }
             }
         });
         
@@ -137,8 +197,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // Cambiar tema cuando el usuario selecciona uno nuevo
         themeSelect.addEventListener('change', (e) => {
             const nuevoTema = e.target.value;
-            localStorage.setItem('tema', nuevoTema);
-            cambiarTema(nuevoTema);
+            if (typeof gestorTemas !== 'undefined') {
+                gestorTemas.cambiarTema(nuevoTema);
+            }
+            const tabActiva = document.querySelector('.tablink.active');
+            if (tabActiva) {
+                const tabId = tabActiva.dataset.tab;
+                console.log(`🔄 Recargando pestaña ${tabId} por cambio de tema`);
+                loadTab(tabId);
+            }
             console.log(`🎨 Tema cambiado a: ${nuevoTema}`);
         });
         
@@ -149,6 +216,16 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ===== UTILIDADES GLOBALES =====
+
+/**
+ * Formatear un número como moneda en euros
+ * @param {number} monto - El monto a formatear
+ * @returns {string} - El monto formateado (ej: €1,234.56)
+ */
+function formatearEuro(monto) {
+    if (monto === null || monto === undefined) return '€0.00';
+    return '€' + parseFloat(monto).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
 /**
  * Obtener un texto traducido

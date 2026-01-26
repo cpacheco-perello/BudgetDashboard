@@ -81,6 +81,9 @@
         <button class="btn-periodo" data-periodo="1año" data-i18n="periodos.un_anio">1 Año</button>
         <button class="btn-periodo" data-periodo="5años" data-i18n="periodos.cinco_anios">5 Años</button>
         <button class="btn-periodo" data-periodo="10años" data-i18n="periodos.diez_anios">10 Años</button>
+        <button id="btn-refresh-resumen" class="btn-refresh" title="Refrescar resumen">
+            <i class="fas fa-sync-alt"></i>
+        </button>
     </div>
 
     <!-- TARJETAS DE RESUMEN -->
@@ -106,6 +109,13 @@
                 <span id="saldo">€0</span>
             </div>
         </div>
+        <div class="card-stat taxes">
+            <i class="fas fa-receipt"></i>
+            <div>
+                <p data-i18n="resumen.totalImpuestos">Total Impuestos</p>
+                <span id="total-taxes">€0</span>
+            </div>
+        </div>
     </div>
 </header>
 
@@ -113,6 +123,7 @@
     <button class="tablink active" data-tab="categorias" data-i18n="nav.categorias"><i class="fas fa-tag"></i> Categorías</button>
     <button class="tablink" data-tab="gastos" data-i18n="nav.gastos"><i class="fas fa-credit-card"></i> Gastos</button>
     <button class="tablink" data-tab="ingresos" data-i18n="nav.ingresos"><i class="fas fa-money-bill"></i> Ingresos</button>
+    <button class="tablink" data-tab="impuestos" data-i18n="nav.impuestos"><i class="fas fa-receipt"></i> Impuestos</button>
     <button class="tablink" data-tab="dashboard" data-i18n="nav.dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</button>
 </nav>
 
@@ -133,8 +144,11 @@
 <script src="Pestañas/gastos.js"></script>
 <script src="Pestañas/ingresos.js"></script>
 <script src="Pestañas/dashboard.js"></script>
+<script src="Pestañas/impuestos.js"></script>
 
-<!-- 5. Último: Main.js -->
+
+
+<!-- 6. Último: Main.js -->
 <script src="main.js"></script>
 
 </body>

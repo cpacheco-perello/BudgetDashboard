@@ -8,6 +8,10 @@ function initCategorias() {
     const btnAgregarIngreso = document.getElementById('btnAgregarCategoriaIngreso');
     const tbodyIngreso = document.querySelector('#tablaCategoriasIngreso tbody');
 
+    const inputImpuestos = document.getElementById('nuevoNombreCategoriaImpuestos');
+    const btnAgregarImpuestos = document.getElementById('btnAgregarCategoriaImpuestos');
+    const tbodyImpuestos = document.querySelector('#tablaCategoriasImpuestos tbody');
+
     // ===== Cargar categorías y distribuir por subtab =====
     async function cargarCategorias() {
         const res = await fetch('/categorias');
@@ -15,6 +19,7 @@ function initCategorias() {
 
         tbodyGasto.innerHTML = '';
         tbodyIngreso.innerHTML = '';
+        tbodyImpuestos.innerHTML = '';
 
         data.gastos.forEach(cat => {
             crearFilaCategoria(cat, 'gasto', tbodyGasto);
@@ -22,6 +27,10 @@ function initCategorias() {
 
         data.ingresos.forEach(cat => {
             crearFilaCategoria(cat, 'ingreso', tbodyIngreso);
+        });
+
+        data.impuestos.forEach(cat => {
+            crearFilaCategoria(cat, 'impuestos', tbodyImpuestos);
         });
 
         agregarEventosEdicion();
@@ -144,17 +153,24 @@ function initCategorias() {
             return;
         }
         
-        const res = await fetch('/add/categoria', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nombre, tipo: 'gasto' })
-        });
+        try {
+            const res = await fetch('/add/categoria', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre, tipo: 'gasto' })
+            });
 
-        if (res.ok) {
-            inputGasto.value = '';
-            cargarCategorias();
-        } else {
-            alert('Error al agregar categoría');
+            if (res.ok) {
+                inputGasto.value = '';
+                cargarCategorias();
+            } else {
+                const error = await res.json();
+                alert('Error: ' + (error.error || 'No se pudo agregar la categoría'));
+                console.error('Error agregando categoría:', error);
+            }
+        } catch (err) {
+            console.error('Error en fetch:', err);
+            alert('Error de conexión: ' + err.message);
         }
     });
 
@@ -166,17 +182,53 @@ function initCategorias() {
             return;
         }
         
-        const res = await fetch('/add/categoria', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nombre, tipo: 'ingreso' })
-        });
+        try {
+            const res = await fetch('/add/categoria', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre, tipo: 'ingreso' })
+            });
 
-        if (res.ok) {
-            inputIngreso.value = '';
-            cargarCategorias();
-        } else {
-            alert('Error al agregar categoría');
+            if (res.ok) {
+                inputIngreso.value = '';
+                cargarCategorias();
+            } else {
+                const error = await res.json();
+                alert('Error: ' + (error.error || 'No se pudo agregar la categoría'));
+                console.error('Error agregando categoría:', error);
+            }
+        } catch (err) {
+            console.error('Error en fetch:', err);
+            alert('Error de conexión: ' + err.message);
+        }
+    });
+
+    // ===== Agregar categoría Impuestos =====
+    btnAgregarImpuestos.addEventListener('click', async () => {
+        const nombre = inputImpuestos.value.trim();
+        if (!nombre) {
+            inputImpuestos.focus();
+            return;
+        }
+        
+        try {
+            const res = await fetch('/add/categoria', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre, tipo: 'impuestos' })
+            });
+
+            if (res.ok) {
+                inputImpuestos.value = '';
+                cargarCategorias();
+            } else {
+                const error = await res.json();
+                alert('Error: ' + (error.error || 'No se pudo agregar la categoría'));
+                console.error('Error agregando categoría:', error);
+            }
+        } catch (err) {
+            console.error('Error en fetch:', err);
+            alert('Error de conexión: ' + err.message);
         }
     });
 
@@ -187,6 +239,10 @@ function initCategorias() {
 
     inputIngreso.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') btnAgregarIngreso.click();
+    });
+
+    inputImpuestos.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') btnAgregarImpuestos.click();
     });
 
     // ===== Script para subpestañas =====

@@ -5,20 +5,22 @@
   <div style="margin-bottom:15px;">
     <button class="subtab-btn" data-target="ingresosPuntuales" data-i18n="ingresos.puntuales">Puntuales</button>
     <button class="subtab-btn" data-target="ingresosMensuales" data-i18n="ingresos.mensuales">Mensuales</button>
+    <button class="subtab-btn" data-target="cuentaRemunerada" data-i18n="ingresos.cuenta_remunerada">Cuenta Remunerada</button>
   </div>
 
   <!-- INGRESOS PUNTUALES -->
   <div id="ingresosPuntuales" class="subtab" style="display:block;">
-  <h3 data-i18n="ingresos.puntuales">Ingresos Puntuales</h3>
-  <div style="margin-bottom:8px;">
-    <button id="toggleIngresosAntiguos" class="small-btn">Mostrar antiguos</button>
-  </div>
+    <h3 data-i18n="ingresos.puntuales">Ingresos Puntuales</h3>
+    <div style="margin-bottom:8px;">
+      <button id="toggleIngresosAntiguos" class="small-btn" data-i18n="ingresos.mostrarAntiguos">Mostrar antiguos</button>
+    </div>
     <table id="tablaIngresosPuntuales">
         <thead>
             <tr>
                 <th data-i18n="formularios.fecha">Fecha</th>
                 <th data-i18n="formularios.descripcion">Descripción</th>
                 <th data-i18n="formularios.monto">Monto</th>
+                <th data-i18n="formularios.bruto">Bruto</th>
                 <th data-i18n="formularios.categoria">Categoría</th>
                 <th style="width:120px;">Acciones</th>
             </tr>
@@ -29,6 +31,12 @@
                   <div class="input-euro">
                     <span>€</span>
                     <input type="number" id="montoIngresoPuntual" step="0.01" data-i18n="formularios.monto" placeholder="0.00">
+                  </div>
+                </td>
+                <td>
+                  <div class="input-euro">
+                    <span>€</span>
+                    <input type="number" id="brutoIngresoPuntual" step="0.01" placeholder="0.00">
                   </div>
                 </td>
                 <td><select id="categoriaIngresoPuntual"></select></td>
@@ -43,7 +51,7 @@
   <div id="ingresosMensuales" class="subtab" style="display:none;">
     <h3 data-i18n="ingresos.mensuales">Ingresos Mensuales</h3>
   <div style="margin-bottom:8px;">
-    <button id="toggleIngresosMensualesAntiguos" class="small-btn">Mostrar antiguos</button>
+    <button id="toggleIngresosMensualesAntiguos" class="small-btn" data-i18n="ingresos.mostrarAntiguos">Mostrar antiguos</button>
   </div>
   <table id="tablaIngresosMensuales">
        
@@ -53,6 +61,7 @@
             <th data-i18n="ingresos.hasta">Hasta</th>
             <th data-i18n="formularios.descripcion">Descripción</th>
             <th data-i18n="formularios.monto">Monto</th>
+            <th data-i18n="formularios.bruto">Bruto</th>
             <th data-i18n="formularios.categoria">Categoría</th>
             <th style="width:120px;">Acciones</th>
           </tr>
@@ -84,11 +93,80 @@
               <input type="number" id="montoIngresoMensual" step="0.01" data-i18n="formularios.monto" placeholder="0.00">
               </div>
             </td>
+            <td>
+              <div class="input-euro">
+              <span>€</span>
+              <input type="number" id="brutoIngresoMensual" step="0.01" placeholder="0.00">
+              </div>
+            </td>
             <td><select id="categoriaIngresoMensual"></select></td>
             <td><button id="btnAgregarIngresoMensual"><i class="fas fa-plus"></i></button></td>
           </tr>
         </thead>
         <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- CUENTA REMUNERADA -->
+  <div id="cuentaRemunerada" class="subtab" style="display:none;">
+    <h3 data-i18n="ingresos.cuenta_remunerada">Cuenta Remunerada</h3>
+    <div style="margin-bottom:8px;">
+      <button id="toggleCuentaRemuneradaAntiguos" class="small-btn" data-i18n="ingresos.mostrarAntiguos">Mostrar antiguos</button>
+    </div>
+    <table id="tablaCuentaRemunerada">
+      <thead>
+        <tr>
+          <th data-i18n="ingresos.desde">Desde</th>
+          <th data-i18n="ingresos.hasta">Hasta</th>
+          <th data-i18n="ingresos.aportacionInicial">Aportación Inicial</th>
+          <th data-i18n="ingresos.aportacionMensual">Aportación Mensual</th>
+          <th data-i18n="ingresos.interes">Interés (%)</th>
+          <th data-i18n="ingresos.interesGenerado">Interés Generado</th>
+          <th data-i18n="formularios.categoria">Categoría</th>
+          <th style="width:120px;">Acciones</th>
+        </tr>
+        <tr class="insert-row">
+          <td>
+            <input 
+              type="text" 
+              id="desdeCuentaRemunerada" 
+              placeholder="YYYY-MM" 
+              maxlength="7"
+              pattern="\\d{4}-\\d{2}"
+              title="Formato: YYYY-MM"
+            >
+          </td>
+          <td>
+            <input 
+              type="text" 
+              id="hastaCuentaRemunerada" 
+              placeholder="YYYY-MM" 
+              maxlength="7"
+              pattern="\\d{4}-\\d{2}"
+              title="Formato: YYYY-MM"
+            >
+          </td>
+          <td>
+            <div class="input-euro">
+              <span>€</span>
+              <input type="number" id="montoCuentaRemunerada" step="0.01" data-i18n="formularios.monto" placeholder="0.00">
+            </div>
+          </td>
+          <td>
+            <div class="input-euro">
+              <span>€</span>
+              <input type="number" id="aportacionMensualCR" step="0.01" placeholder="0.00">
+            </div>
+          </td>
+          <td>
+            <input type="number" id="interesCuentaRemunerada" step="0.01" placeholder="0.00">
+          </td>
+          <td></td>
+          <td><select id="categoriaCuentaRemunerada"></select></td>
+          <td><button id="btnAgregarCuentaRemunerada"><i class="fas fa-plus"></i></button></td>
+        </tr>
+      </thead>
+      <tbody></tbody>
     </table>
   </div>
 </section>

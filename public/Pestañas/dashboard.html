@@ -29,15 +29,13 @@
       <!-- FILTROS PERSONALIZADOS -->
       <div class="filtro-group">
         <label for="dashDesde" data-i18n="dashboard.desde">Desde:</label>
-        <input type="date" id="dashDesde" class="date-input">
+        <input type="date" id="dashDesde" class="date-input" data-i18n-placeholder="dashboard.desdeDate">
       </div>
       <div class="filtro-group">
         <label for="dashHasta" data-i18n="dashboard.hasta">Hasta:</label>
-        <input type="date" id="dashHasta" class="date-input">
+        <input type="date" id="dashHasta" class="date-input" data-i18n-placeholder="dashboard.hastaDate">
       </div>
-      <button id="btnCargarDashboard" class="btn-actualizar" data-i18n="dashboard.actualizar">
-        <i class="fas fa-sync-alt"></i> Actualizar
-      </button>
+
     </div>
   </div>
 
@@ -54,7 +52,7 @@
       <div class="chart-header">
         <h3 data-i18n="dashboard.gastosPorMes"><i class="fas fa-chart-bar icon-warning"></i> Gastos por Mes</h3>
         <select id="filtroGastoCategoria" class="filtro-categoria" data-i18n="dashboard.todasCategorias">
-          <option value="">Todas las categorías</option>
+          <option value="" data-i18n="dashboard.todasCategorias">Todas las categorías</option>
         </select>
       </div>
       <canvas id="chartGastosMes"></canvas>
@@ -92,12 +90,12 @@
 
 
     <!-- Fila 4: Distribución por categoría -->
-    <div class="chart-card card-primary">
+    <div class="chart-card  third-width">
       <h3 data-i18n="dashboard.ingresosPorCategoria"><i class="fas fa-tag icon-primary"></i> Ingresos por Categoría</h3>
       <canvas id="chartIngresosCategoria"></canvas>
     </div>
 
-    <div class="chart-card card-warning">
+    <div class="chart-card third-width">
       <h3 data-i18n="dashboard.gastosPorCategoria"><i class="fas fa-tag icon-warning"></i> Gastos por Categoría</h3>
       <canvas id="chartGastosCategoria"></canvas>
     </div>

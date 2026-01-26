@@ -5,14 +5,36 @@ const path = require('path');
 
 const app = express();
 
-// Middleware
-app.use(bodyParser.json());
+// Middleware - Aumentar límite de tamaño para JSON (pero no demasiado)
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
+
+// Timeout para solicitudes
+app.use((req, res, next) => {
+    res.setTimeout(30000, () => {
+        res.status(408).json({ error: 'Request timeout' });
+    });
+    next();
+});
+
+// Headers de seguridad y CORS
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self'");
+    if (req.method === 'OPTIONS') {
+        res.sendStatus(200);
+    } else {
+        next();
+    }
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Base de datos
 const dbPath = path.join(process.cwd(), 'finanzas.db');
 const db = new sqlite3.Database(dbPath);
-
 // ================== HELPERS ASYNC ==================
 
 function dbRun(sql, params = []) {
@@ -42,9 +64,82 @@ function dbAll(sql, params = []) {
     });
 }
 
+// ================== FUNCIÓN CALCULAR INTERESES ==================
+
+function calcularInteresGenerado(monto, aportacionMensual, interes, desde, hasta) {
+    const [desdeY, desdeM] = desde.split('-').map(Number);
+    const [hastaY, hastaM] = hasta.split('-').map(Number);
+    
+    // Si es un solo mes, solo calcula interés con la base, sin aportaciones
+    if (desde === hasta) {
+        return monto * (interes / 100) / 12;
+    }
+    
+    const desdeDate = new Date(desdeY, desdeM - 1, 1);
+    const hastaDate = new Date(hastaY, hastaM, 0);
+    
+    let saldo = monto;
+    let totalInteres = 0;
+    let current = new Date(desdeDate);
+    
+    // Primer mes: monto inicial genera interés
+    totalInteres += saldo * (interes / 100) / 12;
+    current.setMonth(current.getMonth() + 1);
+    
+    // Meses siguientes: aportación el día 1, luego genera interés
+    while (current <= hastaDate) {
+        saldo += aportacionMensual || 0;
+        totalInteres += saldo * (interes / 100) / 12;
+        current.setMonth(current.getMonth() + 1);
+    }
+    
+    return totalInteres;
+}
+
+// Calcular intereses mensuales (mes a mes)
+function calcularInteresesMensuales(monto, aportacionMensual, interes, desde, hasta) {
+    const [desdeY, desdeM] = desde.split('-').map(Number);
+    const [hastaY, hastaM] = hasta.split('-').map(Number);
+    
+    const mesesInteres = {};
+    
+    // Si es un solo mes, solo calcula interés con la base
+    if (desde === hasta) {
+        mesesInteres[desde] = monto * (interes / 100) / 12;
+        return mesesInteres;
+    }
+    
+    const desdeDate = new Date(desdeY, desdeM - 1, 1);
+    const hastaDate = new Date(hastaY, hastaM, 0);
+    
+    let saldo = monto;
+    let current = new Date(desdeDate);
+    
+    // Primer mes: monto inicial genera interés
+    const primerMes = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+    mesesInteres[primerMes] = saldo * (interes / 100) / 12;
+    current.setMonth(current.getMonth() + 1);
+    
+    // Meses siguientes: aportación el día 1, luego genera interés
+    while (current <= hastaDate) {
+        saldo += aportacionMensual || 0;
+        const mesKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+        mesesInteres[mesKey] = saldo * (interes / 100) / 12;
+        current.setMonth(current.getMonth() + 1);
+    }
+    
+    return mesesInteres;
+}
+
+// Generar descripción random para cuenta remunerada
+function generarDescripcionRandom() {
+    const ids = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const timestamp = Date.now().toString(36).toUpperCase();
+    return `Cuenta-${ids}-${timestamp}`;
+}
+
 // ================== CREAR TABLAS ==================
 
-db.serialize(() => {
 
 db.run(`PRAGMA foreign_keys = ON`);
 
@@ -52,7 +147,7 @@ db.run(`
 CREATE TABLE IF NOT EXISTS categorias (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nombre TEXT NOT NULL,
-    tipo TEXT CHECK(tipo IN ('gasto','ingreso')) NOT NULL,
+    tipo TEXT CHECK(tipo IN ('gasto','ingreso','impuestos')) NOT NULL,
     UNIQUE(nombre, tipo)
 )`);
 
@@ -85,6 +180,18 @@ CREATE TABLE IF NOT EXISTS ingresos_puntuales (
     fecha TEXT NOT NULL,
     descripcion TEXT NOT NULL,
     monto REAL NOT NULL,
+    bruto REAL,
+    categoria_id INTEGER NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE RESTRICT
+)`);
+
+db.run(`
+CREATE TABLE IF NOT EXISTS impuestos_puntuales (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    fecha TEXT NOT NULL,
+    descripcion TEXT NOT NULL,
+    monto REAL NOT NULL,
     categoria_id INTEGER NOT NULL,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE RESTRICT
@@ -95,30 +202,145 @@ CREATE TABLE IF NOT EXISTS ingresos_mensuales (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     descripcion TEXT NOT NULL,
     monto REAL NOT NULL,
+    bruto REAL DEFAULT NULL,
     categoria_id INTEGER NOT NULL,
     desde TEXT NOT NULL,
     hasta TEXT NOT NULL,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE RESTRICT
 )`);
+
+db.run(`
+CREATE TABLE IF NOT EXISTS impuestos_mensuales (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    descripcion TEXT NOT NULL,
+    monto REAL NOT NULL,
+    categoria_id INTEGER NOT NULL,
+    desde TEXT NOT NULL,
+    hasta TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE RESTRICT
+)`);
+
+// CUENTA REMUNERADA
+db.run(`
+CREATE TABLE IF NOT EXISTS cuenta_remunerada (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    descripcion TEXT NOT NULL,
+    monto REAL NOT NULL,
+    aportacion_mensual REAL,
+    interes REAL,
+    interes_generado REAL DEFAULT 0,
+    categoria_id INTEGER NOT NULL,
+    desde TEXT NOT NULL,
+    hasta TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE RESTRICT
+)`);
+
+
+// ===== MIGRATION: Actualizar CHECK constraint de categorias =====
+db.run(`ALTER TABLE categorias ADD COLUMN tipo_test TEXT`, (err) => {
+    if (err) {
+        // La columna ya existe o hay otro error, la tabla está lista
+        console.log('✅ Tabla categorias lista con CHECK constraint actualizado');
+    } else {
+        // Se pudo agregar la columna, significa que la tabla es antigua
+        db.run(`ALTER TABLE categorias DROP COLUMN tipo_test`);
+        console.log('⚠️ Migrando tabla categorias para agregar tipo "impuestos"...');
+    }});
+
+
+
+
+// Agregar columna interes_generado si no existe
+db.run(`ALTER TABLE cuenta_remunerada ADD COLUMN interes_generado REAL DEFAULT 0`, (err) => {
+    if (err && !err.message.includes('duplicate column')) {
+        console.error('Error al agregar columna interes_generado:', err);
+    }
 });
+
+// Agregar columna aportacion_mensual si no existe
+db.run(`ALTER TABLE cuenta_remunerada ADD COLUMN aportacion_mensual REAL DEFAULT NULL`, (err) => {
+    if (err && !err.message.includes('duplicate column')) {
+        console.error('Error al agregar columna aportacion_mensual:', err);
+    }
+});
+
+db.run(`PRAGMA foreign_keys = OFF`, () => {
+    db.run(`
+        CREATE TABLE categorias_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL,
+            tipo TEXT CHECK(tipo IN ('gasto','ingreso','impuestos')) NOT NULL,
+            UNIQUE(nombre, tipo)
+        )
+    `, () => {
+        db.run(`INSERT INTO categorias_new SELECT id, nombre, tipo FROM categorias`, () => {
+            db.run(`DROP TABLE categorias`, () => {
+                db.run(`ALTER TABLE categorias_new RENAME TO categorias`, () => {
+                    db.run(`PRAGMA foreign_keys = ON`, () => {
+                        console.log('✅ Tabla categorias migrada correctamente');
+                    });
+                });
+            });
+        });
+    });
+});
+
+// Agregar columna bruto si no existe (para bases de datos existentes)
+db.run(`ALTER TABLE ingresos_puntuales ADD COLUMN bruto REAL DEFAULT NULL`, (err) => {
+    if (err && !err.message.includes('duplicate column')) {
+        console.error('Error al agregar columna bruto a ingresos_puntuales:', err);
+    }
+});
+
+db.run(`ALTER TABLE ingresos_mensuales ADD COLUMN bruto REAL DEFAULT NULL`, (err) => {
+    if (err && !err.message.includes('duplicate column')) {
+        console.error('Error al agregar columna bruto a ingresos_mensuales:', err);
+    }
+});
+
 
 // ================== CATEGORÍAS ==================
 
 app.post('/add/categoria', async (req, res) => {
-    const { nombre, tipo } = req.body;
     try {
-        await dbRun("INSERT INTO categorias (nombre, tipo) VALUES (?, ?)", [nombre, tipo]);
-        res.sendStatus(200);
-    } catch {
-        res.status(400).send("Categoría ya existe");
+        const { nombre, tipo } = req.body;
+        
+        // Validación
+        if (!nombre || !tipo) {
+            return res.status(400).json({ error: 'Nombre y tipo son requeridos' });
+        }
+        
+        if (!['gasto', 'ingreso', 'impuestos'].includes(tipo)) {
+            return res.status(400).json({ error: 'Tipo de categoría inválido' });
+        }
+        
+        await dbRun("INSERT INTO categorias (nombre, tipo) VALUES (?, ?)", [nombre.trim(), tipo]);
+        res.status(200).json({ success: true, message: 'Categoría agregada' });
+    } catch (err) {
+        if (err.message.includes('UNIQUE')) {
+            res.status(400).json({ error: 'La categoría ya existe para este tipo' });
+        } else {
+            res.status(400).json({ error: err.message });
+        }
     }
 });
 
 app.get('/categorias', async (req, res) => {
-    const gastos = await dbAll("SELECT * FROM categorias WHERE tipo='gasto' ORDER BY nombre");
-    const ingresos = await dbAll("SELECT * FROM categorias WHERE tipo='ingreso' ORDER BY nombre");
-    res.json({ gastos, ingresos });
+    try {
+        const gastos = await dbAll("SELECT * FROM categorias WHERE tipo='gasto' ORDER BY nombre");
+        const ingresos = await dbAll("SELECT * FROM categorias WHERE tipo='ingreso' ORDER BY nombre");
+        const impuestos = await dbAll("SELECT * FROM categorias WHERE tipo='impuestos' ORDER BY nombre");
+        res.json({ 
+            gastos: gastos || [], 
+            ingresos: ingresos || [], 
+            impuestos: impuestos || [] 
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.post('/delete/categoria', async (req, res) => {
@@ -134,6 +356,57 @@ app.post('/update/categoria', async (req, res) => {
     const { id, nombre } = req.body;
     try {
         await dbRun("UPDATE categorias SET nombre = ? WHERE id = ?", [nombre, id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
+// ================== CUENTA REMUNERADA ==================
+
+app.post('/add/cuenta_remunerada', async (req, res) => {
+    const { monto, aportacion_mensual, interes, categoria_id, desde, hasta } = req.body;
+    try {
+        // Calcular interés generado
+        const interesGenerado = calcularInteresGenerado(monto, aportacion_mensual || 0, interes || 0, desde, hasta);
+        const descripcion = generarDescripcionRandom();
+        
+        await dbRun(`
+            INSERT INTO cuenta_remunerada (descripcion, monto, aportacion_mensual, interes, interes_generado, categoria_id, desde, hasta)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `, [descripcion, monto, aportacion_mensual || null, interes || null, interesGenerado, categoria_id, desde, hasta]);
+          
+        res.sendStatus(200);
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
+
+app.post('/delete/cuenta_remunerada', async (req, res) => {
+    await dbRun("DELETE FROM cuenta_remunerada WHERE id = ?", [req.body.id]);
+    res.json({ ok: true });
+});
+
+app.post('/update/cuenta_remunerada', async (req, res) => {
+    const { id, desde, hasta, monto, aportacion_mensual, interes, categoria } = req.body;
+    try {
+        // Obtener el id de la categoría desde el nombre
+        const cat = await dbGet("SELECT id FROM categorias WHERE nombre = ? AND tipo = 'ingreso'", [categoria]);
+        if (!cat) return res.status(400).json({ error: "Categoría no encontrada" });
+        
+        // Generar nueva descripción random
+        const descripcion = generarDescripcionRandom();
+        
+        // Recalcular interés generado
+        const interesGenerado = calcularInteresGenerado(monto, aportacion_mensual, interes, desde, hasta);
+        
+        await dbRun(`
+            UPDATE cuenta_remunerada 
+            SET descripcion = ?, desde = ?, hasta = ?, monto = ?, aportacion_mensual = ?, interes = ?, interes_generado = ?, categoria_id = ?
+            WHERE id = ?
+        `, [descripcion, desde, hasta, monto, aportacion_mensual || null, interes || null, interesGenerado, cat.id, id]);
+        
         res.json({ success: true });
     } catch (err) {
         res.status(400).json({ error: err.message });
@@ -208,31 +481,38 @@ app.post('/update/gasto_mensual', async (req, res) => {
     }
 });
 
-// ================== INGRESOS ==================
+// ================== IMPUESTOS ==================
 
-app.post('/add/ingreso_puntual', async (req, res) => {
+app.post('/add/impuesto_puntual', async (req, res) => {
     const { fecha, descripcion, monto, categoria_id } = req.body;
-    await dbRun(`
-        INSERT INTO ingresos_puntuales (fecha, descripcion, monto, categoria_id)
-        VALUES (?, ?, ?, ?)
-    `, [fecha, descripcion, monto, categoria_id]);
-    res.sendStatus(200);
+    try {
+        await dbRun(`
+            INSERT INTO impuestos_puntuales (fecha, descripcion, monto, categoria_id)
+            VALUES (?, ?, ?, ?)
+        `, [fecha, descripcion, monto, categoria_id]);
+        res.sendStatus(200);
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
 });
 
-app.post('/delete/ingreso_puntual', async (req, res) => {
-    await dbRun("DELETE FROM ingresos_puntuales WHERE id = ?", [req.body.id]);
-    res.json({ ok: true });
+app.post('/delete/impuesto_puntual', async (req, res) => {
+    try {
+        await dbRun("DELETE FROM impuestos_puntuales WHERE id = ?", [req.body.id]);
+        res.json({ ok: true });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
 });
 
-app.post('/update/ingreso_puntual', async (req, res) => {
+app.post('/update/impuesto_puntual', async (req, res) => {
     const { id, fecha, descripcion, monto, categoria } = req.body;
     try {
-        // Obtener el id de la categoría desde el nombre
-        const cat = await dbGet("SELECT id FROM categorias WHERE nombre = ? AND tipo = 'ingreso'", [categoria]);
+        const cat = await dbGet("SELECT id FROM categorias WHERE nombre = ?", [categoria]);
         if (!cat) return res.status(400).json({ error: "Categoría no encontrada" });
         
         await dbRun(`
-            UPDATE ingresos_puntuales 
+            UPDATE impuestos_puntuales 
             SET fecha = ?, descripcion = ?, monto = ?, categoria_id = ?
             WHERE id = ?
         `, [fecha, descripcion, monto, cat.id, id]);
@@ -243,12 +523,115 @@ app.post('/update/ingreso_puntual', async (req, res) => {
     }
 });
 
-app.post('/add/ingreso_mensual', async (req, res) => {
+app.post('/add/impuesto_mensual', async (req, res) => {
     const { descripcion, monto, categoria_id, desde, hasta } = req.body;
+    try {
+        await dbRun(`
+            INSERT INTO impuestos_mensuales (descripcion, monto, categoria_id, desde, hasta)
+            VALUES (?, ?, ?, ?, ?)
+        `, [descripcion, monto, categoria_id, desde, hasta]);
+        res.sendStatus(200);
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
+app.post('/delete/impuesto_mensual', async (req, res) => {
+    try {
+        await dbRun("DELETE FROM impuestos_mensuales WHERE id = ?", [req.body.id]);
+        res.json({ ok: true });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
+app.post('/update/impuesto_mensual', async (req, res) => {
+    const { id, desde, hasta, descripcion, monto, categoria } = req.body;
+    try {
+        const cat = await dbGet("SELECT id FROM categorias WHERE nombre = ?", [categoria]);
+        if (!cat) return res.status(400).json({ error: "Categoría no encontrada" });
+        
+        await dbRun(`
+            UPDATE impuestos_mensuales 
+            SET desde = ?, hasta = ?, descripcion = ?, monto = ?, categoria_id = ?
+            WHERE id = ?
+        `, [desde, hasta, descripcion, monto, cat.id, id]);
+        
+        res.json({ success: true });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
+app.get('/impuestos-puntuales', async (req, res) => {
+    try {
+        const impuestos = await dbAll(`
+            SELECT i.id, i.fecha, i.descripcion, i.monto, c.nombre AS categoria
+            FROM impuestos_puntuales i
+            JOIN categorias c ON i.categoria_id = c.id
+            ORDER BY i.fecha DESC
+        `);
+        res.json(impuestos);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/impuestos-mensuales', async (req, res) => {
+    try {
+        const impuestos = await dbAll(`
+            SELECT i.id, i.descripcion, i.monto, i.desde, i.hasta, c.nombre AS categoria
+            FROM impuestos_mensuales i
+            JOIN categorias c ON i.categoria_id = c.id
+            ORDER BY i.desde DESC
+        `);
+        res.json(impuestos);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ================== INGRESOS ==================
+
+app.post('/add/ingreso_puntual', async (req, res) => {
+    const { fecha, descripcion, monto, bruto, categoria_id } = req.body;
     await dbRun(`
-        INSERT INTO ingresos_mensuales (descripcion, monto, categoria_id, desde, hasta)
+        INSERT INTO ingresos_puntuales (fecha, descripcion, monto, bruto, categoria_id)
         VALUES (?, ?, ?, ?, ?)
-    `, [descripcion, monto, categoria_id, desde, hasta]);
+    `, [fecha, descripcion, monto, bruto || null, categoria_id]);
+    res.sendStatus(200);
+});
+
+app.post('/delete/ingreso_puntual', async (req, res) => {
+    await dbRun("DELETE FROM ingresos_puntuales WHERE id = ?", [req.body.id]);
+    res.json({ ok: true });
+});
+
+app.post('/update/ingreso_puntual', async (req, res) => {
+    const { id, fecha, descripcion, monto, bruto, categoria } = req.body;
+    try {
+        // Obtener el id de la categoría desde el nombre
+        const cat = await dbGet("SELECT id FROM categorias WHERE nombre = ? AND tipo = 'ingreso'", [categoria]);
+        if (!cat) return res.status(400).json({ error: "Categoría no encontrada" });
+        
+        await dbRun(`
+            UPDATE ingresos_puntuales 
+            SET fecha = ?, descripcion = ?, monto = ?, bruto = ?, categoria_id = ?
+            WHERE id = ?
+        `, [fecha, descripcion, monto, bruto || null, cat.id, id]);
+        
+        res.json({ success: true });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
+app.post('/add/ingreso_mensual', async (req, res) => {
+    const { descripcion, monto, bruto, categoria_id, desde, hasta } = req.body;
+    await dbRun(`
+        INSERT INTO ingresos_mensuales (descripcion, monto, bruto, categoria_id, desde, hasta)
+        VALUES (?, ?, ?, ?, ?, ?)
+    `, [descripcion, monto, bruto || null, categoria_id, desde, hasta]);
     res.sendStatus(200);
 });
 
@@ -258,7 +641,7 @@ app.post('/delete/ingreso_mensual', async (req, res) => {
 });
 
 app.post('/update/ingreso_mensual', async (req, res) => {
-    const { id, desde, hasta, descripcion, monto, categoria } = req.body;
+    const { id, desde, hasta, descripcion, monto, bruto, categoria } = req.body;
     try {
         // Obtener el id de la categoría desde el nombre
         const cat = await dbGet("SELECT id FROM categorias WHERE nombre = ? AND tipo = 'ingreso'", [categoria]);
@@ -266,9 +649,9 @@ app.post('/update/ingreso_mensual', async (req, res) => {
         
         await dbRun(`
             UPDATE ingresos_mensuales 
-            SET desde = ?, hasta = ?, descripcion = ?, monto = ?, categoria_id = ?
+            SET desde = ?, hasta = ?, descripcion = ?, monto = ?, bruto = ?, categoria_id = ?
             WHERE id = ?
-        `, [desde, hasta, descripcion, monto, cat.id, id]);
+        `, [desde, hasta, descripcion, monto, bruto || null, cat.id, id]);
         
         res.json({ success: true });
     } catch (err) {
@@ -360,10 +743,29 @@ app.get('/ingresos-periodo', async (req, res) => {
             }
         });
 
+        // Cuenta remunerada (aportaciones iniciales, no los intereses)
+        let queryCR = "SELECT monto, desde, hasta FROM cuenta_remunerada";
+        const paramsCR = [];
+        const cuentaRemunerada = await dbAll(queryCR, paramsCR);
+
+        let totalCuentaRemunerada = 0;
+        cuentaRemunerada.forEach(cr => {
+            const crDesde = new Date(cr.desde + "-28");
+            const crHasta = cr.hasta ? new Date(cr.hasta + "-28") : new Date(9999,11,31);
+            const end = hastaDate < crHasta ? hastaDate : crHasta;
+            let current = new Date(crDesde > desdeDate ? crDesde : desdeDate);
+
+            while (current <= end) {
+                totalCuentaRemunerada += cr.monto;
+                current.setMonth(current.getMonth() + 1);
+            }
+        });
+
         res.json({
             totalPuntuales,
             totalMensuales,
-            totalIngresos: totalPuntuales + totalMensuales
+            totalCuentaRemunerada,
+            totalIngresos: totalPuntuales + totalMensuales + totalCuentaRemunerada
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -423,9 +825,66 @@ app.get('/gastos-mes', async (req,res) => {
     }
 });
 
-// ================== INGRESOS VS MES ==================
-app.get('/ingresos-mes', async (req,res)=>{
+// ================== IMPUESTOS POR MES ==================
+app.get('/impuestos-mes', async (req, res) => {
     try {
+        const { desde, hasta } = req.query;
+        if (!desde || !hasta) return res.status(400).send("Debes enviar desde y hasta en formato YYYY-MM-DD");
+
+        const desdeDate = new Date(desde);
+        const hastaDate = new Date(hasta);
+
+        // Crear array de meses
+        const meses = [];
+        let current = new Date(desdeDate.getFullYear(), desdeDate.getMonth(), 1);
+        const end = new Date(hastaDate.getFullYear(), hastaDate.getMonth(), 1);
+        while(current <= end){
+            const mesStr = `${current.getFullYear()}-${String(current.getMonth()+1).padStart(2,'0')}`;
+            meses.push({ mes: mesStr, impuestos: 0 });
+            current.setMonth(current.getMonth()+1);
+        }
+
+        // Impuestos de ingresos puntuales
+        const ingresosPBruto = await dbAll(`
+            SELECT bruto, monto, fecha 
+            FROM ingresos_puntuales 
+            WHERE fecha BETWEEN ? AND ? AND bruto IS NOT NULL AND bruto != monto
+        `, [desde, hasta]);
+        
+        ingresosPBruto.forEach(i => {
+            const mes = i.fecha.slice(0, 7);
+            const m = meses.find(x => x.mes === mes);
+            if(m) m.impuestos += i.bruto - i.monto;
+        });
+
+        // Impuestos de ingresos mensuales
+        const ingresosMBruto = await dbAll(`
+            SELECT bruto, monto, desde, hasta 
+            FROM ingresos_mensuales 
+            WHERE bruto IS NOT NULL AND bruto != monto
+        `);
+        
+        ingresosMBruto.forEach(i => {
+            meses.forEach(m => {
+                const mes28 = new Date(m.mes + "-28");
+                const inicio28 = new Date(i.desde + "-28");
+                const fin28 = i.hasta ? new Date(i.hasta + "-28") : new Date(9999, 11, 31);
+                
+                if(mes28 >= inicio28 && mes28 <= fin28 && mes28 <= hastaDate) {
+                    m.impuestos += i.bruto - i.monto;
+                }
+            });
+        });
+
+        res.json(meses);
+    } catch(err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ================== INGRESOS POR MES ==================
+app.get('/ingresos-mes', async (req,res) => {  
+try {
         const { desde, hasta, categoria_id } = req.query;
         if (!desde || !hasta) return res.status(400).send("Debes enviar desde y hasta en formato YYYY-MM-DD");
 
@@ -475,189 +934,9 @@ app.get('/ingresos-mes', async (req,res)=>{
         res.status(500).json({ error: err.message });
     }
 });
-app.get('/gastos-periodo', (req, res) => {
-    const { desde, hasta, categoria_id } = req.query;
-    if (!desde || !hasta) return res.status(400).send("Debes enviar desde y hasta en formato YYYY-MM-DD");
-
-    const desdeDate = new Date(desde);
-    const hastaDate = new Date(hasta);
-
-    // 1️⃣ Gastos puntuales
-    let queryP = "SELECT IFNULL(SUM(monto),0) as total FROM gastos_puntuales WHERE fecha BETWEEN ? AND ?";
-    const paramsP = [desde, hasta];
-    if (categoria_id) { queryP += " AND categoria_id=?"; paramsP.push(categoria_id); }
-    const totalPuntuales = db.prepare(queryP).get(...paramsP).total;
-
-    // 2️⃣ Gastos mensuales (regla del 28)
-    let queryM = "SELECT monto, desde, hasta FROM gastos_mensuales";
-    const paramsM = [];
-    if (categoria_id) { queryM += " WHERE categoria_id=?"; paramsM.push(categoria_id); }
-    const gastosMensuales = db.prepare(queryM).all(...paramsM);
-
-    let totalMensuales = 0;
-
-    gastosMensuales.forEach(g => {
-        // Fechas reales de cobro (día 28)
-        const gDesde = new Date(g.desde + "-28");
-        const gHasta = g.hasta ? new Date(g.hasta + "-28") : new Date(9999, 11, 31);
-
-        // Recorte al rango solicitado
-        const end = hastaDate < gHasta ? hastaDate : gHasta;
-        let current = new Date(gDesde > desdeDate ? gDesde : desdeDate);
-
-        // Contar solo meses cuyo 28 esté dentro del rango
-        while (current <= end) {
-            totalMensuales += g.monto;
-            current.setMonth(current.getMonth() + 1);
-        }
-    });
-
-    res.json({ 
-        totalPuntuales, 
-        totalMensuales, 
-        totalGastos: totalPuntuales + totalMensuales 
-    });
-});
-
-// ================== TOTAL INGRESOS POR PERIODO ==================
-app.get('/ingresos-periodo', (req, res) => {
-    const { desde, hasta, categoria_id } = req.query;
-    if (!desde || !hasta) return res.status(400).send("Debes enviar desde y hasta en formato YYYY-MM-DD");
-
-    const desdeDate = new Date(desde);
-    const hastaDate = new Date(hasta);
-
-    // 1️⃣ Ingresos puntuales
-    let queryP = "SELECT IFNULL(SUM(monto),0) as total FROM ingresos_puntuales WHERE fecha BETWEEN ? AND ?";
-    const paramsP = [desde, hasta];
-    if (categoria_id) { queryP += " AND categoria_id=?"; paramsP.push(categoria_id); }
-    const totalPuntuales = db.prepare(queryP).get(...paramsP).total;
-
-    // 2️⃣ Ingresos mensuales (regla 28)
-    let queryM = "SELECT monto, desde, hasta FROM ingresos_mensuales";
-    const paramsM = [];
-    if (categoria_id) { queryM += " WHERE categoria_id=?"; paramsM.push(categoria_id); }
-    const ingresosMensuales = db.prepare(queryM).all(...paramsM);
-
-    let totalMensuales = 0;
-    ingresosMensuales.forEach(i => {
-        const iDesde = new Date(i.desde + "-28");
-        const iHasta = i.hasta ? new Date(i.hasta + "-28") : new Date(9999, 11, 31);
-        const end = hastaDate < iHasta ? hastaDate : iHasta;
-
-        let current = new Date(iDesde > desdeDate ? iDesde : desdeDate);
-
-        while (current <= end) {
-            totalMensuales += i.monto;
-            current.setMonth(current.getMonth() + 1);
-        }
-    });
-
-    res.json({ totalPuntuales, totalMensuales, totalIngresos: totalPuntuales + totalMensuales });
-});
 
 
-// ================== GASTOS VS MES ==================
-app.get('/gastos-mes', (req,res)=>{
-    const { desde, hasta, categoria_id } = req.query;
-    if (!desde || !hasta) return res.status(400).send("Debes enviar desde y hasta en formato YYYY-MM-DD");
 
-    const desdeDate = new Date(desde);
-    const hastaDate = new Date(hasta);
-
-    // Crear array de meses
-    const meses = [];
-    let current = new Date(desdeDate.getFullYear(), desdeDate.getMonth(), 1);
-    const end = new Date(hastaDate.getFullYear(), hastaDate.getMonth(), 1);
-    while(current <= end){
-        const mesStr = `${current.getFullYear()}-${String(current.getMonth()+1).padStart(2,'0')}`;
-        meses.push({ mes: mesStr, total: 0 });
-        current.setMonth(current.getMonth()+1);
-    }
-
-    // Fecha de referencia para la regla del 28
-    const fechaReferencia = hastaDate;
-
-    // ==== Gastos puntuales ====
-    let queryP = "SELECT fecha, monto FROM gastos_puntuales WHERE fecha BETWEEN ? AND ?";
-    const paramsP = [desde, hasta];
-    if(categoria_id){ queryP += " AND categoria_id=?"; paramsP.push(categoria_id); }
-    db.prepare(queryP).all(...paramsP).forEach(g=>{
-        const mes = g.fecha.slice(0,7);
-        const m = meses.find(x=>x.mes===mes);
-        if(m) m.total += g.monto;
-    });
-
-    // ==== Gastos mensuales (regla 28) ====
-    let queryM = "SELECT monto, desde, hasta FROM gastos_mensuales";
-    const paramsM = [];
-    if(categoria_id){ queryM += " WHERE categoria_id=?"; paramsM.push(categoria_id); }
-    db.prepare(queryM).all(...paramsM).forEach(g=>{
-        const start = new Date(g.desde + "-28");
-        const finish = g.hasta ? new Date(g.hasta + "-28") : new Date(9999,11,31);
-        const end = fechaReferencia < finish ? fechaReferencia : finish;
-
-        meses.forEach(m=>{
-            const mes28 = new Date(m.mes + "-28");
-            if(mes28 >= start && mes28 <= end){
-                m.total += g.monto;
-            }
-        });
-    });
-
-    res.json(meses);
-});
-
-// ================== INGRESOS VS MES ==================
-app.get('/ingresos-mes', (req,res)=>{
-    const { desde, hasta, categoria_id } = req.query;
-    if (!desde || !hasta) return res.status(400).send("Debes enviar desde y hasta en formato YYYY-MM-DD");
-
-    const desdeDate = new Date(desde);
-    const hastaDate = new Date(hasta);
-
-    // Crear array de meses
-    const meses = [];
-    let current = new Date(desdeDate.getFullYear(), desdeDate.getMonth(), 1);
-    const end = new Date(hastaDate.getFullYear(), hastaDate.getMonth(), 1);
-    while(current <= end){
-        const mesStr = `${current.getFullYear()}-${String(current.getMonth()+1).padStart(2,'0')}`;
-        meses.push({ mes: mesStr, total: 0 });
-        current.setMonth(current.getMonth()+1);
-    }
-
-    // Fecha de referencia: hasta que el usuario indicó
-    const fechaReferencia = hastaDate;
-
-    // ==== Ingresos puntuales ====
-    let queryP = "SELECT fecha, monto FROM ingresos_puntuales WHERE fecha BETWEEN ? AND ?";
-    const paramsP = [desde, hasta];
-    if(categoria_id){ queryP += " AND categoria_id=?"; paramsP.push(categoria_id); }
-    db.prepare(queryP).all(...paramsP).forEach(i=>{
-        const mes = i.fecha.slice(0,7);
-        const m = meses.find(x=>x.mes===mes);
-        if(m) m.total += i.monto;
-    });
-
-    // ==== Ingresos mensuales (regla 28) ====
-    let queryM = "SELECT monto, desde, hasta FROM ingresos_mensuales";
-    const paramsM = [];
-    if(categoria_id){ queryM += " WHERE categoria_id=?"; paramsM.push(categoria_id); }
-    db.prepare(queryM).all(...paramsM).forEach(i=>{
-        const start = new Date(i.desde + "-28");
-        const finish = i.hasta ? new Date(i.hasta + "-28") : new Date(9999,11,31);
-        const end = fechaReferencia < finish ? fechaReferencia : finish;
-
-        meses.forEach(m=>{
-            const mes28 = new Date(m.mes + "-28");
-            if(mes28 >= start && mes28 <= end){
-                m.total += i.monto;
-            }
-        });
-    });
-
-    res.json(meses);
-});
 
 // ================== AHORROS VS MES ==================
 app.get('/ahorros-mes', async (req, res) => {
@@ -673,7 +952,7 @@ app.get('/ahorros-mes', async (req, res) => {
         const end = new Date(hastaDate.getFullYear(), hastaDate.getMonth(), 1);
         while(current <= end){
             const mesStr = `${current.getFullYear()}-${String(current.getMonth()+1).padStart(2,'0')}`;
-            meses.push({ mes: mesStr, ingresos: 0, gastos: 0, ahorros: 0 });
+            meses.push({ mes: mesStr, ingresos: 0, cuentas_remuneradas: 0, gastos: 0, ahorros: 0 });
             current.setMonth(current.getMonth()+1);
         }
 
@@ -701,6 +980,25 @@ app.get('/ahorros-mes', async (req, res) => {
             meses.forEach(m => {
                 const mes28 = new Date(m.mes + "-28");
                 if(mes28 >= start && mes28 <= endRef) m.ingresos += i.monto;
+            });
+        });
+
+        // ==== Cuenta remunerada ====
+        const queryCR = "SELECT monto, aportacion_mensual, interes, desde, hasta FROM cuenta_remunerada";
+        const cuentasRemuneradas = await dbAll(queryCR);
+        cuentasRemuneradas.forEach(cr => {
+            const start = new Date(cr.desde + "-28");
+            const finish = cr.hasta ? new Date(cr.hasta + "-28") : new Date(9999,11,31);
+            const endRef = hastaDate < finish ? hastaDate : finish;
+
+            // Calcular intereses mes a mes
+            const interesesMensuales = calcularInteresesMensuales(cr.monto, cr.aportacion_mensual || 0, cr.interes || 0, cr.desde, cr.hasta);
+
+            meses.forEach(m => {
+                const mes28 = new Date(m.mes + "-28");
+                if(mes28 >= start && mes28 <= endRef) {
+                    m.cuentas_remuneradas += interesesMensuales[m.mes] || 0;
+                }
             });
         });
 
@@ -732,7 +1030,7 @@ app.get('/ahorros-mes', async (req, res) => {
         });
 
         // ==== Calcular ahorros ====
-        meses.forEach(m => m.ahorros = m.ingresos - m.gastos);
+        meses.forEach(m => m.ahorros = (m.ingresos + m.cuentas_remuneradas) - m.gastos);
 
         res.json(meses);
 
@@ -744,11 +1042,14 @@ app.get('/ahorros-mes', async (req, res) => {
 // ================== DASHBOARD GENERAL ==================
 app.get('/dashboard', async (req, res) => {
     try {
+        const LIMIT = 500; // Limitar a 500 registros por tipo
+
         const gastos_puntuales = await dbAll(`
             SELECT g.id, g.fecha, g.descripcion, g.monto, c.nombre AS categoria
             FROM gastos_puntuales g
             JOIN categorias c ON g.categoria_id = c.id
             ORDER BY g.fecha DESC
+            LIMIT ${LIMIT}
         `);
 
         const gastos_mensuales = await dbAll(`
@@ -756,30 +1057,49 @@ app.get('/dashboard', async (req, res) => {
             FROM gastos_mensuales g
             JOIN categorias c ON g.categoria_id = c.id
             ORDER BY g.desde DESC
+            LIMIT ${LIMIT}
         `);
 
         const ingresos_puntuales = await dbAll(`
-            SELECT i.id, i.fecha, i.descripcion, i.monto, c.nombre AS categoria
+            SELECT i.id, i.fecha, i.descripcion, i.monto, i.bruto, c.nombre AS categoria
             FROM ingresos_puntuales i
             JOIN categorias c ON i.categoria_id = c.id
             ORDER BY i.fecha DESC
+            LIMIT ${LIMIT}
         `);
 
         const ingresos_mensuales = await dbAll(`
-            SELECT i.id, i.descripcion, i.monto, i.desde, i.hasta, c.nombre AS categoria
+            SELECT i.id, i.descripcion, i.monto, i.bruto, i.desde, i.hasta, c.nombre AS categoria
             FROM ingresos_mensuales i
             JOIN categorias c ON i.categoria_id = c.id
             ORDER BY i.desde DESC
+            LIMIT ${LIMIT}
         `);
+
+        const cuenta_remunerada = await dbAll(`
+            SELECT cr.id, cr.descripcion, cr.monto, cr.aportacion_mensual, cr.interes, cr.desde, cr.hasta, c.nombre AS categoria
+            FROM cuenta_remunerada cr
+            JOIN categorias c ON cr.categoria_id = c.id
+            ORDER BY cr.desde DESC
+            LIMIT ${LIMIT}
+        `);
+
+        // Calcular intereses generados para cada cuenta remunerada
+        const cuenta_remunerada_con_interes = cuenta_remunerada.map(cr => ({
+            ...cr,
+            interes_generado: cr.interes ? calcularInteresGenerado(cr.monto, cr.aportacion_mensual || 0, cr.interes, cr.desde, cr.hasta) : 0
+        }));
 
         res.json({
             gastos_puntuales,
             gastos_mensuales,
             ingresos_puntuales,
-            ingresos_mensuales
+            ingresos_mensuales,
+            cuenta_remunerada: cuenta_remunerada_con_interes
         });
 
     } catch(err) {
+        console.error('Error en /dashboard:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -906,6 +1226,34 @@ app.get('/gastos-categoria-mes', async (req, res) => {
             });
         });
 
+        // Impuestos como categoría "taxes"
+        // Impuestos puntuales
+        const impuestosP = await dbAll(`
+            SELECT i.monto, i.fecha
+            FROM impuestos_puntuales i
+            WHERE i.fecha BETWEEN ? AND ?
+        `, [desde, hasta]);
+        impuestosP.forEach(i => {
+            const mes = i.fecha.slice(0,7);
+            if(dataMesCat[mes]) dataMesCat[mes]['taxes'] = (dataMesCat[mes]['taxes'] || 0) + i.monto;
+        });
+
+        // Impuestos mensuales
+        const impuestosM = await dbAll(`
+            SELECT i.monto, i.desde, i.hasta
+            FROM impuestos_mensuales i
+        `);
+        impuestosM.forEach(i => {
+            meses.forEach(m => {
+                const mes28 = new Date(m + "-28");
+                const iDesde = new Date(i.desde + "-28");
+                const iHasta = i.hasta ? new Date(i.hasta + "-28") : new Date(9999,11,31);
+                if(mes28 >= iDesde && mes28 <= iHasta && mes28 <= hastaDate){
+                    dataMesCat[m]['taxes'] = (dataMesCat[m]['taxes'] || 0) + i.monto;
+                }
+            });
+        });
+
         res.json(dataMesCat);
 
     } catch(err) {
@@ -914,49 +1262,96 @@ app.get('/gastos-categoria-mes', async (req, res) => {
 });
 
 // ================== RESUMEN PERIODOS ==================
+// Cache para resumen de períodos (se actualiza cada 5 minutos)
+let resumenCache = null;
+let resumenCacheTime = 0;
+const CACHE_DURATION = 0.5 * 60 * 1000; // 0.5 minutos
+
 app.get('/resumen-periodos', async (req,res) => {
     try {
+        // Verificar si el cache es válido
+        const ahora = Date.now();
+        if (resumenCache && (ahora - resumenCacheTime) < CACHE_DURATION) {
+            return res.json(resumenCache);
+        }
+
         const hoy = new Date();
         const periodos = {
-            '10años': restarFecha(hoy, 10, 'years'),
-            '5años': restarFecha(hoy, 5, 'years'),
-            '1año': restarFecha(hoy, 1, 'years'),
-            '6meses': restarFecha(hoy, 6, 'months'),
+            '1mes': restarFecha(hoy, 1, 'months'),
             '3meses': restarFecha(hoy, 3, 'months'),
-            '1mes': restarFecha(hoy, 1, 'months')
+            '6meses': restarFecha(hoy, 6, 'months'),
+            '1año': restarFecha(hoy, 1, 'years'),
+            '5años': restarFecha(hoy, 5, 'years'),
+            '10años': restarFecha(hoy, 10, 'years')
         };
         const resultado = {};
+
+        // Cargar datos una sola vez
+        const ingresosM = await dbAll(`SELECT monto, desde, hasta FROM ingresos_mensuales LIMIT 1000`);
+        const cuentasRemuneradas = await dbAll(`SELECT monto, desde, hasta FROM cuenta_remunerada LIMIT 1000`);
+        const gastosM = await dbAll(`SELECT monto, desde, hasta FROM gastos_mensuales LIMIT 1000`);
+        const ingresosMBruto = await dbAll(`SELECT bruto, monto, desde, hasta FROM ingresos_mensuales WHERE bruto IS NOT NULL AND bruto != monto LIMIT 1000`);
+        const impuestosMensuales = await dbAll(`SELECT monto, desde, hasta FROM impuestos_mensuales LIMIT 1000`);
 
         for(const [periodo, desde] of Object.entries(periodos)){
             const hasta = hoy;
             const desdeStr = desde.toISOString().slice(0,10);
             const hastaStr = hasta.toISOString().slice(0,10);
 
-            const ingresosP = (await dbGet(`SELECT IFNULL(SUM(monto),0) as total FROM ingresos_puntuales WHERE fecha BETWEEN ? AND ?`, [desdeStr, hastaStr])).total;
-            const ingresosM = await dbAll(`SELECT monto, desde, hasta FROM ingresos_mensuales`);
+            // INGRESOS
+            const ingresosP = (await dbGet(`SELECT IFNULL(SUM(monto),0) as total FROM ingresos_puntuales WHERE fecha BETWEEN ? AND ? LIMIT 1000`, [desdeStr, hastaStr])).total;
 
             let totalIngresosMensuales = 0;
             ingresosM.forEach(i => totalIngresosMensuales += i.monto * contarMesesDesde28(desdeStr, hastaStr, i.desde, i.hasta));
 
-            const totalIngresos = ingresosP + totalIngresosMensuales;
+            let totalCuentaRemunerada = 0;
+            cuentasRemuneradas.forEach(cr => totalCuentaRemunerada += cr.monto * contarMesesDesde28(desdeStr, hastaStr, cr.desde, cr.hasta));
 
-            const gastosP = (await dbGet(`SELECT IFNULL(SUM(monto),0) as total FROM gastos_puntuales WHERE fecha BETWEEN ? AND ?`, [desdeStr, hastaStr])).total;
-            const gastosM = await dbAll(`SELECT monto, desde, hasta FROM gastos_mensuales`);
+            const totalIngresos = ingresosP + totalIngresosMensuales + totalCuentaRemunerada;
+
+            // GASTOS
+            const gastosP = (await dbGet(`SELECT IFNULL(SUM(monto),0) as total FROM gastos_puntuales WHERE fecha BETWEEN ? AND ? LIMIT 1000`, [desdeStr, hastaStr])).total;
 
             let totalGastosMensuales = 0;
             gastosM.forEach(g => totalGastosMensuales += g.monto * contarMesesDesde28(desdeStr, hastaStr, g.desde, g.hasta));
 
             const totalGastos = gastosP + totalGastosMensuales;
+
+            // IMPUESTOS (from ingresos)
+            const ingresosPBruto = await dbAll(`SELECT bruto, monto FROM ingresos_puntuales WHERE fecha BETWEEN ? AND ? AND bruto IS NOT NULL AND bruto != monto LIMIT 1000`, [desdeStr, hastaStr]);
+            let totalImpuestosPuntuales = 0;
+            ingresosPBruto.forEach(i => totalImpuestosPuntuales += i.bruto - i.monto);
+
+            let totalImpuestosMensuales = 0;
+            ingresosMBruto.forEach(i => {
+                const meses = contarMesesDesde28(desdeStr, hastaStr, i.desde, i.hasta);
+                totalImpuestosMensuales += (i.bruto - i.monto) * meses;
+            });
+
+            // IMPUESTOS STANDALONE
+            const impuestosPuntuales = (await dbGet(`SELECT IFNULL(SUM(monto),0) as total FROM impuestos_puntuales WHERE fecha BETWEEN ? AND ? LIMIT 1000`, [desdeStr, hastaStr])).total;
+            
+            let totalImpuestosStandaloneMensuales = 0;
+            impuestosMensuales.forEach(i => totalImpuestosStandaloneMensuales += i.monto * contarMesesDesde28(desdeStr, hastaStr, i.desde, i.hasta));
+
+            const totalImpuestos = totalImpuestosPuntuales + totalImpuestosMensuales + impuestosPuntuales + totalImpuestosStandaloneMensuales;
+
             resultado[periodo] = {
                 ingresos: parseFloat(totalIngresos.toFixed(2)),
                 gastos: parseFloat(totalGastos.toFixed(2)),
-                ahorro: parseFloat((totalIngresos - totalGastos).toFixed(2))
+                ahorro: parseFloat((totalIngresos - totalGastos).toFixed(2)),
+                impuestos: parseFloat(totalImpuestos.toFixed(2))
             };
         }
+
+        // Guardar en cache
+        resumenCache = resultado;
+        resumenCacheTime = ahora;
 
         res.json(resultado);
 
     } catch(err) {
+        console.error('Error en /resumen-periodos:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -985,8 +1380,20 @@ function contarMesesDesde28(desdeStr, hastaStr, inicioRepeticion, finRepeticion)
     return contador;
 }
 
+// ================== ERROR HANDLING ==================
+// Manejo de errores global
+app.use((err, req, res, next) => {
+    console.error('❌ Error:', err);
+    res.status(500).json({ 
+        error: err.message || 'Error interno del servidor',
+        details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
+});
 
-
+// 404 handler
+app.use((req, res) => {
+    res.status(404).json({ error: 'Ruta no encontrada' });
+});
 
 module.exports = app;
 

@@ -1,7 +1,179 @@
+
 function cargarDashboardForm() {
-    let chartTotales, chartIngresos, chartGastos, chartAhorros, chartIngresosCat, chartGastosCat, chartGastosMes;
-    const filtroGastoCategoria = document.getElementById('filtroGastoCategoria');
-    const hoy = new Date();
+// ===== VARIABLES GLOBALES DEL DASHBOARD =====
+let filtroGastoCategoria = null;
+let dashDesde = null;
+let dashHasta = null;
+let hoy = new Date();
+
+const charts = {
+    totales: null,
+    ingresos: null,
+    gastos: null,
+    ahorros: null,
+    ingresosCat: null,
+    gastosCat: null,
+    gastosMes: null
+};
+
+
+// ===== FUNCIONES DE EVENT LISTENERS (GLOBALES) =====
+function manejarClickPeriodo(e) {
+    const btn = e.target.closest('.quick-period-btn');
+    if (!btn) return;
+    
+    e.preventDefault();
+    const days = parseInt(btn.getAttribute('data-days'));
+    const desde = new Date();
+    desde.setDate(desde.getDate() - days);
+
+    dashDesde.value = desde.toISOString().slice(0, 10);
+    dashHasta.value = hoy.toISOString().slice(0, 10);
+
+    // Actualizar estado activo del botón
+    document.querySelectorAll('.quick-period-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    console.log(`📅 Período rápido: últimos ${days} días`);
+
+    // Cargar datos
+    cargarCategorias().then(() => actualizarDashboard());
+}
+
+function actualizarFechas() {
+    document.querySelectorAll('.quick-period-btn').forEach(b => b.classList.remove('active'));
+    cargarCategorias().then(() => actualizarDashboard());
+}
+
+function manejarEnterDesde(e) {
+    if (e.key === 'Enter') {
+        dashDesde.blur();
+    }
+}
+
+function manejarEnterHasta(e) {
+    if (e.key === 'Enter') {
+        dashHasta.blur();
+    }
+}
+
+function manejarCambioCategoria() {
+    console.log('📁 Categoría seleccionada:', filtroGastoCategoria.value);
+    actualizarGraficoGastosMes();
+}
+
+// ===== FUNCIONES PARA CONFIGURAR LISTENERS =====
+const setupDateListeners = () => {
+    const dashDesdeEl = document.getElementById('dashDesde');
+    const dashHastaEl = document.getElementById('dashHasta');
+    const filtroEl = document.getElementById('filtroGastoCategoria');
+    
+    if (dashDesdeEl) {
+        dashDesdeEl.removeEventListener('blur', actualizarFechas);
+        dashDesdeEl.removeEventListener('keydown', manejarEnterDesde);
+        dashDesdeEl.addEventListener('blur', actualizarFechas);
+        dashDesdeEl.addEventListener('keydown', manejarEnterDesde);
+    }
+    
+    if (dashHastaEl) {
+        dashHastaEl.removeEventListener('blur', actualizarFechas);
+        dashHastaEl.removeEventListener('keydown', manejarEnterHasta);
+        dashHastaEl.addEventListener('blur', actualizarFechas);
+        dashHastaEl.addEventListener('keydown', manejarEnterHasta);
+    }
+    
+    if (filtroEl) {
+        filtroEl.removeEventListener('change', manejarCambioCategoria);
+        filtroEl.addEventListener('change', manejarCambioCategoria);
+    }
+};
+
+const setupQuickPeriodListener = () => {
+    const quickPeriodsContainer = document.querySelector('.quick-periods');
+    if (quickPeriodsContainer) {
+        quickPeriodsContainer.removeEventListener('click', manejarClickPeriodo);
+        quickPeriodsContainer.addEventListener('click', manejarClickPeriodo);
+    }
+};
+    function obtenerColorCategoria(categoria, index) {
+        if (!coloresCategorias[categoria]) {
+            coloresCategorias[categoria] = paletaColores[index % paletaColores.length];
+        }
+        return coloresCategorias[categoria];
+    }
+
+    // ===== Cargar categorías =====
+    async function cargarCategorias() {
+        const desde = document.getElementById('dashDesde').value;
+        const hasta = document.getElementById('dashHasta').value;
+
+        if (!desde || !hasta) {
+            const mensaje = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.seleccionaRango') : 'Por favor selecciona un rango de fechas';
+            console.warn('⚠️ ' + mensaje);
+            return;
+        }
+
+        try {
+            const resCat = await fetch(`/categorias-periodo?desde=${desde}&hasta=${hasta}`);
+            const dataCat = await resCat.json();
+
+            const textoTodas = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.todasCategorias') : 'Todas las categorías';
+            filtroGastoCategoria.innerHTML = `<option value="">${textoTodas}</option>`;
+            
+            if (dataCat.gastos && Object.keys(dataCat.gastos).length > 0) {
+                Object.keys(dataCat.gastos).forEach((c, i) => {
+                    const opt = document.createElement('option');
+                    opt.value = c;
+                    opt.textContent = c;
+                    filtroGastoCategoria.appendChild(opt);
+                    obtenerColorCategoria(c, i);
+                });
+                console.log('✅ Categorías cargadas:', Object.keys(dataCat.gastos));
+            } else {
+                console.warn('⚠️ No hay categorías para este período');
+            }
+        } catch (error) {
+            console.error('❌ Error cargando categorías:', error);
+        }
+    }
+
+    // ===== DESTRUIR TODOS LOS GRÁFICOS EXISTENTES =====
+    // Esto es necesario cuando se recarga el dashboard (ej: cambio de idioma)
+    // Usar la API correcta de Chart.js para desregistrar gráficos
+    var canvasIds = ['chartTotales', 'chartIngresos', 'chartGastos', 'chartAhorros', 
+                       'chartIngresosCat', 'chartGastosCat', 'chartGastosMes'];
+    
+    canvasIds.forEach(canvasId => {
+        const canvas = document.getElementById(canvasId);
+        if (canvas) {
+            const existingChart = Chart.getChart(canvas);
+            if (existingChart) {
+                console.log(`🗑️ Destruyendo gráfico anterior: ${canvasId}`);
+                existingChart.destroy();
+            }
+        }
+    });
+    
+    // Limpiar array de tracking
+    if (window.chartsInstances && Array.isArray(window.chartsInstances)) {
+        window.chartsInstances = [];
+    }
+    
+    // Verificar que los elementos necesarios existan
+    filtroGastoCategoria = document.getElementById('filtroGastoCategoria');
+    dashDesde = document.getElementById('dashDesde');
+    dashHasta = document.getElementById('dashHasta');
+    
+    if (!filtroGastoCategoria || !dashDesde || !dashHasta) {
+        console.warn('⚠️ Elementos del dashboard no encontrados. Reinintentando en 100ms...');
+        setTimeout(() => cargarDashboardForm(), 100);
+        return;
+    }
+    
+    // Inicializar array global para rastrear gráficos
+    if (!window.chartsInstances) {
+        window.chartsInstances = [];
+    }
 
     // ===== Colores del tema actual =====
     let temasGraficos = {
@@ -25,6 +197,8 @@ function cargarDashboardForm() {
         '#667eea', '#764ba2', '#f093fb', '#f5576c',
         '#4facfe', '#00f2fe', '#fa709a', '#fee140'
     ];
+
+    
 
     function obtenerColorCategoria(categoria, index) {
         if (!coloresCategorias[categoria]) {
@@ -68,48 +242,44 @@ function calcularDesviacion(arr) {
     return Math.sqrt(calcularVarianza(arr));
 }
 
-
-    // ===== Cargar categorías =====
-    async function cargarCategorias() {
-        const desde = document.getElementById('dashDesde').value;
-        const hasta = document.getElementById('dashHasta').value;
-
-        if (!desde || !hasta) {
-            console.warn('⚠️ Selecciona rango de fechas antes');
-            return;
-        }
-
-        try {
-            const resCat = await fetch(`/categorias-periodo?desde=${desde}&hasta=${hasta}`);
-            const dataCat = await resCat.json();
-
-            filtroGastoCategoria.innerHTML = '<option value="">Todas las categorías</option>';
-            
-            if (dataCat.gastos && Object.keys(dataCat.gastos).length > 0) {
-                Object.keys(dataCat.gastos).forEach((c, i) => {
-                    const opt = document.createElement('option');
-                    opt.value = c;
-                    opt.textContent = c;
-                    filtroGastoCategoria.appendChild(opt);
-                    obtenerColorCategoria(c, i);
-                });
-                console.log('✅ Categorías cargadas:', Object.keys(dataCat.gastos));
-            } else {
-                console.warn('⚠️ No hay categorías para este período');
-            }
-        } catch (error) {
-            console.error('❌ Error cargando categorías:', error);
-        }
-    }
+// ===== Función para obtener labels traducidos =====
+function obtenerLabelsTraducidos() {
+    const textos = {
+        ingresos: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.ingresos') : 'Ingresos',
+        gastos: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.gastos') : 'Gastos',
+        ahorros: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.ahorros') : 'Ahorros',
+        impuestosTotales: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('resumen.totalImpuestos') : 'Total Impuestos',
+        impuestosCategoria: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosCategoria') : 'Impuestos',
+        ingresosPorCategoria: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.ingresosPorCategoria') : 'Ingresos por Categoría',
+        gastosPorCategoria: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.gastosPorCategoria') : 'Gastos por Categoría',
+        media: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.media') : 'Media',
+        varianza: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.varianza') : 'Varianza',
+        desviacion: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.desviacion') : 'Desviación',
+        mediaMensualTotal: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.mediaMensualTotal') : 'Media mensual total'
+    };
+    return textos;
+}
 
     // ===== Actualizar dashboard =====
     async function actualizarDashboard() {
+
         const desde = document.getElementById('dashDesde').value;
         const hasta = document.getElementById('dashHasta').value;
         const catSel = filtroGastoCategoria.value;
 
         if (!desde || !hasta) {
-            console.warn('⚠️ Por favor selecciona rango de fechas');
+            const mensaje = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.seleccionaRango') : 'Por favor selecciona un rango de fechas';
+            console.warn('⚠️ ' + mensaje);
+            return;
+        }
+
+        // Control: hasta no puede ser menor que desde
+        if (hasta < desde) {
+            const mensajeError = typeof gestorIdiomas !== 'undefined' && gestorIdiomas 
+                ? gestorIdiomas.obtenerTexto('dashboard.errorHastaMenorDesde')
+                : 'La fecha "hasta" no puede ser menor que "desde"';
+            console.warn('⚠️ ' + mensajeError);
+            alert(mensajeError);
             return;
         }
 
@@ -128,9 +298,11 @@ function calcularDesviacion(arr) {
             const totalIngresos = dataTotales.reduce((sum, m) => sum + (m.ingresos || 0), 0);
             const totalGastos = dataTotales.reduce((sum, m) => sum + (m.gastos || 0), 0);
             const totalAhorros = dataTotales.reduce((sum, m) => sum + (m.ahorros || 0), 0);
+            const totalCuentasRemuneradas = dataTotales.reduce((sum, m) => sum + (m.cuentas_remuneradas || 0), 0);
 
             const meses = dataTotales.map(m => m.mes);
             const ingresosMes = dataTotales.map(m => m.ingresos || 0);
+            const cuentasRemuneradasMes = dataTotales.map(m => m.cuentas_remuneradas || 0);
             const gastosMes = dataTotales.map(m => m.gastos || 0);
             const ahorrosMes = dataTotales.map(m => m.ahorros || 0);
 
@@ -142,6 +314,25 @@ function calcularDesviacion(arr) {
             const catGastos = Object.keys(dataCat.gastos || {});
             const valGastos = Object.values(dataCat.gastos || {});
 
+            // Obtener cuentas remuneradas para desglose por categoría (SOLO INTERESES)
+            const resDashboard = await fetch('/dashboard');
+            const dataDashboard = await resDashboard.json();
+            const cuentasRemuneradasPorCategoria = {};
+            dataDashboard.cuenta_remunerada.forEach(cr => {
+                const crDesde = new Date(cr.desde + "-28");
+                const crHasta = cr.hasta ? new Date(cr.hasta + "-28") : new Date(9999,11,31);
+                const desdeDate = new Date(desde);
+                const hastaDate = new Date(hasta);
+                const endRef = hastaDate < crHasta ? hastaDate : crHasta;
+                
+                // Verificar si hay solapamiento con el período
+                if (crDesde <= hastaDate && crHasta >= desdeDate) {
+                    const categoriaKey = cr.categoria;
+                    // Usar solo los intereses generados
+                    cuentasRemuneradasPorCategoria[categoriaKey] = (cuentasRemuneradasPorCategoria[categoriaKey] || 0) + (cr.interes_generado || 0);
+                }
+            });
+
             // Gastos por mes
             const resGastoMes = await fetch(`/gastos-categoria-mes?desde=${desde}&hasta=${hasta}`);
             const dataGastoMes = await resGastoMes.json();
@@ -149,10 +340,28 @@ function calcularDesviacion(arr) {
             const labelsMeses = Object.keys(dataGastoMes).sort();
             let datasetsMesCat = [];
 
+            // Verificar si existe "taxes" en los datos y agregarlo al select si no está
+            const tieneImpuestos = labelsMeses.some(m => dataGastoMes[m]['taxes']);
+            if(tieneImpuestos) {
+                const taxesOption = document.querySelector('option[value="taxes"]');
+                if(!taxesOption) {
+                    const opt = document.createElement('option');
+                    opt.value = 'taxes';
+                    const textoImpuestos = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosCategoria') : 'Impuestos';
+                    opt.textContent = textoImpuestos;
+                    filtroGastoCategoria.appendChild(opt);
+                    obtenerColorCategoria('taxes', coloresCategorias.size || 0);
+                    coloresCategorias['taxes'] = temasGraficos.warning;
+                }
+            }
+
             if(catSel){ 
                 const data = labelsMeses.map(m => dataGastoMes[m]?.[catSel] || 0);
+                const labelCategoria = catSel === 'taxes'
+                    ? (typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosCategoria') : 'Impuestos')
+                    : catSel;
                 datasetsMesCat.push({ 
-                    label: catSel, 
+                    label: labelCategoria, 
                     data, 
                     backgroundColor: aclararColor(coloresCategorias[catSel], 0.7),
                     borderColor: coloresCategorias[catSel],
@@ -170,9 +379,20 @@ function calcularDesviacion(arr) {
                 });
                 Array.from(categoriasSet).forEach((c,i)=>{
                     const data = labelsMeses.map(m => dataGastoMes[m]?.[c] || 0);
-                    const color = obtenerColorCategoria(c,i);
+                    let color = coloresCategorias[c];
+                    if(!color) {
+                        if(c === 'taxes') {
+                            color = temasGraficos.warning;
+                            coloresCategorias['taxes'] = color;
+                        } else {
+                            color = obtenerColorCategoria(c,i);
+                        }
+                    }
+                    const labelCategoria = c === 'taxes'
+                        ? (typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosCategoria') : 'Impuestos')
+                        : c;
                     datasetsMesCat.push({ 
-                        label: c, 
+                        label: labelCategoria, 
                         data, 
                         backgroundColor: aclararColor(color, 0.7),
                         borderColor: color,
@@ -184,8 +404,14 @@ function calcularDesviacion(arr) {
             }
 
             // Destruir gráficos previos
-            [chartTotales, chartIngresos, chartGastos, chartAhorros, chartIngresosCat, chartGastosCat, chartGastosMes].forEach(chart => {
-                if(chart) chart.destroy();
+            Object.values(charts).forEach(chart => {
+                if (chart) {
+                    try {
+                        chart.destroy();
+                    } catch (e) {
+                        console.warn('⚠️ Error destruyendo gráfico:', e);
+                    }
+                }
             });
 
             // Opciones comunes para todos los gráficos
@@ -235,23 +461,33 @@ function calcularDesviacion(arr) {
                 }
             };
 
+            // ===== OBTENER IMPUESTOS POR MES =====
+            const resImpuestosMes = await fetch(`/impuestos-mes?desde=${desde}&hasta=${hasta}`);
+            const dataImpuestosMes = await resImpuestosMes.json();
+            const impuestosMes = dataImpuestosMes.map(m => m.impuestos || 0);
+            const totalImpuestos = impuestosMes.reduce((sum, m) => sum + m, 0);
+
             // ===== GRÁFICO TOTALES =====
-            chartTotales = new Chart(document.getElementById('chartTotales'), {
+            const labelsTraducidos = obtenerLabelsTraducidos();
+            
+            charts.totales = new Chart(document.getElementById('chartTotales'), {
                 type:'bar',
                 data:{
-                    labels:['Ingresos','Gastos','Ahorros'],
+                    labels:[labelsTraducidos.ingresos, labelsTraducidos.gastos, labelsTraducidos.ahorros, labelsTraducidos.impuestosTotales],
                     datasets:[{
                         label:'€',
-                        data:[totalIngresos,totalGastos,totalAhorros],
+                        data:[totalIngresos,totalGastos,totalAhorros,totalImpuestos],
                         backgroundColor:[
                             temasGraficos.success,
                             temasGraficos.danger,
-                            temasGraficos.info
+                            temasGraficos.info,
+                            temasGraficos.warning
                         ],
                         borderColor:[
                             temasGraficos.success,
                             temasGraficos.danger,
-                            temasGraficos.info
+                            temasGraficos.info,
+                            temasGraficos.warning
                         ],
                         borderWidth: 2,
                         borderRadius: 8
@@ -265,37 +501,70 @@ function calcularDesviacion(arr) {
                     }
                 }
             });
+            window.chartsInstances.push(charts.totales);
+
 
             // ===== GRÁFICO INGRESOS POR MES =====
 
             // Media y varianza
             const mediaIngresos = calcularMedia(ingresosMes);
+            const mediaCuentasRemuneradas = calcularMedia(cuentasRemuneradasMes);
             const varianzaIngresos = calcularDesviacion(ingresosMes);
 
-            chartIngresos = new Chart(document.getElementById('chartIngresos'), {
+            charts.ingresos = new Chart(document.getElementById('chartIngresos'), {
                 type: 'bar',
                 data:{
                     labels: meses,
-                    datasets:[{ 
-                        label:'Ingresos €', 
-                        data: ingresosMes, 
-                        backgroundColor: aclararColor(temasGraficos.success, 0.7),
-                        borderColor: temasGraficos.success,
-                        borderWidth: 2,
-                        borderRadius: 6,
-                        tension: 0.4
-                    }]
+                    datasets:[
+                        { 
+                            label: labelsTraducidos.ingresos + ' €', 
+                            data: ingresosMes, 
+                            backgroundColor: aclararColor(temasGraficos.success, 0.7),
+                            borderColor: temasGraficos.success,
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Cuentas Remuneradas €',
+                            data: cuentasRemuneradasMes,
+                            backgroundColor: aclararColor(temasGraficos.info, 0.7),
+                            borderColor: temasGraficos.info,
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            tension: 0.4
+                        },
+                        {
+                            label: labelsTraducidos.impuestosTotales + ' €',
+                            data: impuestosMes,
+                            backgroundColor: aclararColor(temasGraficos.warning, 0.7),
+                            borderColor: temasGraficos.warning,
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            tension: 0.4
+                        }
+                    ]
                 },
             options:{ 
-                                ...optComun, 
-
+                                ...optComun,
+                    scales: {
+                        ...optComun.scales,
+                        x: {
+                            ...optComun.scales.x,
+                            stacked: true
+                        },
+                        y: {
+                            ...optComun.scales.y,
+                            stacked: true
+                        }
+                    },
                     plugins:{
                         ...optComun.plugins,
 
                         // ===== TÍTULO CON MEDIA Y VARIANZA =====
                         title: {
                             display: true,
-                            text: `Media: €${mediaIngresos.toFixed(2)}   |   Varianza: ${varianzaIngresos.toFixed(2)}`,
+                            text: `Ingresos: €${mediaIngresos.toFixed(2)} | Cuentas Rem: €${mediaCuentasRemuneradas.toFixed(2)} | Desv: ${varianzaIngresos.toFixed(2)}`,
                             font: { size: 13, weight: '600' },
                             padding: { top: 5, bottom: 10 }
                         },
@@ -305,14 +574,14 @@ function calcularDesviacion(arr) {
                             annotations: {
                                 lineaMedia: {
                                     type: 'line',
-                                    yMin: mediaIngresos,
-                                    yMax: mediaIngresos,
-                                    borderColor: temasGraficos.info,
+                                    yMin: mediaIngresos + mediaCuentasRemuneradas,
+                                    yMax: mediaIngresos + mediaCuentasRemuneradas,
+                                    borderColor: temasGraficos.primaryDark,
                                     borderWidth: 2,
                                     borderDash: [6, 6],
                                     label: {
                                         display: true,
-                                        content: `Media €${mediaIngresos.toFixed(2)}`,
+                                        content: `Media Total €${(mediaIngresos + mediaCuentasRemuneradas).toFixed(2)}`,
                                         position: 'end',
                                         backgroundColor: 'rgba(0,0,0,0.7)',
                                         color: '#fff',
@@ -324,18 +593,19 @@ function calcularDesviacion(arr) {
                     }
                 }
             });
+            window.chartsInstances.push(charts.ingresos);
 
 
             // ===== GRÁFICO GASTOS POR MES =====
                 const mediaGastos = calcularMedia(gastosMes);
                 const varianzaGastos = calcularDesviacion(gastosMes);
 
-                chartGastos = new Chart(document.getElementById('chartGastos'), {
+                charts.gastos = new Chart(document.getElementById('chartGastos'), {
                     type: 'bar',
                     data: {
                         labels: meses,
                         datasets: [{ 
-                            label: 'Gastos €', 
+                            label: labelsTraducidos.gastos + ' €', 
                             data: gastosMes, 
                             backgroundColor: aclararColor(temasGraficos.danger, 0.7),
                             borderColor: temasGraficos.danger,
@@ -353,7 +623,7 @@ function calcularDesviacion(arr) {
                             // ===== TÍTULO CON MEDIA Y VARIANZA =====
                             title: {
                                 display: true,
-                                text: `Media: €${mediaGastos.toFixed(2)}   |   Varianza: €${varianzaGastos.toFixed(2)}`,
+                                text: `${labelsTraducidos.media}: €${mediaGastos.toFixed(2)}   |   ${labelsTraducidos.desviacion}: €${varianzaGastos.toFixed(2)}`,
                                 font: { size: 13, weight: '600' },
                                 padding: { top: 5, bottom: 10 }
                             },
@@ -370,7 +640,7 @@ function calcularDesviacion(arr) {
                                         borderDash: [6, 6],
                                         label: {
                                             display: true,
-                                            content: `Media €${mediaGastos.toFixed(2)}`,
+                                            content: `${labelsTraducidos.media} €${mediaGastos.toFixed(2)}`,
                                             position: 'end',
                                             backgroundColor: 'rgba(0,0,0,0.7)',
                                             color: '#fff',
@@ -382,20 +652,18 @@ function calcularDesviacion(arr) {
                         }
                     }
                 });
-
-
-// ===== GRÁFICO AHORROS POR MES =====
+            window.chartsInstances.push(charts.gastos);
 
 // Calcular media y desviación
 const mediaAhorros = calcularMedia(ahorrosMes);
 const desviacionAhorros = calcularDesviacion(ahorrosMes);
 
-chartAhorros = new Chart(document.getElementById('chartAhorros'), {
+charts.ahorros = new Chart(document.getElementById('chartAhorros'), {
     type:'bar',
     data:{
         labels: meses,
         datasets:[{ 
-            label:'Ahorros €', 
+            label: labelsTraducidos.ahorros + ' €', 
             data: ahorrosMes, 
             backgroundColor: aclararColor(temasGraficos.info, 0.3),
             borderColor: temasGraficos.info,
@@ -413,7 +681,7 @@ chartAhorros = new Chart(document.getElementById('chartAhorros'), {
             // ===== TÍTULO CON MEDIA Y DESVIACIÓN =====
             title: {
                 display: true,
-                text: `Media: €${mediaAhorros.toFixed(2)}   |   Desviación: €${desviacionAhorros.toFixed(2)}`,
+                text: `${labelsTraducidos.media}: €${mediaAhorros.toFixed(2)}   |   ${labelsTraducidos.desviacion}: €${desviacionAhorros.toFixed(2)}`,
                 font: { size: 13, weight: '600' },
                 padding: { top: 5, bottom: 10 }
             },
@@ -430,7 +698,7 @@ chartAhorros = new Chart(document.getElementById('chartAhorros'), {
                         borderDash: [6, 6],
                         label: {
                             display: true,
-                            content: `Media €${mediaAhorros.toFixed(2)}`,
+                            content: `${labelsTraducidos.media} €${mediaAhorros.toFixed(2)}`,
                             position: 'end',
                             backgroundColor: 'rgba(0,0,0,0.7)',
                             color: '#fff',
@@ -442,19 +710,39 @@ chartAhorros = new Chart(document.getElementById('chartAhorros'), {
         }
     }
 });
+            window.chartsInstances.push(charts.ahorros);
 
 
             // ===== GRÁFICO INGRESOS POR CATEGORÍA DONUT =====
-            chartIngresosCat = new Chart(document.getElementById('chartIngresosCategoria'), {
+            // Combinar ingresos y cuentas remuneradas en el mismo arco
+            const todasLasCategoriasIngresos = new Set([...catIngresos, ...Object.keys(cuentasRemuneradasPorCategoria)]);
+            const valIngresosTotal = Array.from(todasLasCategoriasIngresos).map(cat => {
+                const ingresos = valIngresos.find((v,i) => catIngresos[i] === cat) || 0;
+                const cuentasRem = cuentasRemuneradasPorCategoria[cat] || 0;
+                return ingresos + cuentasRem;
+            });
+            
+            // Crear tooltips personalizados para mostrar desglose
+            const ingresosPorCat = {};
+            const cuentasRemPorCat = {};
+            Array.from(todasLasCategoriasIngresos).forEach(cat => {
+                ingresosPorCat[cat] = valIngresos.find((v,i) => catIngresos[i] === cat) || 0;
+                cuentasRemPorCat[cat] = cuentasRemuneradasPorCategoria[cat] || 0;
+            });
+            
+            charts.ingresosCat = new Chart(document.getElementById('chartIngresosCategoria'), {
                 type:'doughnut',
                 data:{
-                    labels:catIngresos,
-                    datasets:[{ 
-                        data:valIngresos, 
-                        backgroundColor: catIngresos.map((c,i)=>obtenerColorCategoria(c,i)),
-                        borderColor: '#fff',
-                        borderWidth: 2
-                    }]
+                    labels:Array.from(todasLasCategoriasIngresos),
+                    datasets:[
+                        {
+                            label: 'Total Ingresos',
+                            data:valIngresosTotal, 
+                            backgroundColor: Array.from(todasLasCategoriasIngresos).map((c,i)=>obtenerColorCategoria(c,i)),
+                            borderColor: '#fff',
+                            borderWidth: 2
+                        }
+                    ]
                 },
                 options:{
                     ...optComun,
@@ -465,9 +753,17 @@ chartAhorros = new Chart(document.getElementById('chartAhorros'), {
                         tooltip:{ 
                             callbacks:{ 
                                 label:function(ctx){ 
-                                    const total=valIngresos.reduce((a,b)=>a+b,0); 
-                                    const perc=((ctx.raw/total)*100).toFixed(1); 
-                                    return `${ctx.label}: €${ctx.raw.toFixed(2)} (${perc}%)`; 
+                                    const categoria = ctx.label;
+                                    const ingresos = ingresosPorCat[categoria] || 0;
+                                    const cuentasRem = cuentasRemPorCat[categoria] || 0;
+                                    const total = valIngresosTotal.reduce((a,b)=>a+b,0);
+                                    const perc=((ctx.raw/total)*100).toFixed(1);
+                                    
+                                    let tooltip = `Total: €${ctx.raw.toFixed(2)} (${perc}%)`;
+                                    if (ingresos > 0) tooltip += `\nIngresos: €${ingresos.toFixed(2)}`;
+                                    if (cuentasRem > 0) tooltip += `\nCuentas Rem: €${cuentasRem.toFixed(2)}`;
+                                    
+                                    return tooltip;
                                 }
                             }
                         },
@@ -475,7 +771,7 @@ chartAhorros = new Chart(document.getElementById('chartAhorros'), {
                             color: '#fff',
                             font: { weight: 'bold', size: 12 },
                             formatter: (value, ctx) => {
-                                const total = ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0);
+                                const total = valIngresosTotal.reduce((a,b)=>a+b,0);
                                 const perc = ((value / total) * 100).toFixed(1);
                                 return perc + '%';
                             }
@@ -484,9 +780,10 @@ chartAhorros = new Chart(document.getElementById('chartAhorros'), {
                 },
                 plugins: [ChartDataLabels]
             });
+            window.chartsInstances.push(charts.ingresosCat);
 
             // ===== GRÁFICO GASTOS POR CATEGORÍA DONUT =====
-            chartGastosCat = new Chart(document.getElementById('chartGastosCategoria'), {
+            charts.gastosCat = new Chart(document.getElementById('chartGastosCategoria'), {
                 type:'doughnut',
                 data:{
                     labels:catGastos,
@@ -525,6 +822,7 @@ chartAhorros = new Chart(document.getElementById('chartAhorros'), {
                 },
                 plugins: [ChartDataLabels]
             });
+            window.chartsInstances.push(charts.gastosCat);
 
 
             // ===== GRÁFICO GASTOS POR MES Y CATEGORÍA =====
@@ -538,7 +836,7 @@ chartAhorros = new Chart(document.getElementById('chartAhorros'), {
             const mediaGastosMes = calcularMedia(totalesMes);
             const varianzaGastosMes = calcularDesviacion(totalesMes);
 
-            chartGastosMes = new Chart(document.getElementById('chartGastosMes'), {
+            charts.gastosMes = new Chart(document.getElementById('chartGastosMes'), {
                 type: 'bar',
                 data:{ 
                     labels: labelsMeses, 
@@ -559,7 +857,7 @@ chartAhorros = new Chart(document.getElementById('chartAhorros'), {
             // ===== TÍTULO CON MEDIA Y VARIANZA =====
             title: {
                 display: true,
-                text: `Media mensual total: €${mediaGastosMes.toFixed(2)}   |   Varianza: ${varianzaGastosMes.toFixed(2)}`,
+                text: `${labelsTraducidos.mediaMensualTotal}: €${mediaGastosMes.toFixed(2)}   |   ${labelsTraducidos.desviacion}: ${varianzaGastosMes.toFixed(2)}`,
                 font: { size: 13, weight: '600' },
                 padding: { top: 5, bottom: 10 }
             },
@@ -576,7 +874,7 @@ chartAhorros = new Chart(document.getElementById('chartAhorros'), {
                         borderDash: [6, 6],
                         label: {
                             display: true,
-                            content: `Media total €${mediaGastosMes.toFixed(2)}`,
+                            content: `${labelsTraducidos.media} €${mediaGastosMes.toFixed(2)}`,
                             position: 'end',
                             backgroundColor: 'rgba(0,0,0,0.7)',
                             color: '#fff',
@@ -591,72 +889,12 @@ chartAhorros = new Chart(document.getElementById('chartAhorros'), {
 
 
             console.log('✅ Dashboard actualizado correctamente');
-
+            window.chartsInstances.push(charts.gastosMes);
         } catch (error) {
             console.error('❌ Error actualizando dashboard:', error);
         }
     }
-
-    // ===== MANEJAR SELECTORES DE TIEMPO RÁPIDO =====
-    document.querySelectorAll('.quick-period-btn').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const days = parseInt(this.getAttribute('data-days'));
-            const desde = new Date();
-            desde.setDate(desde.getDate() - days);
-
-            document.getElementById('dashDesde').value = desde.toISOString().slice(0, 10);
-            document.getElementById('dashHasta').value = hoy.toISOString().slice(0, 10);
-
-            // Actualizar estado activo del botón
-            document.querySelectorAll('.quick-period-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-
-            console.log(`📅 Período rápido: últimos ${days} días`);
-
-            // Cargar datos
-            cargarCategorias().then(() => actualizarDashboard());
-        });
-    });
-
-    // Remover clase active cuando se modifiquen las fechas manualmente
-    document.getElementById('dashDesde').addEventListener('change', () => {
-        document.querySelectorAll('.quick-period-btn').forEach(b => b.classList.remove('active'));
-    });
-    document.getElementById('dashHasta').addEventListener('change', () => {
-        document.querySelectorAll('.quick-period-btn').forEach(b => b.classList.remove('active'));
-    });
-
-    // ===== ESCUCHAR CAMBIOS DE TEMA =====
-    document.addEventListener('temaActualizado', (e) => {
-        console.log('🎨 Actualizando colores de gráficos por cambio de tema...');
-        
-        temasGraficos = {
-            primary: getComputedStyle(document.documentElement).getPropertyValue('--primary').trim(),
-            primaryDark: getComputedStyle(document.documentElement).getPropertyValue('--primary-dark').trim(),
-            success: getComputedStyle(document.documentElement).getPropertyValue('--success').trim(),
-            danger: getComputedStyle(document.documentElement).getPropertyValue('--danger').trim(),
-            warning: getComputedStyle(document.documentElement).getPropertyValue('--warning').trim(),
-            info: getComputedStyle(document.documentElement).getPropertyValue('--info').trim()
-        };
-
-        paletaColores = [
-            temasGraficos.primary,
-            temasGraficos.success,
-            temasGraficos.info,
-            temasGraficos.warning,
-            temasGraficos.primaryDark,
-            temasGraficos.danger,
-            '#667eea', '#764ba2', '#f093fb', '#f5576c',
-            '#4facfe', '#00f2fe', '#fa709a', '#fee140'
-        ];
-
-        Object.keys(coloresCategorias).forEach(key => delete coloresCategorias[key]);
-
-        console.log('🎨 Nuevos colores:', temasGraficos);
-        actualizarDashboard();
-    });
-
+    
     // ===== INICIALIZACIÓN =====
     const unAnioAtras = new Date(hoy.getFullYear()-1, hoy.getMonth(), hoy.getDate());
     
@@ -674,28 +912,153 @@ chartAhorros = new Chart(document.getElementById('chartAhorros'), {
         btnUnAnio.classList.add('active');
     }
 
-    // ===== EVENTOS PRINCIPALES =====
-    document.getElementById('btnCargarDashboard').onclick = async () => {
-        console.log('🔄 Botón actualizar presionado');
-        await cargarCategorias();
-        await actualizarDashboard();
-    };
+    // ===== ACTUALIZAR SOLO GRÁFICO DE GASTOS POR CATEGORÍA =====
+    async function actualizarGraficoGastosMes() {
+        const desde = document.getElementById('dashDesde').value;
+        const hasta = document.getElementById('dashHasta').value;
+        const catSel = filtroGastoCategoria.value;
 
-    filtroGastoCategoria.onchange = () => {
-        console.log('📁 Categoría seleccionada:', filtroGastoCategoria.value);
-        actualizarDashboard();
-    };
+        if (!desde || !hasta) return;
 
-    // Cargar inicial
+        try {
+            // Obtener gastos por mes y categoría
+            const resGastoMes = await fetch(`/gastos-categoria-mes?desde=${desde}&hasta=${hasta}`);
+            const dataGastoMes = await resGastoMes.json();
+
+            const labelsMeses = Object.keys(dataGastoMes).sort();
+            let datasetsMesCat = [];
+
+            if(catSel){ 
+                const data = labelsMeses.map(m => dataGastoMes[m]?.[catSel] || 0);
+                datasetsMesCat.push({ 
+                    label: catSel === 'taxes'
+                        ? (typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosCategoria') : 'Impuestos')
+                        : catSel, 
+                    data, 
+                    backgroundColor: aclararColor(coloresCategorias[catSel], 0.7),
+                    borderColor: coloresCategorias[catSel],
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    tension: 0.4
+                });
+            }
+            else {
+                const categoriasSet = new Set();
+                labelsMeses.forEach(m => {
+                    if (dataGastoMes[m]) {
+                        Object.keys(dataGastoMes[m]).forEach(c => categoriasSet.add(c));
+                    }
+                });
+                Array.from(categoriasSet).forEach((c,i)=>{
+                    const data = labelsMeses.map(m => dataGastoMes[m]?.[c] || 0);
+                    let color = coloresCategorias[c];
+                    if(!color) {
+                        if(c === 'taxes') {
+                            color = temasGraficos.warning;
+                            coloresCategorias['taxes'] = color;
+                        } else {
+                            color = obtenerColorCategoria(c,i);
+                        }
+                    }
+                    const labelCategoria = c === 'taxes'
+                        ? (typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosCategoria') : 'Impuestos')
+                        : c;
+                    datasetsMesCat.push({ 
+                        label: labelCategoria, 
+                        data, 
+                        backgroundColor: aclararColor(color, 0.7),
+                        borderColor: color,
+                        borderWidth: 2,
+                        borderRadius: 6,
+                        tension: 0.4
+                    });
+                });
+            }
+
+            // Destruir gráfico anterior
+            if(charts.gastosMes) {
+                try {
+                    charts.gastosMes.destroy();
+                } catch (e) {
+                    console.warn('⚠️ Error destruyendo gráfico:', e);
+                }
+            }
+
+            // Calcular totales por mes y media
+            const totalesMes = labelsMeses.map((mes, idx) => {
+                return datasetsMesCat.reduce((sum, ds) => sum + (ds.data[idx] || 0), 0);
+            });
+            const mediaGastosMes = calcularMedia(totalesMes);
+            const varianzaGastosMes = calcularDesviacion(totalesMes);
+
+            // Recrear gráfico
+            charts.gastosMes = new Chart(document.getElementById('chartGastosMes'), {
+                type: 'bar',
+                data:{ 
+                    labels: labelsMeses, 
+                    datasets: datasetsMesCat 
+                },
+                options:{ 
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        x: { stacked: true },
+                        y: { stacked: true }
+                    },
+                    plugins: {
+                        legend: { 
+                            display: true, 
+                            position: 'bottom',
+                            labels: {
+                                color: '#333',
+                                font: { size: 12, weight: '600' },
+                                padding: 15,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            titleFont: { size: 13, weight: 'bold' },
+                            bodyFont: { size: 12 },
+                            borderColor: 'rgba(255, 255, 255, 0.3)',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(ctx) {
+                                    return '€' + ctx.raw.toFixed(2);
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: `Media mensual total: €${mediaGastosMes.toFixed(2)}   |   Desviación: ${varianzaGastosMes.toFixed(2)}`,
+                            font: { size: 13, weight: '600' },
+                            padding: { top: 5, bottom: 10 }
+                        }
+                    }
+                }
+            });
+
+            console.log('✅ Gráfico de gastos actualizado');
+            window.chartsInstances.push(charts.gastosMes);
+        } catch (error) {
+            console.error('❌ Error actualizando gráfico de gastos:', error);
+        }
+    }
+
+    // Cargar inicial - con pequeño delay para asegurar que el DOM esté listo
     console.log('⏳ Iniciando carga del dashboard...');
-    cargarCategorias().then(() => {
-        actualizarDashboard();
-    });
-}
+    setTimeout(() => {
+        cargarCategorias().then(() => {
+            actualizarDashboard();
+        });
+    }, 50);
+    
+    // Configurar listeners después de que el HTML esté disponible
+    setupDateListeners();
+    setupQuickPeriodListener();
 
-// Cargar cuando el DOM esté listo
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', cargarDashboardForm);
-} else {
-    cargarDashboardForm();
+
+
 }
+    

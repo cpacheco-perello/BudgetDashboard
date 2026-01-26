@@ -65,6 +65,12 @@ class GestorIdiomas {
             elemento.alt = this.obtenerTexto(clave);
         });
 
+        // Atributos placeholder
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(elemento => {
+            const clave = elemento.getAttribute('data-i18n-placeholder');
+            elemento.placeholder = this.obtenerTexto(clave);
+        });
+
         console.log('✅ Traducciones aplicadas al HTML');
     }
 

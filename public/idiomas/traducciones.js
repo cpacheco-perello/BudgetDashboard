@@ -1,3 +1,4 @@
+// Archivo de traducciones - Simplificado y completado
 const TRADUCCIONES = {
     es: {
         // ===== APP =====
@@ -50,7 +51,10 @@ const TRADUCCIONES = {
         resumen: {
             totalIngresos: 'Total Ingresos',
             totalGastos: 'Total Gastos',
-            saldo: 'Saldo'
+            saldo: 'Saldo',
+            totalImpuestos: 'Total Impuestos',
+            impuestosPre: 'Pre',
+            impuestosPost: 'Post'
         },
 
         // ===== TEMA =====
@@ -76,6 +80,7 @@ const TRADUCCIONES = {
             categorias: 'Categorías',
             gastos: 'Gastos',
             ingresos: 'Ingresos',
+            impuestos: 'Impuestos',
             dashboard: 'Dashboard'
         },
 
@@ -85,6 +90,8 @@ const TRADUCCIONES = {
             periodoRapido: 'Período Rápido',
             desde: 'Desde',
             hasta: 'Hasta',
+            desdeDate: 'Selecciona fecha de inicio',
+            hastaDate: 'Selecciona fecha de fin',
             actualizar: 'Actualizar',
             totalPeriodo: 'Totales Período',
             gastosPorMes: 'Gastos por Mes',
@@ -93,7 +100,14 @@ const TRADUCCIONES = {
             gastos: 'Gastos',
             ahorros: 'Ahorros',
             ingresosPorCategoria: 'Ingresos por Categoría',
-            gastosPorCategoria: 'Gastos por Categoría'
+            gastosPorCategoria: 'Gastos por Categoría',
+            media: 'Media',
+            varianza: 'Varianza',
+            desviacion: 'Desviación',
+            mediaMensualTotal: 'Media mensual total',
+            impuestosCategoria: 'Impuestos',
+            errorHastaMenorDesde: 'La fecha "hasta" no puede ser menor que "desde"',
+            seleccionaRango: 'Por favor selecciona un rango de fechas'
         },
 
         // ===== CATEGORÍAS =====
@@ -120,6 +134,9 @@ const TRADUCCIONES = {
             desde: 'Desde',
             hasta: 'Hasta',
             monto: 'Monto',
+            mostrarAntiguos: 'Mostrar antiguos',
+            ocultarAntiguos: 'Ocultar antiguos',
+            fraccionar: 'Fraccionar',
             noHayGastos: 'No hay gastos registrados',
             gastoAgregado: 'Gasto agregado correctamente',
             gastoEliminado: 'Gasto eliminado correctamente',
@@ -134,7 +151,17 @@ const TRADUCCIONES = {
             titulo: 'Administrar Ingresos',
             puntuales: 'Ingresos Puntuales',
             mensuales: 'Ingresos Mensuales',
+            cuenta_remunerada: 'Cuenta Remunerada',
             descripcion: 'Descripción...',
+            desde: 'Desde',
+            hasta: 'Hasta',
+            bruto: 'Bruto',
+            aportacionInicial: 'Aportación Inicial',
+            aportacionMensual: 'Aportación Mensual',
+            interes: 'Interés (%)',
+            interesGenerado: 'Interés Generado',
+            mostrarAntiguos: 'Mostrar antiguos',
+            ocultarAntiguos: 'Ocultar antiguos',
             noHayIngresos: 'No hay ingresos registrados',
             ingresoAgregado: 'Ingreso agregado correctamente',
             ingresoEliminado: 'Ingreso eliminado correctamente',
@@ -142,6 +169,17 @@ const TRADUCCIONES = {
             validarFecha: 'Por favor selecciona una fecha válida',
             validarMonto: 'Por favor ingresa un monto válido',
             validarCategoria: 'Por favor selecciona una categoría'
+        },
+
+        // ===== IMPUESTOS =====
+        taxes: {
+            agregarPuntual: 'Agregar Impuesto Puntual',
+            agregarMensual: 'Agregar Impuesto Mensual',
+            impuestoAgregado: 'Impuesto agregado correctamente',
+            impuestoEliminado: 'Impuesto eliminado correctamente',
+            impuestoActualizado: 'Impuesto actualizado correctamente',
+            desde: 'Desde',
+            hasta: 'Hasta'
         },
 
         // ===== FORMULARIOS =====
@@ -158,6 +196,10 @@ const TRADUCCIONES = {
             monto: 'Monto',
             categoria: 'Categoría',
             fecha: 'Fecha',
+            desde: 'Desde',
+            hasta: 'Hasta',
+            bruto: 'Bruto',
+            interes: 'Interés',
             accion: 'Acción',
             acciones: 'Acciones',
             obligatorio: 'Campo obligatorio',
@@ -169,6 +211,22 @@ const TRADUCCIONES = {
             rechazar: 'Rechazar'
         },
 
+        // ===== BOTONES =====
+        botones: {
+            agregar: 'Agregar',
+            actualizar: 'Actualizar',
+            editar: 'Editar',
+            eliminar: 'Eliminar',
+            guardar: 'Guardar',
+            cancelar: 'Cancelar'
+        },
+
+        // ===== TABS =====
+        tabs: {
+            puntuales: 'Puntuales',
+            mensuales: 'Mensuales'
+        },
+
         // ===== MENSAJES =====
         mensajes: {
             exito: 'Operación completada exitosamente',
@@ -178,16 +236,21 @@ const TRADUCCIONES = {
             seleccionaRango: 'Selecciona un rango de fechas',
             categoriasCargadas: 'Categorías cargadas',
             dashboardActualizado: 'Dashboard actualizado',
-            errorCargando: 'Error al cargar datos',
-            errorGuardando: 'Error al guardar datos',
-            errorEliminando: 'Error al eliminar datos',
-            validacionError: 'Por favor completa todos los campos requeridos',
+            errorCargando: 'Error cargando datos',
+            errorGuardando: 'Error guardando datos',
+            errorEliminando: 'Error eliminando datos',
+            validacionError: 'Por favor rellena todos los campos obligatorios',
             confirmacion: 'Confirmación requerida'
         },
 
         // ===== TABLAS =====
         tablas: {
             sinResultados: 'Sin resultados',
+            fecha: 'Fecha',
+            descripcion: 'Descripción',
+            monto: 'Monto',
+            categoria: 'Categoría',
+            acciones: 'Acciones',
             cargando: 'Cargando...',
             mostrandoRegistros: 'Mostrando {0} de {1} registros',
             siguiente: 'Siguiente',
@@ -222,7 +285,7 @@ const TRADUCCIONES = {
         app: {
             titulo: 'Financial Dashboard'
         },
-          temas: {
+        temas: {
             azul: 'Professional Blue',
             verde: 'Modern Green',
             naranja: 'Energetic Orange',
@@ -262,7 +325,10 @@ const TRADUCCIONES = {
         resumen: {
             totalIngresos: 'Total Income',
             totalGastos: 'Total Expenses',
-            saldo: 'Balance'
+            saldo: 'Balance',
+            totalImpuestos: 'Total Taxes',
+            impuestosPre: 'Pre',
+            impuestosPost: 'Post'
         },
         tema: {
             cambiarTema: '🎨 Theme:',
@@ -282,6 +348,7 @@ const TRADUCCIONES = {
             categorias: 'Categories',
             gastos: 'Expenses',
             ingresos: 'Income',
+            impuestos: 'Taxes',
             dashboard: 'Dashboard'
         },
         dashboard: {
@@ -289,6 +356,8 @@ const TRADUCCIONES = {
             periodoRapido: 'Quick Period',
             desde: 'From',
             hasta: 'To',
+            desdeDate: 'Select start date',
+            hastaDate: 'Select end date',
             actualizar: 'Update',
             totalPeriodo: 'Period Totals',
             gastosPorMes: 'Expenses by Month',
@@ -297,7 +366,14 @@ const TRADUCCIONES = {
             gastos: 'Expenses',
             ahorros: 'Savings',
             ingresosPorCategoria: 'Income by Category',
-            gastosPorCategoria: 'Expenses by Category'
+            gastosPorCategoria: 'Expenses by Category',
+            media: 'Mean',
+            varianza: 'Variance',
+            desviacion: 'Std dev',
+            mediaMensualTotal: 'Monthly mean total',
+            impuestosCategoria: 'Taxes',
+            errorHastaMenorDesde: 'The "to" date cannot be earlier than the "from" date',
+            seleccionaRango: 'Please select a date range'
         },
         categorias: {
             titulo: 'Manage Categories',
@@ -320,6 +396,9 @@ const TRADUCCIONES = {
             desde: 'From',
             hasta: 'To',
             monto: 'Amount',
+            mostrarAntiguos: 'Show old',
+            ocultarAntiguos: 'Hide old',
+            fraccionar: 'Split',
             noHayGastos: 'No expenses recorded',
             gastoAgregado: 'Expense added successfully',
             gastoEliminado: 'Expense deleted successfully',
@@ -332,7 +411,17 @@ const TRADUCCIONES = {
             titulo: 'Manage Income',
             puntuales: 'One-time Income',
             mensuales: 'Monthly Income',
+            cuenta_remunerada: 'Remunerated Account',
             descripcion: 'Description...',
+            desde: 'From',
+            hasta: 'To',
+            bruto: 'Gross',
+            aportacionInicial: 'Initial Contribution',
+            aportacionMensual: 'Monthly Contribution',
+            interes: 'Interest (%)',
+            interesGenerado: 'Generated Interest',
+            mostrarAntiguos: 'Show old',
+            ocultarAntiguos: 'Hide old',
             noHayIngresos: 'No income recorded',
             ingresoAgregado: 'Income added successfully',
             ingresoEliminado: 'Income deleted successfully',
@@ -341,6 +430,18 @@ const TRADUCCIONES = {
             validarMonto: 'Please enter a valid amount',
             validarCategoria: 'Please select a category'
         },
+
+        // ===== TAXES =====
+        taxes: {
+            agregarPuntual: 'Add One-time Tax',
+            agregarMensual: 'Add Monthly Tax',
+            impuestoAgregado: 'Tax added successfully',
+            impuestoEliminado: 'Tax deleted successfully',
+            impuestoActualizado: 'Tax updated successfully',
+            desde: 'From',
+            hasta: 'To'
+        },
+        // ===== FORMULARIOS =====
         formularios: {
             guardar: 'Save',
             cancelar: 'Cancel',
@@ -354,6 +455,10 @@ const TRADUCCIONES = {
             monto: 'Amount',
             categoria: 'Category',
             fecha: 'Date',
+            desde: 'From',
+            hasta: 'To',
+            bruto: 'Gross',
+            interes: 'Interest',
             accion: 'Action',
             acciones: 'Actions',
             obligatorio: 'Required field',
@@ -363,6 +468,22 @@ const TRADUCCIONES = {
             cerrar: 'Close',
             aceptar: 'Accept',
             rechazar: 'Reject'
+        },
+
+        // ===== BOTONES =====
+        botones: {
+            agregar: 'Add',
+            actualizar: 'Update',
+            editar: 'Edit',
+            eliminar: 'Delete',
+            guardar: 'Save',
+            cancelar: 'Cancel'
+        },
+
+        // ===== TABS =====
+        tabs: {
+            puntuales: 'One-time',
+            mensuales: 'Monthly'
         },
         mensajes: {
             exito: 'Operation completed successfully',
@@ -380,6 +501,11 @@ const TRADUCCIONES = {
         },
         tablas: {
             sinResultados: 'No results',
+            fecha: 'Date',
+            descripcion: 'Description',
+            monto: 'Amount',
+            categoria: 'Category',
+            acciones: 'Actions',
             cargando: 'Loading...',
             mostrandoRegistros: 'Showing {0} of {1} records',
             siguiente: 'Next',
@@ -450,7 +576,10 @@ const TRADUCCIONES = {
         resumen: {
             totalIngresos: 'Total de Receitas',
             totalGastos: 'Total de Despesas',
-            saldo: 'Saldo'
+            saldo: 'Saldo',
+            totalImpuestos: 'Total de Impostos',
+            impuestosPre: 'Pré',
+            impuestosPost: 'Pós'
         },
         tema: {
             cambiarTema: '🎨 Tema:',
@@ -470,6 +599,7 @@ const TRADUCCIONES = {
             categorias: 'Categorias',
             gastos: 'Despesas',
             ingresos: 'Receitas',
+            impuestos: 'Impostos',
             dashboard: 'Painel'
         },
         dashboard: {
@@ -477,6 +607,8 @@ const TRADUCCIONES = {
             periodoRapido: 'Período Rápido',
             desde: 'De',
             hasta: 'Até',
+            desdeDate: 'Selecione a data inicial',
+            hastaDate: 'Selecione a data final',
             actualizar: 'Atualizar',
             totalPeriodo: 'Totais do Período',
             gastosPorMes: 'Despesas por Mês',
@@ -485,7 +617,14 @@ const TRADUCCIONES = {
             gastos: 'Despesas',
             ahorros: 'Poupança',
             ingresosPorCategoria: 'Receitas por Categoria',
-            gastosPorCategoria: 'Despesas por Categoria'
+            gastosPorCategoria: 'Despesas por Categoria',
+            media: 'Média',
+            varianza: 'Variância',
+            desviacion: 'Desvio padrão',
+            mediaMensualTotal: 'Média mensal total',
+            impuestosCategoria: 'Impostos',
+            errorHastaMenorDesde: 'A data "até" não pode ser anterior à data "de"',
+            seleccionaRango: 'Por favor selecione um intervalo de datas'
         },
         categorias: {
             titulo: 'Gerenciar Categorias',
@@ -508,20 +647,32 @@ const TRADUCCIONES = {
             desde: 'De',
             hasta: 'Até',
             monto: 'Valor',
+            mostrarAntiguos: 'Mostrar antigos',
+            ocultarAntiguos: 'Ocultar antigos',
+            fraccionar: 'Dividir',
             noHayGastos: 'Nenhuma despesa registrada',
             gastoAgregado: 'Despesa adicionada com sucesso',
             gastoEliminado: 'Despesa excluída com sucesso',
             gastoActualizado: 'Despesa atualizada com sucesso',
             validarFecha: 'Por favor selecione uma data válida',
             validarMonto: 'Por favor insira um valor válido',
-            validarCategoria: 'Por favor selecione uma categoria',
-            fraccionar: 'Fracionar'
+            validarCategoria: 'Por favor selecione uma categoria'
         },
         ingresos: {
             titulo: 'Gerenciar Receitas',
             puntuales: 'Receitas Pontuais',
             mensuales: 'Receitas Mensais',
+            cuenta_remunerada: 'Conta Remunerada',
             descripcion: 'Descrição...',
+            desde: 'De',
+            hasta: 'Até',
+            bruto: 'Bruto',
+            aportacionInicial: 'Contribuição Inicial',
+            aportacionMensual: 'Contribuição Mensal',
+            interes: 'Juros (%)',
+            interesGenerado: 'Juros Gerados',
+            mostrarAntiguos: 'Mostrar antigos',
+            ocultarAntiguos: 'Ocultar antigos',
             noHayIngresos: 'Nenhuma receita registrada',
             ingresoAgregado: 'Receita adicionada com sucesso',
             ingresoEliminado: 'Receita excluída com sucesso',
@@ -530,6 +681,18 @@ const TRADUCCIONES = {
             validarMonto: 'Por favor insira um valor válido',
             validarCategoria: 'Por favor selecione uma categoria'
         },
+
+        // ===== IMPOSTOS =====
+        taxes: {
+            agregarPuntual: 'Adicionar Imposto Pontual',
+            agregarMensual: 'Adicionar Imposto Mensal',
+            impuestoAgregado: 'Imposto adicionado com sucesso',
+            impuestoEliminado: 'Imposto excluído com sucesso',
+            impuestoActualizado: 'Imposto atualizado com sucesso',
+            desde: 'De',
+            hasta: 'Até'
+        },
+        // ===== FORMULÁRIOS =====
         formularios: {
             guardar: 'Salvar',
             cancelar: 'Cancelar',
@@ -543,6 +706,10 @@ const TRADUCCIONES = {
             monto: 'Valor',
             categoria: 'Categoria',
             fecha: 'Data',
+            desde: 'De',
+            hasta: 'Até',
+            bruto: 'Bruto',
+            interes: 'Juros',
             accion: 'Ação',
             acciones: 'Ações',
             obligatorio: 'Campo obrigatório',
@@ -552,6 +719,22 @@ const TRADUCCIONES = {
             cerrar: 'Fechar',
             aceptar: 'Aceitar',
             rechazar: 'Rejeitar'
+        },
+
+        // ===== BOTÕES =====
+        botones: {
+            agregar: 'Adicionar',
+            actualizar: 'Atualizar',
+            editar: 'Editar',
+            eliminar: 'Excluir',
+            guardar: 'Salvar',
+            cancelar: 'Cancelar'
+        },
+
+        // ===== ABAS =====
+        tabs: {
+            puntuales: 'Pontuais',
+            mensuales: 'Mensais'
         },
         mensajes: {
             exito: 'Operação concluída com sucesso',
@@ -569,6 +752,11 @@ const TRADUCCIONES = {
         },
         tablas: {
             sinResultados: 'Sem resultados',
+            fecha: 'Data',
+            descripcion: 'Descrição',
+            monto: 'Valor',
+            categoria: 'Categoria',
+            acciones: 'Ações',
             cargando: 'Carregando...',
             mostrandoRegistros: 'Mostrando {0} de {1} registros',
             siguiente: 'Próximo',
@@ -639,7 +827,10 @@ const TRADUCCIONES = {
         resumen: {
             totalIngresos: 'Revenu Total',
             totalGastos: 'Dépenses Totales',
-            saldo: 'Solde'
+            saldo: 'Solde',
+            totalImpuestos: 'Impôts Totaux',
+            impuestosPre: 'Pré',
+            impuestosPost: 'Post'
         },
         tema: {
             cambiarTema: '🎨 Thème:',
@@ -659,6 +850,7 @@ const TRADUCCIONES = {
             categorias: 'Catégories',
             gastos: 'Dépenses',
             ingresos: 'Revenus',
+            impuestos: 'Impôts',
             dashboard: 'Tableau de Bord'
         },
         dashboard: {
@@ -674,7 +866,16 @@ const TRADUCCIONES = {
             gastos: 'Dépenses',
             ahorros: 'Économies',
             ingresosPorCategoria: 'Revenus par Catégorie',
-            gastosPorCategoria: 'Dépenses par Catégorie'
+            gastosPorCategoria: 'Dépenses par Catégorie',
+            media: 'Moyenne',
+            varianza: 'Variance',
+            desviacion: 'Écart type',
+            mediaMensualTotal: 'Moyenne mensuelle totale',
+            impuestosCategoria: 'Impôts',
+            desdeDate: 'Sélectionnez la date de début',
+            hastaDate: 'Sélectionnez la date de fin',
+            errorHastaMenorDesde: 'La date "à" ne peut pas être antérieure à la date "de"',
+            seleccionaRango: 'Veuillez sélectionner une plage de dates'
         },
         categorias: {
             titulo: 'Gérer les Catégories',
@@ -696,8 +897,9 @@ const TRADUCCIONES = {
             descripcion: 'Description...',
             desde: 'Du',
             hasta: 'Au',
-            monto: 'Montant',
-            noHayGastos: 'Aucune dépense enregistrée',
+            monto: 'Montant',            mostrarAntiguos: 'Afficher les anciens',
+            ocultarAntiguos: 'Masquer les anciens',
+            fraccionar: 'Diviser',            noHayGastos: 'Aucune dépense enregistrée',
             gastoAgregado: 'Dépense ajoutée avec succès',
             gastoEliminado: 'Dépense supprimée avec succès',
             gastoActualizado: 'Dépense mise à jour avec succès',
@@ -709,7 +911,17 @@ const TRADUCCIONES = {
             titulo: 'Gérer les Revenus',
             puntuales: 'Revenus Ponctuels',
             mensuales: 'Revenus Mensuels',
+            cuenta_remunerada: 'Compte Rémunéré',
             descripcion: 'Description...',
+            desde: 'De',
+            hasta: 'À',
+            bruto: 'Brut',
+            aportacionInicial: 'Contribution Initiale',
+            aportacionMensual: 'Contribution Mensuelle',
+            interes: 'Intérêt (%)',
+            interesGenerado: 'Intérêt Généré',
+            mostrarAntiguos: 'Afficher les anciens',
+            ocultarAntiguos: 'Masquer les anciens',
             noHayIngresos: 'Aucun revenu enregistré',
             ingresoAgregado: 'Revenu ajouté avec succès',
             ingresoEliminado: 'Revenu supprimé avec succès',
@@ -718,6 +930,18 @@ const TRADUCCIONES = {
             validarMonto: 'Veuillez entrer un montant valide',
             validarCategoria: 'Veuillez sélectionner une catégorie'
         },
+
+        // ===== IMPÔTS =====
+        taxes: {
+            agregarPuntual: 'Ajouter un Impôt Ponctuel',
+            agregarMensual: 'Ajouter un Impôt Mensuel',
+            impuestoAgregado: 'Impôt ajouté avec succès',
+            impuestoEliminado: 'Impôt supprimé avec succès',
+            impuestoActualizado: 'Impôt mis à jour avec succès',
+            desde: 'Du',
+            hasta: 'Au'
+        },
+        // ===== FORMULAIRES =====
         formularios: {
             guardar: 'Enregistrer',
             cancelar: 'Annuler',
@@ -731,6 +955,10 @@ const TRADUCCIONES = {
             monto: 'Montant',
             categoria: 'Catégorie',
             fecha: 'Date',
+            desde: 'Du',
+            hasta: 'Au',
+            bruto: 'Brut',
+            interes: 'Intérêt',
             accion: 'Action',
             acciones: 'Actions',
             obligatorio: 'Champ requis',
@@ -740,6 +968,22 @@ const TRADUCCIONES = {
             cerrar: 'Fermer',
             aceptar: 'Accepter',
             rechazar: 'Rejeter'
+        },
+
+        // ===== BOUTONS =====
+        botones: {
+            agregar: 'Ajouter',
+            actualizar: 'Mettre à jour',
+            editar: 'Modifier',
+            eliminar: 'Supprimer',
+            guardar: 'Enregistrer',
+            cancelar: 'Annuler'
+        },
+
+        // ===== ONGLETS =====
+        tabs: {
+            puntuales: 'Ponctuels',
+            mensuales: 'Mensuels'
         },
         mensajes: {
             exito: 'Opération terminée avec succès',
@@ -757,6 +1001,11 @@ const TRADUCCIONES = {
         },
         tablas: {
             sinResultados: 'Aucun résultat',
+            fecha: 'Date',
+            descripcion: 'Description',
+            monto: 'Montant',
+            categoria: 'Catégorie',
+            acciones: 'Actions',
             cargando: 'Chargement...',
             mostrandoRegistros: 'Affichage de {0} sur {1} enregistrements',
             siguiente: 'Suivant',

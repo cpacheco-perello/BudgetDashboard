@@ -11,7 +11,7 @@
     <div id="tabGastosPuntuales" class="subtab">
         <h3 data-i18n="gastos.puntuales">Gastos Puntuales</h3>
         <div style="margin-bottom:8px;">
-            <button id="toggleGastosAntiguos" class="small-btn">Mostrar antiguos</button>
+            <button id="toggleGastosAntiguos" class="small-btn" data-i18n="gastos.mostrarAntiguos">Mostrar antiguos</button>
         </div>
         
         <table id="tablaGastosPuntuales">
@@ -30,9 +30,8 @@
                         <div class="input-euro" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;">
                             <span>€</span>
                             <input type="number" id="montoGasto" step="0.01" data-i18n="formularios.monto" placeholder="0.00" style="width:100px;">
-                            <label for="fraccionarGasto" style="display:flex;align-items:center;gap:6px;margin-left:0;">
-                                <input type="checkbox" id="fraccionarGasto"> 
-                            </label>
+                             </div><div>
+                            <input type="checkbox" id="fraccionarGasto" style="cursor:pointer;">
                             <input type="number" id="partesGasto" min="1" value="1" placeholder="Nº" style="width:60px;display:none;margin-left:6px;color:#000;background:#fff;padding:2px 4px;border:1px solid #ccc;" title="Número de partes" aria-hidden="true">
                         </div>
                     </td>
@@ -48,7 +47,7 @@
     <div id="tabGastosMensuales" class="subtab" style="display:none;">
         <h3 data-i18n="gastos.mensuales">Gastos Mensuales</h3>
         <div style="margin-bottom:8px;">
-            <button id="toggleGastosMensualesAntiguos" class="small-btn">Mostrar antiguos</button>
+            <button id="toggleGastosMensualesAntiguos" class="small-btn" data-i18n="gastos.mostrarAntiguos">Mostrar antiguos</button>
         </div>
         <table id="tablaGastosMensuales">
             <thead>

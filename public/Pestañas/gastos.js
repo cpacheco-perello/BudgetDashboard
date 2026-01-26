@@ -352,7 +352,9 @@ function cargarGastosForm() {
     ].filter(Boolean);
     if (toggleBtns.length) {
         const updateAll = () => {
-            toggleBtns.forEach(b => b.textContent = window.showOldGastos ? 'Ocultar antiguos' : 'Mostrar antiguos');
+            const textoMostrar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.mostrarAntiguos') : 'Mostrar antiguos';
+            const textoOcultar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.ocultarAntiguos') : 'Ocultar antiguos';
+            toggleBtns.forEach(b => b.textContent = window.showOldGastos ? textoOcultar : textoMostrar);
         };
         toggleBtns.forEach(b => b.addEventListener('click', () => {
             window.showOldGastos = !window.showOldGastos;
@@ -408,9 +410,11 @@ function cargarGastosForm() {
     const tabPuntuales = document.getElementById('tabGastosPuntuales');
     const tabMensuales = document.getElementById('tabGastosMensuales');
 
-    // Toggle visibilidad del campo de partes para fraccionamiento
+    // Toggle mostrar/ocultar campo de partes para fraccionamiento
     const chkFraccionar = document.getElementById('fraccionarGasto');
     const inputPartes = document.getElementById('partesGasto');
+    const spanFraccionar = document.querySelector('span[data-i18n="gastos.fraccionar"]');
+    
     if (chkFraccionar && inputPartes) {
         const setVisible = (visible) => {
             inputPartes.style.display = visible ? 'inline-block' : 'none';
@@ -421,6 +425,15 @@ function cargarGastosForm() {
             setVisible(!!chkFraccionar.checked);
             if (!chkFraccionar.checked) inputPartes.value = '1';
         });
+        
+        // Permitir hacer clic en el texto para activar el checkbox
+        if (spanFraccionar) {
+            spanFraccionar.style.cursor = 'pointer';
+            spanFraccionar.addEventListener('click', () => {
+                chkFraccionar.checked = !chkFraccionar.checked;
+                chkFraccionar.dispatchEvent(new Event('change'));
+            });
+        }
     }
 
     btnPuntuales.onclick = () => {
@@ -439,6 +452,19 @@ function cargarGastosForm() {
 
     // Establecer active por defecto en Puntuales
     btnPuntuales.classList.add('active');
+
+    // Listener para cambios de idioma
+    document.addEventListener('idiomaActualizado', () => {
+        const toggleBtns = [
+            document.getElementById('toggleGastosAntiguos'),
+            document.getElementById('toggleGastosMensualesAntiguos')
+        ].filter(Boolean);
+        if (toggleBtns.length) {
+            const textoMostrar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.mostrarAntiguos') : 'Mostrar antiguos';
+            const textoOcultar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.ocultarAntiguos') : 'Ocultar antiguos';
+            toggleBtns.forEach(b => b.textContent = window.showOldGastos ? textoOcultar : textoMostrar);
+        }
+    });
 
     cargarCategorias();
     cargarGastos();
