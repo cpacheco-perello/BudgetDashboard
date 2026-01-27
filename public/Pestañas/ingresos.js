@@ -68,7 +68,10 @@ function cargarIngresosForm() {
         data.ingresos_puntuales.forEach(i => {
             const iDate = new Date(i.fecha);
             if (!window.showOldIngresos && iDate <= today) return;
-            const tr = document.createElement('tr');
+                    const tr = document.createElement('tr');
+                    const tituloEditar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.editar') : 'Editar';
+                    const tituloEliminar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.eliminar') : 'Eliminar';
+                    const tituloVender = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.sellAsset') : 'Vender';
             tr.dataset.id = i.id;
             tr.dataset.type = 'puntual';
             tr.innerHTML = `
@@ -78,10 +81,10 @@ function cargarIngresosForm() {
                 <td class="editable" data-field="bruto"><strong>${i.bruto !== undefined && i.bruto !== null ? formatearEuro(i.bruto) : '—'}</strong></td>
                 <td class="editable" data-field="categoria">${i.categoria}</td>
                 <td>
-                    <button class="editBtn btn-editar" title="Editar" style="margin-right:8px;">
+                        <button class="editBtn btn-editar" title="${tituloEditar}" style="margin-right:8px;">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button data-id="${i.id}" class="delP btn-eliminar" title="Eliminar" style="display:inline-block;">
+                        <button data-id="${i.id}" class="delP btn-eliminar" title="${tituloEliminar}" style="display:inline-block;">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
@@ -104,6 +107,8 @@ function cargarIngresosForm() {
                 const endDate = parseEndDate(i.hasta);
                 if (!window.showOldIngresos && endDate <= today) return;
                 const tr = document.createElement('tr');
+                    const tituloEditar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.editar') : 'Editar';
+                    const tituloEliminar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.eliminar') : 'Eliminar';
                 tr.dataset.id = i.id;
                 tr.dataset.type = 'mensual';
                 tr.innerHTML = `
@@ -114,10 +119,10 @@ function cargarIngresosForm() {
                     <td class="editable" data-field="bruto"><strong>${i.bruto !== undefined && i.bruto !== null ? formatearEuro(i.bruto) : '—'}</strong></td>
                     <td class="editable" data-field="categoria">${i.categoria}</td>
                     <td>
-                        <button class="editBtn btn-editar" title="Editar" style="margin-right:8px;">
+                            <button class="editBtn btn-editar" title="${tituloEditar}" style="margin-right:8px;">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button data-id="${i.id}" class="delM btn-eliminar" title="Eliminar" style="display:inline-block;">
+                            <button data-id="${i.id}" class="delM btn-eliminar" title="${tituloEliminar}" style="display:inline-block;">
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>
@@ -142,6 +147,8 @@ function cargarIngresosForm() {
                 if (!window.showOldCuentaRemunerada && endDate <= today) return;
                 
                 const tr = document.createElement('tr');
+                    const tituloEditar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.editar') : 'Editar';
+                    const tituloEliminar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.eliminar') : 'Eliminar';
                 tr.dataset.id = i.id;
                 tr.dataset.type = 'cuenta_remunerada';
                 tr.innerHTML = `
@@ -153,10 +160,10 @@ function cargarIngresosForm() {
                     <td><strong>${formatearEuro(i.interes_generado)}</strong></td>
                     <td class="editable" data-field="categoria">${i.categoria}</td>
                     <td>
-                        <button class="editBtn btn-editar" title="Editar" style="margin-right:8px;">
+                            <button class="editBtn btn-editar" title="${tituloEditar}" style="margin-right:8px;">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="delCR btn-eliminar" data-id="${i.id}" title="Eliminar" style="display:inline-block;">
+                            <button class="delCR btn-eliminar" data-id="${i.id}" title="${tituloEliminar}" style="display:inline-block;">
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>
@@ -168,7 +175,7 @@ function cargarIngresosForm() {
         // Botones eliminar Puntuales
         document.querySelectorAll('.delP').forEach(b => {
             b.onclick = async () => {
-                if (!confirm('¿Eliminar este ingreso?')) return;
+                if (!confirm(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.confirmarEliminarPuntual') : '¿Eliminar este ingreso?')) return;
                 await fetch('/delete/ingreso_puntual', {
                     method: 'POST',
                     headers: {'Content-Type':'application/json'},
@@ -181,7 +188,7 @@ function cargarIngresosForm() {
         // Botones eliminar Mensuales
         document.querySelectorAll('.delM').forEach(b => {
             b.onclick = async () => {
-                if (!confirm('¿Eliminar este ingreso mensual?')) return;
+                if (!confirm(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.confirmarEliminarMensual') : '¿Eliminar este ingreso mensual?')) return;
                 await fetch('/delete/ingreso_mensual', {
                     method: 'POST',
                     headers: {'Content-Type':'application/json'},
@@ -194,7 +201,7 @@ function cargarIngresosForm() {
         // Botones eliminar Cuenta Remunerada
         document.querySelectorAll('.delCR').forEach(b => {
             b.onclick = async () => {
-                if (!confirm('¿Eliminar esta aportación?')) return;
+                if (!confirm(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.confirmarEliminarAportacion') : '¿Eliminar esta aportación?')) return;
                 await fetch('/delete/cuenta_remunerada', {
                     method: 'POST',
                     headers: {'Content-Type':'application/json'},
@@ -316,16 +323,16 @@ function cargarIngresosForm() {
                     });
 
                     if (!cambios) {
-                        alert('No hay cambios');
+                        alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.noHayCambios') : 'No hay cambios');
                         cargarIngresos();
                         return;
                     }
 
                     // Validaciones
-                    if (tipo !== 'cuenta_remunerada' && !nuevos.descripcion) return alert('Descripción requerida');
-                    if (!nuevos.categoria) return alert('Categoría requerida');
+                    if (tipo !== 'cuenta_remunerada' && !nuevos.descripcion) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.descripcionRequerida') : 'Descripción requerida');
+                    if (!nuevos.categoria) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.categoriaRequerida') : 'Categoría requerida');
                     if (isNaN(parseFloat(nuevos.monto)) || parseFloat(nuevos.monto) <= 0) {
-                        return alert('Monto inválido');
+                        return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.montoInvalido') : 'Monto inválido');
                     }
 
                     function validarMes(valor) {
@@ -554,6 +561,9 @@ function cargarIngresosForm() {
                 let priceText = '<span style="color:#999;">Cargando...</span>';
                 
                 const tr = document.createElement('tr');
+                    const tituloEditar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.editar') : 'Editar';
+                    const tituloEliminar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.eliminar') : 'Eliminar';
+                    const tituloVender = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.sellAsset') : 'Vender';
                 tr.dataset.id = asset.id;
                 tr.dataset.type = 'asset';
                 tr.innerHTML = `
@@ -567,13 +577,13 @@ function cargarIngresosForm() {
                     <td class="diff-percent">—</td>
                     <td class="diff-amount">—</td>
                     <td>
-                        <button class="editBtn btn-editar" title="Editar" style="margin-right:8px;">
+                            <button class="editBtn btn-editar" title="${tituloEditar}" style="margin-right:8px;">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button data-id="${asset.id}" class="sellAsset btn-success" title="Vender" style="margin-right:8px;">
+                            <button data-id="${asset.id}" class="sellAsset btn-success" title="${tituloVender}" style="margin-right:8px;">
                             <i class="fas fa-hand-holding-usd"></i>
                         </button>
-                        <button data-id="${asset.id}" class="delAsset btn-eliminar" title="Eliminar">
+                            <button data-id="${asset.id}" class="delAsset btn-eliminar" title="${tituloEliminar}">
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>
@@ -713,18 +723,18 @@ function cargarIngresosForm() {
                         });
                         
                         if (!cambios) {
-                            alert('No hay cambios');
+                            alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.noHayCambios') : 'No hay cambios');
                             cargarAssets();
                             return;
                         }
                         
-                        if (!nuevos.company) return alert('Company requerido');
-                        if (!nuevos.ticker) return alert('Ticker requerido');
+                        if (!nuevos.company) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.companyRequerido') : 'Company requerido');
+                        if (!nuevos.ticker) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.tickerRequerido') : 'Ticker requerido');
                         if (isNaN(parseFloat(nuevos.shares)) || parseFloat(nuevos.shares) <= 0) {
-                            return alert('Número de acciones inválido');
+                            return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.numeroAccionesInvalido') : 'Número de acciones inválido');
                         }
                         if (isNaN(parseFloat(nuevos.purchase_price)) || parseFloat(nuevos.purchase_price) <= 0) {
-                            return alert('Precio de compra inválido');
+                            return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.precioCompraInvalidoAlt') : 'Precio de compra inválido');
                         }
                         
                         await fetch('/update/asset', {
@@ -794,7 +804,13 @@ function cargarIngresosForm() {
             }
             
             // Confirmar venta
-            if (!confirm(`¿Confirmar venta de ${asset.shares} acciones de ${asset.company} a ${formatearEuro(salePrice)} por acción?`)) {
+            const confirmarVenta = typeof gestorIdiomas !== 'undefined'
+                ? gestorIdiomas.obtenerTexto('ingresos.confirmarVenta')
+                    .replace('{shares}', asset.shares)
+                    .replace('{company}', asset.company)
+                    .replace('{price}', formatearEuro(salePrice))
+                : `¿Confirmar venta de ${asset.shares} acciones de ${asset.company} a ${formatearEuro(salePrice)} por acción?`;
+            if (!confirm(confirmarVenta)) {
                 return;
             }
             

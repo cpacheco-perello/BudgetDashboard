@@ -17,15 +17,17 @@ function cargarHucha() {
         tbody.innerHTML = '';
         data.forEach(item => {
             const tr = document.createElement('tr');
+            const tituloEditar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.editar') : 'Editar';
+            const tituloEliminar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.eliminar') : 'Eliminar';
             tr.dataset.id = item.id;
             tr.innerHTML = `
                 <td class="editable" data-field="concepto">${item.concepto}</td>
                 <td class="editable" data-field="cantidad"><strong>${formatearEuro(item.cantidad)}</strong></td>
                 <td>
-                    <button class="editBtn btn-editar" title="Editar" style="margin-right:8px;">
+                    <button class="editBtn btn-editar" title="${tituloEditar}" style="margin-right:8px;">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button data-id="${item.id}" class="delHucha btn-eliminar" title="Eliminar" style="display:inline-block;">
+                    <button data-id="${item.id}" class="delHucha btn-eliminar" title="${tituloEliminar}" style="display:inline-block;">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>

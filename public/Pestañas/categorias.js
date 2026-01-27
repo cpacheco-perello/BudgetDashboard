@@ -22,15 +22,24 @@ function initCategorias() {
         tbodyImpuestos.innerHTML = '';
 
         data.gastos.forEach(cat => {
-            crearFilaCategoria(cat, 'gasto', tbodyGasto);
+            // Ocultar categoría Assets
+            if (cat.nombre !== 'Assets') {
+                crearFilaCategoria(cat, 'gasto', tbodyGasto);
+            }
         });
 
         data.ingresos.forEach(cat => {
-            crearFilaCategoria(cat, 'ingreso', tbodyIngreso);
+            // Ocultar categoría Assets
+            if (cat.nombre !== 'Assets') {
+                crearFilaCategoria(cat, 'ingreso', tbodyIngreso);
+            }
         });
 
         data.impuestos.forEach(cat => {
-            crearFilaCategoria(cat, 'impuestos', tbodyImpuestos);
+            // Ocultar categoría Assets
+            if (cat.nombre !== 'Assets') {
+                crearFilaCategoria(cat, 'impuestos', tbodyImpuestos);
+            }
         });
 
         agregarEventosEdicion();
@@ -39,15 +48,17 @@ function initCategorias() {
     // ===== Crear fila de categoría con botones =====
     function crearFilaCategoria(cat, tipo, tbody) {
         const tr = document.createElement('tr');
+        const tituloEditar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.editar') : 'Editar';
+        const tituloEliminar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.eliminar') : 'Eliminar';
         tr.dataset.id = cat.id;
         tr.dataset.tipo = tipo;
         tr.innerHTML = `
             <td class="nombre-categoria">${cat.nombre}</td>
             <td class="acciones-categoria">
-                <button class="btn-editar" title="Editar">
+                <button class="btn-editar" title="${tituloEditar}">
                     <i class="fas fa-edit"></i>
                 </button>
-                <button class="btn-eliminar" title="Eliminar">
+                <button class="btn-eliminar" title="${tituloEliminar}">
                     <i class="fas fa-trash"></i>
                 </button>
             </td>
@@ -98,7 +109,7 @@ function initCategorias() {
                     if (res.ok) {
                         tdNombre.textContent = nuevoNombre;
                     } else {
-                        alert('Error al actualizar la categoría');
+                        alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('categorias.errorActualizar') : 'Error al actualizar la categoría');
                         tdNombre.textContent = nombreActual;
                     }
                 };
@@ -124,7 +135,10 @@ function initCategorias() {
                 const tr = btn.closest('tr');
                 const nombre = tr.querySelector('.nombre-categoria').textContent;
                 
-                if (!confirm(`¿Eliminar categoría "${nombre}"?`)) {
+                const textoConfirmar = typeof gestorIdiomas !== 'undefined'
+                    ? gestorIdiomas.obtenerTexto('categorias.confirmarEliminar').replace('{nombre}', nombre)
+                    : `¿Eliminar categoría "${nombre}"?`;
+                if (!confirm(textoConfirmar)) {
                     return;
                 }
 
@@ -139,7 +153,7 @@ function initCategorias() {
                     tr.style.animation = 'slideOut 0.3s ease forwards';
                     setTimeout(() => cargarCategorias(), 300);
                 } else {
-                    alert('Error al eliminar la categoría');
+                    alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('categorias.errorEliminar') : 'Error al eliminar la categoría');
                 }
             });
         });
@@ -165,12 +179,18 @@ function initCategorias() {
                 cargarCategorias();
             } else {
                 const error = await res.json();
-                alert('Error: ' + (error.error || 'No se pudo agregar la categoría'));
+                const msg = typeof gestorIdiomas !== 'undefined'
+                    ? gestorIdiomas.obtenerTexto('categorias.errorAgregar').replace('{error}', error.error || gestorIdiomas.obtenerTexto('categorias.noPudoAgregar'))
+                    : 'Error: ' + (error.error || 'No se pudo agregar la categoría');
+                alert(msg);
                 console.error('Error agregando categoría:', error);
             }
         } catch (err) {
             console.error('Error en fetch:', err);
-            alert('Error de conexión: ' + err.message);
+            const msg = typeof gestorIdiomas !== 'undefined'
+                ? gestorIdiomas.obtenerTexto('categorias.errorConexion').replace('{error}', err.message)
+                : 'Error de conexión: ' + err.message;
+            alert(msg);
         }
     });
 
@@ -194,12 +214,18 @@ function initCategorias() {
                 cargarCategorias();
             } else {
                 const error = await res.json();
-                alert('Error: ' + (error.error || 'No se pudo agregar la categoría'));
+                const msg = typeof gestorIdiomas !== 'undefined'
+                    ? gestorIdiomas.obtenerTexto('categorias.errorAgregar').replace('{error}', error.error || gestorIdiomas.obtenerTexto('categorias.noPudoAgregar'))
+                    : 'Error: ' + (error.error || 'No se pudo agregar la categoría');
+                alert(msg);
                 console.error('Error agregando categoría:', error);
             }
         } catch (err) {
             console.error('Error en fetch:', err);
-            alert('Error de conexión: ' + err.message);
+            const msg = typeof gestorIdiomas !== 'undefined'
+                ? gestorIdiomas.obtenerTexto('categorias.errorConexion').replace('{error}', err.message)
+                : 'Error de conexión: ' + err.message;
+            alert(msg);
         }
     });
 
@@ -223,12 +249,18 @@ function initCategorias() {
                 cargarCategorias();
             } else {
                 const error = await res.json();
-                alert('Error: ' + (error.error || 'No se pudo agregar la categoría'));
+                const msg = typeof gestorIdiomas !== 'undefined'
+                    ? gestorIdiomas.obtenerTexto('categorias.errorAgregar').replace('{error}', error.error || gestorIdiomas.obtenerTexto('categorias.noPudoAgregar'))
+                    : 'Error: ' + (error.error || 'No se pudo agregar la categoría');
+                alert(msg);
                 console.error('Error agregando categoría:', error);
             }
         } catch (err) {
             console.error('Error en fetch:', err);
-            alert('Error de conexión: ' + err.message);
+            const msg = typeof gestorIdiomas !== 'undefined'
+                ? gestorIdiomas.obtenerTexto('categorias.errorConexion').replace('{error}', err.message)
+                : 'Error de conexión: ' + err.message;
+            alert(msg);
         }
     });
 

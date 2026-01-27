@@ -21,18 +21,18 @@
                     <th data-i18n="formularios.descripcion">Descripción</th>
                     <th data-i18n="formularios.monto">Monto</th>
                     <th data-i18n="formularios.categoria">Categoría</th>
-                    <th style="width:120px;">Acciones</th>
+                    <th style="width:120px;" data-i18n="tablas.acciones">Acciones</th>
                 </tr>
                 <tr class="insert-row">
                     <td><input type="date" id="fechaGasto"></td>
-                    <td><input type="text" id="descGasto" data-i18n="gastos.descripcion" placeholder="Descripción..."></td>
+                    <td><input type="text" id="descGasto" data-i18n-placeholder="gastos.descripcion"></td>
                     <td>
                         <div class="input-euro" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;">
                             <span>€</span>
-                            <input type="number" id="montoGasto" step="0.01" data-i18n="formularios.monto" placeholder="0.00" style="width:100px;">
+                            <input type="number" id="montoGasto" step="0.01" data-i18n-placeholder="formularios.placeholderMonto" style="width:100px;">
                              </div><div>
                             <input type="checkbox" id="fraccionarGasto" style="cursor:pointer;">
-                            <input type="number" id="partesGasto" min="1" value="1" placeholder="Nº" style="width:60px;display:none;margin-left:6px;color:#000;background:#fff;padding:2px 4px;border:1px solid #ccc;" title="Número de partes" aria-hidden="true">
+                            <input type="number" id="partesGasto" min="1" value="1" data-i18n-placeholder="formularios.placeholderNumeroPartes" style="width:60px;display:none;margin-left:6px;color:#000;background:#fff;padding:2px 4px;border:1px solid #ccc;" data-i18n-title="formularios.numeroPartes" title="Número de partes" aria-hidden="true">
                         </div>
                     </td>
                     <td><select id="categoriaGasto"></select></td>
@@ -57,16 +57,17 @@
                     <th data-i18n="formularios.descripcion">Descripción</th>
                     <th data-i18n="formularios.monto">Monto</th>
                     <th data-i18n="formularios.categoria">Categoría</th>
-                    <th style="width:120px;">Acciones</th>
+                    <th style="width:120px;" data-i18n="tablas.acciones">Acciones</th>
                 </tr>
                 <tr class="insert-row">
                     <td>
                         <input 
                             type="text"
                             id="desdeGasto"
-                            placeholder="YYYY-MM"
+                            data-i18n-placeholder="formularios.placeholderYYYYMM"
                             maxlength="7"
                             pattern="\\d{4}-\\d{2}"
+                            data-i18n-title="formularios.formatoYYYYMM"
                             title="Formato: YYYY-MM"
                         >
                     </td>
@@ -74,17 +75,18 @@
                         <input 
                             type="text"
                             id="hastaGasto"
-                            placeholder="YYYY-MM"
+                            data-i18n-placeholder="formularios.placeholderYYYYMM"
                             maxlength="7"
                             pattern="\\d{4}-\\d{2}"
+                            data-i18n-title="formularios.formatoYYYYMM"
                             title="Formato: YYYY-MM"
                         >
                     </td>
-                    <td><input type="text" id="descMensual" data-i18n="gastos.descripcion" placeholder="Descripción..."></td>
+                    <td><input type="text" id="descMensual" data-i18n-placeholder="gastos.descripcion"></td>
                     <td>
                         <div class="input-euro">
                             <span>€</span>
-                            <input type="number" id="montoMensual" step="0.01" data-i18n="formularios.monto" placeholder="0.00">
+                            <input type="number" id="montoMensual" step="0.01" data-i18n-placeholder="formularios.placeholderMonto">
                         </div>
                     </td>
                     <td><select id="categoriaMensual"></select></td>

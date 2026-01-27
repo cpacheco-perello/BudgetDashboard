@@ -23,21 +23,21 @@
                 <th data-i18n="formularios.monto">Monto</th>
                 <th data-i18n="formularios.bruto">Bruto</th>
                 <th data-i18n="formularios.categoria">Categoría</th>
-                <th style="width:120px;">Acciones</th>
+                <th style="width:120px;" data-i18n="tablas.acciones">Acciones</th>
             </tr>
             <tr class="insert-row">
                 <td><input type="date" id="fechaIngresoPuntual"></td>
-                <td><input type="text" id="descIngresoPuntual" data-i18n="ingresos.descripcion" placeholder="Descripción..."></td>
+                <td><input type="text" id="descIngresoPuntual" data-i18n-placeholder="ingresos.placeholderDescripcion"></td>
                 <td>
                   <div class="input-euro">
                     <span>€</span>
-                    <input type="number" id="montoIngresoPuntual" step="0.01" data-i18n="formularios.monto" placeholder="0.00">
+                    <input type="number" id="montoIngresoPuntual" step="0.01" data-i18n-placeholder="ingresos.placeholderMonto">
                   </div>
                 </td>
                 <td>
                   <div class="input-euro">
                     <span>€</span>
-                    <input type="number" id="brutoIngresoPuntual" step="0.01" placeholder="0.00">
+                    <input type="number" id="brutoIngresoPuntual" step="0.01" data-i18n-placeholder="formularios.placeholderMonto">
                   </div>
                 </td>
                 <td><select id="categoriaIngresoPuntual"></select></td>
@@ -64,16 +64,17 @@
             <th data-i18n="formularios.monto">Monto</th>
             <th data-i18n="formularios.bruto">Bruto</th>
             <th data-i18n="formularios.categoria">Categoría</th>
-            <th style="width:120px;">Acciones</th>
+            <th style="width:120px;" data-i18n="tablas.acciones">Acciones</th>
           </tr>
           <tr class="insert-row">
             <td>
               <input 
                 type="text" 
                 id="desdeIngresoMensual" 
-                placeholder="YYYY-MM" 
+                data-i18n-placeholder="ingresos.placeholderYYYYMM" 
                 maxlength="7"
                 pattern="\\d{4}-\\d{2}"
+                data-i18n-title="formularios.formatoYYYYMM"
                 title="Formato: YYYY-MM"
               >
             </td>
@@ -81,23 +82,24 @@
               <input 
                 type="text" 
                 id="hastaIngresoMensual" 
-                placeholder="YYYY-MM" 
+                data-i18n-placeholder="ingresos.placeholderYYYYMM" 
                 maxlength="7"
                 pattern="\\d{4}-\\d{2}"
+                data-i18n-title="formularios.formatoYYYYMM"
                 title="Formato: YYYY-MM"
               >
             </td>
-            <td><input type="text" id="descIngresoMensual" data-i18n="ingresos.descripcion" placeholder="Descripción..."></td>
+            <td><input type="text" id="descIngresoMensual" data-i18n-placeholder="ingresos.placeholderDescripcion"></td>
             <td>
               <div class="input-euro">
               <span>€</span>
-              <input type="number" id="montoIngresoMensual" step="0.01" data-i18n="formularios.monto" placeholder="0.00">
+              <input type="number" id="montoIngresoMensual" step="0.01" data-i18n-placeholder="ingresos.placeholderMonto">
               </div>
             </td>
             <td>
               <div class="input-euro">
               <span>€</span>
-              <input type="number" id="brutoIngresoMensual" step="0.01" placeholder="0.00">
+              <input type="number" id="brutoIngresoMensual" step="0.01" data-i18n-placeholder="formularios.placeholderMonto">
               </div>
             </td>
             <td><select id="categoriaIngresoMensual"></select></td>
@@ -124,16 +126,17 @@
           <th data-i18n="ingresos.interes">Interés (%)</th>
           <th data-i18n="ingresos.interesGenerado">Interés Generado</th>
           <th data-i18n="formularios.categoria">Categoría</th>
-          <th style="width:120px;">Acciones</th>
+          <th style="width:120px;" data-i18n="tablas.acciones">Acciones</th>
         </tr>
         <tr class="insert-row">
           <td>
             <input 
               type="text" 
               id="desdeCuentaRemunerada" 
-              placeholder="YYYY-MM" 
+              data-i18n-placeholder="ingresos.placeholderYYYYMM" 
               maxlength="7"
               pattern="\\d{4}-\\d{2}"
+              data-i18n-title="formularios.formatoYYYYMM"
               title="Formato: YYYY-MM"
             >
           </td>
@@ -141,26 +144,27 @@
             <input 
               type="text" 
               id="hastaCuentaRemunerada" 
-              placeholder="YYYY-MM" 
+              data-i18n-placeholder="ingresos.placeholderYYYYMM" 
               maxlength="7"
               pattern="\\d{4}-\\d{2}"
+              data-i18n-title="formularios.formatoYYYYMM"
               title="Formato: YYYY-MM"
             >
           </td>
           <td>
             <div class="input-euro">
               <span>€</span>
-              <input type="number" id="montoCuentaRemunerada" step="0.01" data-i18n="formularios.monto" placeholder="0.00">
+              <input type="number" id="montoCuentaRemunerada" step="0.01" data-i18n-placeholder="ingresos.placeholderMonto">
             </div>
           </td>
           <td>
             <div class="input-euro">
               <span>€</span>
-              <input type="number" id="aportacionMensualCR" step="0.01" placeholder="0.00">
+              <input type="number" id="aportacionMensualCR" step="0.01" data-i18n-placeholder="ingresos.placeholderAportacion">
             </div>
           </td>
           <td>
-            <input type="number" id="interesCuentaRemunerada" step="0.01" placeholder="0.00">
+            <input type="number" id="interesCuentaRemunerada" step="0.01" data-i18n-placeholder="ingresos.placeholderInteres">
           </td>
           <td></td>
           <td><select id="categoriaCuentaRemunerada"></select></td>
@@ -187,18 +191,18 @@
             <th data-i18n="ingresos.currentValue">Valor Actual</th>
             <th data-i18n="ingresos.diffPercent">Dif. %</th>
             <th data-i18n="ingresos.diffAmount">Dif. €</th>
-            <th style="width:150px;">Acciones</th>
+            <th style="width:150px;" data-i18n="tablas.acciones">Acciones</th>
           </tr>
           <tr class="insert-row">
-            <td><input type="text" id="companyAsset" placeholder="Apple Inc."></td>
-            <td><input type="text" id="tickerAsset" placeholder="AAPL"></td>
+            <td><input type="text" id="companyAsset" data-i18n-placeholder="ingresos.placeholderCompany"></td>
+            <td><input type="text" id="tickerAsset" data-i18n-placeholder="ingresos.placeholderTicker"></td>
             <td>
-              <input type="number" id="sharesAsset" step="0.01" placeholder="10">
+              <input type="number" id="sharesAsset" step="0.01" data-i18n-placeholder="ingresos.placeholderShares">
             </td>
             <td>
               <div class="input-euro">
                 <span>€</span>
-                <input type="number" id="purchasePriceAsset" step="0.01" placeholder="150.00">
+                <input type="number" id="purchasePriceAsset" step="0.01" data-i18n-placeholder="ingresos.placeholderPrice">
               </div>
             </td>
             <td></td>
@@ -230,7 +234,7 @@
       <label style="display:block; margin-bottom:5px; font-weight:bold;" data-i18n="ingresos.salePrice">Precio de Venta:</label>
       <div class="input-euro">
         <span>€</span>
-        <input type="number" id="sellPrice" step="0.01" placeholder="0.00" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:5px;">
+        <input type="number" id="sellPrice" step="0.01" data-i18n-placeholder="ingresos.placeholderMonto" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:5px;">
       </div>
     </div>
     <div style="margin:20px 0; padding:15px; background:#f0f0f0; border-radius:5px;">

@@ -28,6 +28,8 @@ function cargarImpuestosPuntuales() {
             
             data.forEach(imp => {
                 const tr = document.createElement('tr');
+                const tituloEditar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.editar') : 'Editar';
+                const tituloEliminar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.eliminar') : 'Eliminar';
                 tr.dataset.id = imp.id;
                 tr.dataset.type = 'puntual';
                 tr.innerHTML = `
@@ -36,10 +38,10 @@ function cargarImpuestosPuntuales() {
                     <td class="editable" data-field="monto"><strong>${formatearEuro(imp.monto)}</strong></td>
                     <td class="editable" data-field="categoria">${imp.categoria}</td>
                     <td>
-                        <button class="editBtn btn-editar" title="Editar" style="margin-right:8px;">
+                        <button class="editBtn btn-editar" title="${tituloEditar}" style="margin-right:8px;">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button data-id="${imp.id}" class="delP btn-eliminar" title="Eliminar" style="display:inline-block;">
+                        <button data-id="${imp.id}" class="delP btn-eliminar" title="${tituloEliminar}" style="display:inline-block;">
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>
@@ -165,6 +167,8 @@ function cargarImpuestosMensuales() {
             
             data.forEach(imp => {
                 const tr = document.createElement('tr');
+                const tituloEditar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.editar') : 'Editar';
+                const tituloEliminar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.eliminar') : 'Eliminar';
                 tr.dataset.id = imp.id;
                 tr.dataset.type = 'mensual';
                 tr.innerHTML = `
@@ -174,10 +178,10 @@ function cargarImpuestosMensuales() {
                     <td class="editable" data-field="desde">${imp.desde}</td>
                     <td class="editable" data-field="hasta">${imp.hasta}</td>
                     <td>
-                        <button class="editBtn btn-editar" title="Editar" style="margin-right:8px;">
+                        <button class="editBtn btn-editar" title="${tituloEditar}" style="margin-right:8px;">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button data-id="${imp.id}" class="delM btn-eliminar" title="Eliminar" style="display:inline-block;">
+                        <button data-id="${imp.id}" class="delM btn-eliminar" title="${tituloEliminar}" style="display:inline-block;">
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>
@@ -339,7 +343,7 @@ async function inicializarTaxes() {
             const categoria_id = parseInt(document.getElementById('cat-impuesto-p').value);
             
             if (!fecha || !desc || isNaN(monto) || !categoria_id) {
-                alert('Completa todos los campos');
+                alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('taxes.completaCampos') : 'Completa todos los campos');
                 return;
             }
             
@@ -368,7 +372,7 @@ async function inicializarTaxes() {
             const hasta = document.getElementById('hasta-impuesto-m').value;
             
             if (!desc || isNaN(monto) || !categoria_id || !desde || !hasta) {
-                alert('Completa todos los campos');
+                alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('taxes.completaCampos') : 'Completa todos los campos');
                 return;
             }
             

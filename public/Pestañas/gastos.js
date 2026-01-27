@@ -55,6 +55,8 @@ function cargarGastosForm() {
             const gDate = new Date(g.fecha);
             if (!window.showOldGastos && gDate <= today) return; // ocultar antiguos si flag desactivado
             const tr = document.createElement('tr');
+            const tituloEditar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.editar') : 'Editar';
+            const tituloEliminar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.eliminar') : 'Eliminar';
             tr.dataset.id = g.id;
             tr.dataset.type = 'puntual';
             tr.innerHTML = `
@@ -63,10 +65,10 @@ function cargarGastosForm() {
                 <td class="editable" data-field="monto"><strong>${formatearEuro(g.monto)}</strong></td>
                 <td class="editable" data-field="categoria">${g.categoria}</td>
                 <td>
-                    <button class="editBtn btn-editar" title="Editar" style="margin-right:8px;">
+                    <button class="editBtn btn-editar" title="${tituloEditar}" style="margin-right:8px;">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button data-id="${g.id}" class="delP btn-eliminar" title="Eliminar" style="display:inline-block;">
+                    <button data-id="${g.id}" class="delP btn-eliminar" title="${tituloEliminar}" style="display:inline-block;">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
@@ -89,6 +91,8 @@ function cargarGastosForm() {
             const endDate = parseEndDate(g.hasta);
             if (!window.showOldGastos && endDate <= today) return;
             const tr = document.createElement('tr');
+            const tituloEditar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.editar') : 'Editar';
+            const tituloEliminar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.eliminar') : 'Eliminar';
             tr.dataset.id = g.id;
             tr.dataset.type = 'mensual';
             tr.innerHTML = `
@@ -98,10 +102,10 @@ function cargarGastosForm() {
                 <td class="editable" data-field="monto"><strong>${formatearEuro(g.monto)}</strong></td>
                 <td class="editable" data-field="categoria">${g.categoria}</td>
                 <td>
-                    <button class="editBtn btn-editar" title="Editar" style="margin-right:8px;">
+                    <button class="editBtn btn-editar" title="${tituloEditar}" style="margin-right:8px;">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button data-id="${g.id}" class="delM btn-eliminar" title="Eliminar" style="display:inline-block;">
+                    <button data-id="${g.id}" class="delM btn-eliminar" title="${tituloEliminar}" style="display:inline-block;">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
@@ -112,7 +116,7 @@ function cargarGastosForm() {
         // Eliminar Puntuales
         document.querySelectorAll('.delP').forEach(b => {
             b.onclick = async () => {
-                if (!confirm('¿Eliminar este gasto?')) return;
+                if (!confirm(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.confirmarEliminarPuntual') : '¿Eliminar este gasto?')) return;
                 await fetch('/delete/gasto_puntual', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -125,7 +129,7 @@ function cargarGastosForm() {
         // Eliminar Mensuales
         document.querySelectorAll('.delM').forEach(b => {
             b.onclick = async () => {
-                if (!confirm('¿Eliminar este gasto mensual?')) return;
+                if (!confirm(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.confirmarEliminarMensual') : '¿Eliminar este gasto mensual?')) return;
                 await fetch('/delete/gasto_mensual', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -187,7 +191,7 @@ function cargarGastosForm() {
                         input.type = field === 'monto' ? 'number' : 'text';
                         input.value = valor;
                         if (field === 'desde' || field === 'hasta') {
-                            input.placeholder = 'YYYY-MM';
+                            input.placeholder = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.placeholderYYYYMM') : 'YYYY-MM';
                             input.maxLength = '7';
                         }
                         input.style.width = field === 'fecha' || field === 'desde' || field === 'hasta' ? '120px' : '200px';
@@ -229,20 +233,20 @@ function cargarGastosForm() {
                     });
 
                     if (!cambios) {
-                        alert('No hay cambios');
+                        alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.noHayCambios') : 'No hay cambios');
                         cargarGastos();
                         return;
                     }
 
                     // Validaciones
-                    if (!nuevos.descripcion) return alert('Descripción requerida');
-                    if (!nuevos.categoria) return alert('Categoría requerida');
+                    if (!nuevos.descripcion) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.descripcionRequerida') : 'Descripción requerida');
+                    if (!nuevos.categoria) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.categoriaRequerida') : 'Categoría requerida');
                     if (isNaN(parseFloat(nuevos.monto)) || parseFloat(nuevos.monto) <= 0) {
-                        return alert('Monto inválido');
+                        return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.montoInvalido') : 'Monto inválido');
                     }
 
                     if (tipo === 'puntual') {
-                        if (!nuevos.fecha) return alert('Fecha requerida');
+                        if (!nuevos.fecha) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.fechaRequerida') : 'Fecha requerida');
                         await fetch('/update/gasto_puntual', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -255,8 +259,8 @@ function cargarGastosForm() {
                             })
                         });
                     } else {
-                        if (!validarYYYYMM(nuevos.desde)) return alert("El campo 'Desde' debe tener formato YYYY-MM");
-                        if (!validarYYYYMM(nuevos.hasta)) return alert("El campo 'Hasta' debe tener formato YYYY-MM");
+                        if (!validarYYYYMM(nuevos.desde)) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.formatoDesde') : "El campo 'Desde' debe tener formato YYYY-MM");
+                        if (!validarYYYYMM(nuevos.hasta)) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.formatoHasta') : "El campo 'Hasta' debe tener formato YYYY-MM");
                         await fetch('/update/gasto_mensual', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -291,9 +295,9 @@ function cargarGastosForm() {
         const fraccionar = document.getElementById('fraccionarGasto')?.checked;
         const partes = parseInt(document.getElementById('partesGasto')?.value || '1', 10) || 1;
 
-        if (!fecha) return alert("Selecciona una fecha");
-        if (!desc) return alert("Ingresa una descripción");
-        if (isNaN(monto) || monto <= 0) return alert("Monto inválido");
+        if (!fecha) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.seleccionaFecha') : "Selecciona una fecha");
+        if (!desc) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.ingresaDescripcion') : "Ingresa una descripción");
+        if (isNaN(monto) || monto <= 0) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.montoInvalido') : "Monto inválido");
         // Si no se fracciona, enviar una sola entrada
         if (!fraccionar || partes <= 1) {
             await fetch('/add/gasto_puntual', {
@@ -336,7 +340,9 @@ function cargarGastosForm() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         fecha: partFecha,
-                        descripcion: desc + ` (parte ${i + 1}/${partes})`,
+                        descripcion: desc + (typeof gestorIdiomas !== 'undefined'
+                            ? gestorIdiomas.obtenerTexto('gastos.parteFraccion').replace('{parte}', i + 1).replace('{total}', partes)
+                            : ` (parte ${i + 1}/${partes})`),
                         monto: partMonto,
                         categoria_id: selectCatP.value
                     })
@@ -390,11 +396,11 @@ function cargarGastosForm() {
         const categoria = document.getElementById('categoriaMensual').value;
 
         // Validaciones
-        if (!validarYYYYMM(desde)) return alert("El campo 'Desde' debe tener formato YYYY-MM");
-        if (!validarYYYYMM(hasta)) return alert("El campo 'Hasta' debe tener formato YYYY-MM");
-        if (!desc) return alert("Descripción requerida");
-        if (isNaN(monto) || monto <= 0) return alert("Monto inválido");
-        if (!categoria) return alert("Selecciona una categoría");
+        if (!validarYYYYMM(desde)) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.formatoDesde') : "El campo 'Desde' debe tener formato YYYY-MM");
+        if (!validarYYYYMM(hasta)) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.formatoHasta') : "El campo 'Hasta' debe tener formato YYYY-MM");
+        if (!desc) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.descripcionRequerida') : "Descripción requerida");
+        if (isNaN(monto) || monto <= 0) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.montoInvalido') : "Monto inválido");
+        if (!categoria) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.seleccionaCategoria') : "Selecciona una categoría");
 
         // Enviar al backend
         await fetch('/add/gasto_mensual', {
