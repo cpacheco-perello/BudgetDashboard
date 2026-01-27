@@ -696,6 +696,66 @@ table {
     box-shadow: var(--shadow-lg);
 }
 
+/* Contenedor con scroll para tablas grandes */
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    margin-top: var(--spacing-xl);
+    border-radius: 10px;
+    box-shadow: var(--shadow-lg);
+    background: var(--bg-white);
+    position: relative;
+}
+
+.table-container::after {
+    content: '← Desliza para ver más →';
+    position: absolute;
+    bottom: 5px;
+    right: 10px;
+    font-size: 0.75rem;
+    color: var(--gray-400);
+    pointer-events: none;
+    opacity: 0.7;
+    font-style: italic;
+}
+
+/* Tabla de Assets con scroll horizontal */
+#tablaAssets {
+    min-width: 1400px;
+    margin-top: 0;
+}
+
+#tablaAssets th,
+#tablaAssets td {
+    white-space: nowrap;
+    padding: var(--spacing-lg) var(--spacing-md);
+}
+
+#tablaAssets th:first-child,
+#tablaAssets td:first-child {
+    position: sticky;
+    left: 0;
+    background: inherit;
+    z-index: 1;
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+}
+
+#tablaAssets thead th:first-child {
+    background: var(--primary);
+}
+
+#tablaAssets tbody tr:nth-child(even) td:first-child {
+    background: var(--light);
+}
+
+#tablaAssets tbody tr td:first-child {
+    background: white;
+}
+
+#tablaAssets tbody tr:hover td:first-child {
+    background: var(--light);
+}
+
 table thead {
     background: var(--gradient-primary);
 }

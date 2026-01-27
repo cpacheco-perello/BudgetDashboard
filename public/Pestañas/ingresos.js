@@ -4,10 +4,12 @@ function cargarIngresosForm() {
     const tbodyP = document.querySelector('#tablaIngresosPuntuales tbody');
     const tbodyM = document.querySelector('#tablaIngresosMensuales tbody');
     const tbodyCR = document.querySelector('#tablaCuentaRemunerada tbody');
+    const tbodyAssets = document.querySelector('#tablaAssets tbody');
 
     const selectCatP = document.getElementById('categoriaIngresoPuntual');
     const selectCatM = document.getElementById('categoriaIngresoMensual');
     const selectCatCR = document.getElementById('categoriaCuentaRemunerada');
+    const selectCatAsset = document.getElementById('categoriaAsset');
 
     // Función global para formatear montos con símbolo Euro (punto millar, coma decimal)
     function formatearEuro(monto) {
@@ -23,6 +25,7 @@ function cargarIngresosForm() {
         selectCatP.innerHTML = '';
         selectCatM.innerHTML = '';
         if (selectCatCR) selectCatCR.innerHTML = '';
+        if (selectCatAsset) selectCatAsset.innerHTML = '';
 
         data.ingresos.forEach(cat => {
             const opt = document.createElement('option');
@@ -31,6 +34,7 @@ function cargarIngresosForm() {
             selectCatP.appendChild(opt);
             selectCatM.appendChild(opt.cloneNode(true));
             if (selectCatCR) selectCatCR.appendChild(opt.cloneNode(true));
+            if (selectCatAsset) selectCatAsset.appendChild(opt.cloneNode(true));
         });
     }
 
@@ -182,6 +186,11 @@ function cargarIngresosForm() {
                 cargarIngresos();
             };
         });
+
+        // Assets
+        if (tbodyAssets) {
+            cargarAssets();
+        }
 
         // Editar filas
         document.querySelectorAll('.editBtn').forEach(btn => {
@@ -505,6 +514,248 @@ function cargarIngresosForm() {
         document.getElementById('brutoIngresoMensual').value = '';
         cargarIngresos();
     };
+
+    // ================== FUNCIONES PARA ASSETS ==================
+
+    async function cargarAssets() {
+        if (!tbodyAssets) return;
+        
+        try {
+            const res = await fetch('/assets');
+            const assets = await res.json();
+            
+            tbodyAssets.innerHTML = '';
+            
+            for (const asset of assets) {
+                const totalInvestment = asset.shares * asset.purchase_price;
+                
+                // Obtener precio actual desde Yahoo Finance
+                let currentPrice = 0;
+                let currentValue = 0;
+                let diffPercent = 0;
+                let diffAmount = 0;
+                let priceText = '<span style="color:#999;">Cargando...</span>';
+                
+                const tr = document.createElement('tr');
+                tr.dataset.id = asset.id;
+                tr.dataset.type = 'asset';
+                tr.innerHTML = `
+                    <td class="editable" data-field="company">${asset.company}</td>
+                    <td class="editable" data-field="ticker">${asset.ticker}</td>
+                    <td class="editable" data-field="shares">${asset.shares}</td>
+                    <td class="editable" data-field="purchase_price"><strong>${formatearEuro(asset.purchase_price)}</strong></td>
+                    <td><strong>${formatearEuro(totalInvestment)}</strong></td>
+                    <td class="current-price">${priceText}</td>
+                    <td class="current-value">—</td>
+                    <td class="diff-percent">—</td>
+                    <td class="diff-amount">—</td>
+                    <td class="editable" data-field="categoria">${asset.categoria}</td>
+                    <td>
+                        <button class="editBtn btn-editar" title="Editar" style="margin-right:8px;">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button data-id="${asset.id}" class="delAsset btn-eliminar" title="Eliminar">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbodyAssets.appendChild(tr);
+                
+                // Obtener precio actual de forma asíncrona
+                try {
+                    const priceRes = await fetch(`/asset-price/${asset.ticker}`);
+                    if (priceRes.ok) {
+                        const priceData = await priceRes.json();
+                        currentPrice = priceData.currentPrice;
+                        currentValue = asset.shares * currentPrice;
+                        diffAmount = currentValue - totalInvestment;
+                        diffPercent = totalInvestment > 0 ? (diffAmount / totalInvestment) * 100 : 0;
+                        
+                        const colorDiff = diffAmount >= 0 ? '#22c55e' : '#ef4444';
+                        const signDiff = diffAmount >= 0 ? '+' : '';
+                        
+                        tr.querySelector('.current-price').innerHTML = `<strong>${formatearEuro(currentPrice)}</strong>`;
+                        tr.querySelector('.current-value').innerHTML = `<strong style="color:${colorDiff}">${formatearEuro(currentValue)}</strong>`;
+                        tr.querySelector('.diff-percent').innerHTML = `<strong style="color:${colorDiff}">${signDiff}${diffPercent.toFixed(2)}%</strong>`;
+                        tr.querySelector('.diff-amount').innerHTML = `<strong style="color:${colorDiff}">${signDiff}${formatearEuro(Math.abs(diffAmount))}</strong>`;
+                    } else {
+                        tr.querySelector('.current-price').innerHTML = '<span style="color:#ef4444;">Error</span>';
+                    }
+                } catch (e) {
+                    console.error(`Error obteniendo precio para ${asset.ticker}:`, e);
+                    tr.querySelector('.current-price').innerHTML = '<span style="color:#ef4444;">Error</span>';
+                }
+            }
+            
+            // Botones eliminar
+            document.querySelectorAll('.delAsset').forEach(b => {
+                b.onclick = async () => {
+                    if (!confirm('¿Eliminar este asset?')) return;
+                    await fetch('/delete/asset', {
+                        method: 'POST',
+                        headers: {'Content-Type':'application/json'},
+                        body: JSON.stringify({id: b.dataset.id})
+                    });
+                    cargarAssets();
+                };
+            });
+            
+            // Editar assets
+            document.querySelectorAll('#tablaAssets .editBtn').forEach(btn => {
+                btn.onclick = (e) => {
+                    const tr = btn.closest('tr');
+                    const id = tr.dataset.id;
+                    
+                    const celdas = tr.querySelectorAll('td.editable');
+                    const datos = {};
+                    const originales = {};
+                    
+                    celdas.forEach(celda => {
+                        const field = celda.dataset.field;
+                        const valor = celda.textContent.trim();
+                        datos[field] = valor;
+                        originales[field] = valor;
+                    });
+                    
+                    const categorias = Array.from(selectCatAsset.options).map(o => ({ id: o.value, nombre: o.textContent }));
+                    
+                    celdas.forEach(celda => {
+                        const field = celda.dataset.field;
+                        const valor = datos[field];
+                        
+                        if (field === 'categoria') {
+                            const select = document.createElement('select');
+                            categorias.forEach(cat => {
+                                const opt = document.createElement('option');
+                                opt.value = cat.nombre;
+                                opt.textContent = cat.nombre;
+                                if (cat.nombre === valor) opt.selected = true;
+                                select.appendChild(opt);
+                            });
+                            celda.innerHTML = '';
+                            celda.appendChild(select);
+                        } else if (field === 'purchase_price') {
+                            const input = document.createElement('input');
+                            input.type = 'number';
+                            input.step = '0.01';
+                            input.value = parseFloat(valor.replace(/[€\s.]/g, '').replace(',', '.')) || '';
+                            input.style.width = '100px';
+                            celda.innerHTML = '€ ';
+                            celda.appendChild(input);
+                        } else if (field === 'shares') {
+                            const input = document.createElement('input');
+                            input.type = 'number';
+                            input.step = '0.01';
+                            input.value = parseFloat(valor) || '';
+                            input.style.width = '80px';
+                            celda.innerHTML = '';
+                            celda.appendChild(input);
+                        } else {
+                            const input = document.createElement('input');
+                            input.type = 'text';
+                            input.value = valor;
+                            input.style.width = field === 'company' ? '200px' : '100px';
+                            celda.innerHTML = '';
+                            celda.appendChild(input);
+                        }
+                    });
+                    
+                    const tdAcciones = tr.querySelector('td:last-child');
+                    tdAcciones.innerHTML = `
+                        <button class="saveBtn" style="background:#4CAF50;color:white;padding:5px 10px;border:none;cursor:pointer;border-radius:3px;margin-right:5px;">
+                            <i class="fas fa-save"></i>
+                        </button>
+                        <button class="cancelBtn" style="background:#f44336;color:white;padding:5px 10px;border:none;cursor:pointer;border-radius:3px;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+                    
+                    tdAcciones.querySelector('.saveBtn').onclick = async () => {
+                        const nuevos = {};
+                        let cambios = false;
+                        
+                        tr.querySelectorAll('td.editable').forEach(celda => {
+                            const field = celda.dataset.field;
+                            const input = celda.querySelector('input, select');
+                            if (input) {
+                                nuevos[field] = input.value;
+                                if (input.value !== originales[field]) cambios = true;
+                            }
+                        });
+                        
+                        if (!cambios) {
+                            alert('No hay cambios');
+                            cargarAssets();
+                            return;
+                        }
+                        
+                        if (!nuevos.company) return alert('Company requerido');
+                        if (!nuevos.ticker) return alert('Ticker requerido');
+                        if (!nuevos.categoria) return alert('Categoría requerida');
+                        if (isNaN(parseFloat(nuevos.shares)) || parseFloat(nuevos.shares) <= 0) {
+                            return alert('Número de acciones inválido');
+                        }
+                        if (isNaN(parseFloat(nuevos.purchase_price)) || parseFloat(nuevos.purchase_price) <= 0) {
+                            return alert('Precio de compra inválido');
+                        }
+                        
+                        await fetch('/update/asset', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                id: id,
+                                company: nuevos.company,
+                                ticker: nuevos.ticker,
+                                shares: parseFloat(nuevos.shares),
+                                purchase_price: parseFloat(nuevos.purchase_price),
+                                categoria: nuevos.categoria
+                            })
+                        });
+                        
+                        cargarAssets();
+                    };
+                    
+                    tdAcciones.querySelector('.cancelBtn').onclick = () => {
+                        cargarAssets();
+                    };
+                };
+            });
+            
+        } catch (e) {
+            console.error('Error cargando assets:', e);
+        }
+    }
+
+    // Agregar asset
+    const btnAgregarAsset = document.getElementById('btnAgregarAsset');
+    if (btnAgregarAsset) {
+        btnAgregarAsset.onclick = async () => {
+            const company = document.getElementById('companyAsset').value;
+            const ticker = document.getElementById('tickerAsset').value;
+            const shares = parseFloat(document.getElementById('sharesAsset').value);
+            const purchase_price = parseFloat(document.getElementById('purchasePriceAsset').value);
+            const categoria_id = selectCatAsset.value;
+
+            if(!company) return alert("Ingresa el nombre de la compañía");
+            if(!ticker) return alert("Ingresa el ticker");
+            if(isNaN(shares) || shares <= 0) return alert("Número de acciones inválido");
+            if(isNaN(purchase_price) || purchase_price <= 0) return alert("Precio de compra inválido");
+            if(!categoria_id) return alert("Selecciona una categoría");
+
+            await fetch('/add/asset', {
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({company, ticker, shares, purchase_price, categoria_id})
+            });
+
+            // Limpiar inputs
+            document.getElementById('companyAsset').value = '';
+            document.getElementById('tickerAsset').value = '';
+            document.getElementById('sharesAsset').value = '';
+            document.getElementById('purchasePriceAsset').value = '';
+            cargarAssets();
+        };
+    }
 
     // ===== Script para subpestañas de ingresos =====
 

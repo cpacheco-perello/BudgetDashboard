@@ -6,6 +6,7 @@
     <button class="subtab-btn" data-target="ingresosPuntuales" data-i18n="ingresos.puntuales">Puntuales</button>
     <button class="subtab-btn" data-target="ingresosMensuales" data-i18n="ingresos.mensuales">Mensuales</button>
     <button class="subtab-btn" data-target="cuentaRemunerada" data-i18n="ingresos.cuenta_remunerada">Cuenta Remunerada</button>
+    <button class="subtab-btn" data-target="assets" data-i18n="ingresos.assets">Assets</button>
   </div>
 
   <!-- INGRESOS PUNTUALES -->
@@ -168,5 +169,50 @@
       </thead>
       <tbody></tbody>
     </table>
+  </div>
+
+  <!-- ASSETS (ACCIONES) -->
+  <div id="assets" class="subtab" style="display:none;">
+    <h3 data-i18n="ingresos.assets">Assets (Acciones)</h3>
+    <div class="table-container">
+      <table id="tablaAssets">
+        <thead>
+          <tr>
+            <th data-i18n="ingresos.company">Company</th>
+            <th data-i18n="ingresos.ticker">Ticker</th>
+            <th data-i18n="ingresos.shares">Acciones</th>
+            <th data-i18n="ingresos.purchasePrice">Precio Compra</th>
+            <th data-i18n="ingresos.totalInvestment">Total Invertido</th>
+            <th data-i18n="ingresos.currentPrice">Precio Actual</th>
+            <th data-i18n="ingresos.currentValue">Valor Actual</th>
+            <th data-i18n="ingresos.diffPercent">Dif. %</th>
+            <th data-i18n="ingresos.diffAmount">Dif. €</th>
+            <th data-i18n="formularios.categoria">Categoría</th>
+            <th style="width:120px;">Acciones</th>
+          </tr>
+          <tr class="insert-row">
+            <td><input type="text" id="companyAsset" placeholder="Apple Inc."></td>
+            <td><input type="text" id="tickerAsset" placeholder="AAPL"></td>
+            <td>
+              <input type="number" id="sharesAsset" step="0.01" placeholder="10">
+            </td>
+            <td>
+              <div class="input-euro">
+                <span>€</span>
+                <input type="number" id="purchasePriceAsset" step="0.01" placeholder="150.00">
+              </div>
+            </td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td><select id="categoriaAsset"></select></td>
+            <td><button id="btnAgregarAsset"><i class="fas fa-plus"></i></button></td>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </div>
 </section>
