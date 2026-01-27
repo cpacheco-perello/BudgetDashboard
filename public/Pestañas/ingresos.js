@@ -9,14 +9,32 @@ function cargarIngresosForm() {
     const selectCatP = document.getElementById('categoriaIngresoPuntual');
     const selectCatM = document.getElementById('categoriaIngresoMensual');
     const selectCatCR = document.getElementById('categoriaCuentaRemunerada');
-    const selectCatAsset = document.getElementById('categoriaAsset');
+    // Assets usan categoría fija interna; no hay selector visible
 
-    // Función global para formatear montos con símbolo Euro (punto millar, coma decimal)
+    // Función global para formatear montos según moneda seleccionada
     function formatearEuro(monto) {
+        if (typeof window.formatCurrency === 'function') return window.formatCurrency(monto);
         if (monto === null || monto === undefined) return '€0,00';
         return '€' + parseFloat(monto).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
-
+    // Parse amount from formatted string (handles both EUR and USD formats)
+    function parseAmount(str) {
+        if (!str) return 0;
+        // Remove currency symbols and whitespace
+        let cleaned = str.replace(/[^\d.,-]/g, '');
+        // Handle both formats: 1.234,56 (EUR) and 1,234.56 (USD)
+        // Find last separator
+        const lastComma = cleaned.lastIndexOf(',');
+        const lastDot = cleaned.lastIndexOf('.');
+        if (lastComma > lastDot) {
+            // EUR format: 1.234,56 -> remove dots, replace comma with dot
+            cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+        } else {
+            // USD format: 1,234.56 -> remove commas
+            cleaned = cleaned.replace(/,/g, '');
+        }
+        return parseFloat(cleaned) || 0;
+    }
     // Cargar categorías de ingresos
     async function cargarCategorias() {
         const res = await fetch('/categorias');
@@ -25,7 +43,6 @@ function cargarIngresosForm() {
         selectCatP.innerHTML = '';
         selectCatM.innerHTML = '';
         if (selectCatCR) selectCatCR.innerHTML = '';
-        if (selectCatAsset) selectCatAsset.innerHTML = '';
 
         data.ingresos.forEach(cat => {
             const opt = document.createElement('option');
@@ -34,7 +51,7 @@ function cargarIngresosForm() {
             selectCatP.appendChild(opt);
             selectCatM.appendChild(opt.cloneNode(true));
             if (selectCatCR) selectCatCR.appendChild(opt.cloneNode(true));
-            if (selectCatAsset) selectCatAsset.appendChild(opt.cloneNode(true));
+            // No poblar categorías para Assets (categoría interna fija)
         });
     }
 
@@ -237,7 +254,7 @@ function cargarIngresosForm() {
                         const input = document.createElement('input');
                         input.type = 'number';
                         input.step = '0.01';
-                        input.value = parseFloat(valor.replace(/[€\s.]/g, '').replace(',', '.')) || '';
+                        input.value = parseAmount(valor);
                         input.style.width = '100px';
                         celda.innerHTML = '€ ';
                         celda.appendChild(input);
@@ -316,7 +333,7 @@ function cargarIngresosForm() {
                     }
 
                     if (tipo === 'puntual') {
-                        if (!nuevos.fecha) return alert('Fecha requerida');
+                        if (!nuevos.fecha) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.fechaRequerida') : 'Fecha requerida');
                         await fetch('/update/ingreso_puntual', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -330,8 +347,8 @@ function cargarIngresosForm() {
                             })
                         });
                     } else if (tipo === 'mensual') {
-                        if (!validarMes(nuevos.desde)) return alert("El campo 'Desde' debe tener formato YYYY-MM");
-                        if (!validarMes(nuevos.hasta)) return alert("El campo 'Hasta' debe tener formato YYYY-MM");
+                        if (!validarMes(nuevos.desde)) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.formatoDesde') : "El campo 'Desde' debe tener formato YYYY-MM");
+                        if (!validarMes(nuevos.hasta)) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.formatoHasta') : "El campo 'Hasta' debe tener formato YYYY-MM");
                         await fetch('/update/ingreso_mensual', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -346,13 +363,13 @@ function cargarIngresosForm() {
                             })
                         });
                     } else if (tipo === 'cuenta_remunerada') {
-                        if (!validarMes(nuevos.desde)) return alert("El campo 'Desde' debe tener formato YYYY-MM");
-                        if (!validarMes(nuevos.hasta)) return alert("El campo 'Hasta' debe tener formato YYYY-MM");
+                        if (!validarMes(nuevos.desde)) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.formatoDesde') : "El campo 'Desde' debe tener formato YYYY-MM");
+                        if (!validarMes(nuevos.hasta)) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.formatoHasta') : "El campo 'Hasta' debe tener formato YYYY-MM");
                         if (isNaN(parseFloat(nuevos.aportacion_mensual)) && nuevos.aportacion_mensual !== '') {
-                            return alert('Aportación mensual inválida');
+                            return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.aportacionInvalida') : 'Aportación mensual inválida');
                         }
                         if (isNaN(parseFloat(nuevos.interes)) && nuevos.interes !== '') {
-                            return alert('Interés inválido');
+                            return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.interesInvalido') : 'Interés inválido');
                         }
                         await fetch('/update/cuenta_remunerada', {
                             method: 'POST',
@@ -389,10 +406,10 @@ function cargarIngresosForm() {
         const bruto = parseFloat(document.getElementById('brutoIngresoPuntual').value) || null;
         const categoria_id = selectCatP.value;
 
-        if(!fecha) return alert("Selecciona una fecha");
-        if(!descripcion) return alert("Ingresa una descripción");
-        if(isNaN(monto) || monto <= 0) return alert("Monto inválido");
-        if(!categoria_id) return alert("Selecciona una categoría");
+        if(!fecha) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.seleccionaFecha') : 'Selecciona una fecha');
+        if(!descripcion) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.ingresaDescripcion') : 'Ingresa una descripción');
+        if(isNaN(monto) || monto <= 0) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.montoInvalido') : 'Monto inválido');
+        if(!categoria_id) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.seleccionaCategoria') : 'Selecciona una categoría');
 
         await fetch('/add/ingreso_puntual', {
             method:'POST',
@@ -451,13 +468,13 @@ function cargarIngresosForm() {
                 return /^\d{4}-(0[1-9]|1[0-2])$/.test(valor);
             }
 
-            if(!desde) return alert("Ingresa el mes 'desde' en formato YYYY-MM");
-            if(!hasta) return alert("Ingresa el mes 'hasta' en formato YYYY-MM");
-            if(isNaN(monto) || monto <= 0) return alert("Monto inicial inválido");
-            if(!categoria_id) return alert("Selecciona una categoría");
-            if(!validarMes(desde)) return alert("El campo 'Desde' debe tener formato YYYY-MM");
-            if(!validarMes(hasta)) return alert("El campo 'Hasta' debe tener formato YYYY-MM");
-            if (desde > hasta) return alert("El mes 'desde' no puede ser mayor que 'hasta'");
+            if(!desde) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.ingresaDesde') : "Ingresa el mes 'desde' en formato YYYY-MM");
+            if(!hasta) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.ingresaHasta') : "Ingresa el mes 'hasta' en formato YYYY-MM");
+            if(isNaN(monto) || monto <= 0) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.montoInicialInvalido') : 'Monto inicial inválido');
+            if(!categoria_id) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.seleccionaCategoria') : 'Selecciona una categoría');
+            if(!validarMes(desde)) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.formatoDesde') : "El campo 'Desde' debe tener formato YYYY-MM");
+            if(!validarMes(hasta)) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.formatoHasta') : "El campo 'Hasta' debe tener formato YYYY-MM");
+            if (desde > hasta) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.desdeNoMayorHasta') : "El mes 'desde' no puede ser mayor que 'hasta'");
 
             await fetch('/add/cuenta_remunerada', {
                 method:'POST',
@@ -488,17 +505,17 @@ function cargarIngresosForm() {
             return /^\d{4}-(0[1-9]|1[0-2])$/.test(valor);
         }
 
-        if(!desde) return alert("Ingresa el mes 'desde' en formato YYYY-MM");
-        if(!hasta) return alert("Ingresa el mes 'hasta' en formato YYYY-MM");
-        if(!descripcion) return alert("Ingresa una descripción");
-        if(isNaN(monto) || monto <= 0) return alert("Monto inválido");
-        if(!categoria_id) return alert("Selecciona una categoría");
+        if(!desde) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.ingresaDesde') : "Ingresa el mes 'desde' en formato YYYY-MM");
+        if(!hasta) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.ingresaHasta') : "Ingresa el mes 'hasta' en formato YYYY-MM");
+        if(!descripcion) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.ingresaDescripcion') : "Ingresa una descripción");
+        if(isNaN(monto) || monto <= 0) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.montoInvalido') : "Monto inválido");
+        if(!categoria_id) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.seleccionaCategoria') : "Selecciona una categoría");
 
-        if(!validarMes(desde)) return alert("El campo 'Desde' debe tener formato YYYY-MM");
-        if(!validarMes(hasta)) return alert("El campo 'Hasta' debe tener formato YYYY-MM");
+        if(!validarMes(desde)) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.formatoDesde') : "El campo 'Desde' debe tener formato YYYY-MM");
+        if(!validarMes(hasta)) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.formatoHasta') : "El campo 'Hasta' debe tener formato YYYY-MM");
 
         if (desde > hasta)
-            return alert("El mes 'desde' no puede ser mayor que 'hasta'");
+            return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.desdeNoMayorHasta') : "El mes 'desde' no puede ser mayor que 'hasta'");
 
         await fetch('/add/ingreso_mensual', {
             method:'POST',
@@ -549,10 +566,12 @@ function cargarIngresosForm() {
                     <td class="current-value">—</td>
                     <td class="diff-percent">—</td>
                     <td class="diff-amount">—</td>
-                    <td class="editable" data-field="categoria">${asset.categoria}</td>
                     <td>
                         <button class="editBtn btn-editar" title="Editar" style="margin-right:8px;">
                             <i class="fas fa-edit"></i>
+                        </button>
+                        <button data-id="${asset.id}" class="sellAsset btn-success" title="Vender" style="margin-right:8px;">
+                            <i class="fas fa-hand-holding-usd"></i>
                         </button>
                         <button data-id="${asset.id}" class="delAsset btn-eliminar" title="Eliminar">
                             <i class="fas fa-trash"></i>
@@ -574,10 +593,10 @@ function cargarIngresosForm() {
                         const colorDiff = diffAmount >= 0 ? '#22c55e' : '#ef4444';
                         const signDiff = diffAmount >= 0 ? '+' : '';
                         
-                        tr.querySelector('.current-price').innerHTML = `<strong>${formatearEuro(currentPrice)}</strong>`;
-                        tr.querySelector('.current-value').innerHTML = `<strong style="color:${colorDiff}">${formatearEuro(currentValue)}</strong>`;
+                        tr.querySelector('.current-price').innerHTML = `<strong>${formatCurrency(currentPrice, { convert: true })}</strong>`;
+                        tr.querySelector('.current-value').innerHTML = `<strong style="color:${colorDiff}">${formatCurrency(currentValue, { convert: true })}</strong>`;
                         tr.querySelector('.diff-percent').innerHTML = `<strong style="color:${colorDiff}">${signDiff}${diffPercent.toFixed(2)}%</strong>`;
-                        tr.querySelector('.diff-amount').innerHTML = `<strong style="color:${colorDiff}">${signDiff}${formatearEuro(Math.abs(diffAmount))}</strong>`;
+                        tr.querySelector('.diff-amount').innerHTML = `<strong style="color:${colorDiff}">${signDiff}${formatCurrency(Math.abs(diffAmount), { convert: true })}</strong>`;
                     } else {
                         tr.querySelector('.current-price').innerHTML = '<span style="color:#ef4444;">Error</span>';
                     }
@@ -590,13 +609,36 @@ function cargarIngresosForm() {
             // Botones eliminar
             document.querySelectorAll('.delAsset').forEach(b => {
                 b.onclick = async () => {
-                    if (!confirm('¿Eliminar este asset?')) return;
+                    if (!confirm(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.eliminarAsset') : '¿Eliminar este asset?')) return;
                     await fetch('/delete/asset', {
                         method: 'POST',
                         headers: {'Content-Type':'application/json'},
                         body: JSON.stringify({id: b.dataset.id})
                     });
                     cargarAssets();
+                };
+            });
+            
+            // Botones vender
+            document.querySelectorAll('.sellAsset').forEach(b => {
+                b.onclick = async () => {
+                    const assetId = b.dataset.id;
+                    const row = b.closest('tr');
+                    const asset = assets.find(a => a.id == assetId);
+                    if (!asset) return;
+                    
+                    // Obtener precio actual
+                    let currentPrice = 0;
+                    try {
+                        const priceRes = await fetch(`/asset-price/${asset.ticker}`);
+                        const priceData = await priceRes.json();
+                        currentPrice = priceData.currentPrice || asset.purchase_price;
+                    } catch (e) {
+                        currentPrice = asset.purchase_price;
+                    }
+                    
+                    // Mostrar modal de venta
+                    openSellModal(asset, currentPrice);
                 };
             });
             
@@ -617,28 +659,15 @@ function cargarIngresosForm() {
                         originales[field] = valor;
                     });
                     
-                    const categorias = Array.from(selectCatAsset.options).map(o => ({ id: o.value, nombre: o.textContent }));
-                    
                     celdas.forEach(celda => {
                         const field = celda.dataset.field;
                         const valor = datos[field];
                         
-                        if (field === 'categoria') {
-                            const select = document.createElement('select');
-                            categorias.forEach(cat => {
-                                const opt = document.createElement('option');
-                                opt.value = cat.nombre;
-                                opt.textContent = cat.nombre;
-                                if (cat.nombre === valor) opt.selected = true;
-                                select.appendChild(opt);
-                            });
-                            celda.innerHTML = '';
-                            celda.appendChild(select);
-                        } else if (field === 'purchase_price') {
+                        if (field === 'purchase_price') {
                             const input = document.createElement('input');
                             input.type = 'number';
                             input.step = '0.01';
-                            input.value = parseFloat(valor.replace(/[€\s.]/g, '').replace(',', '.')) || '';
+                            input.value = parseAmount(valor);
                             input.style.width = '100px';
                             celda.innerHTML = '€ ';
                             celda.appendChild(input);
@@ -691,7 +720,6 @@ function cargarIngresosForm() {
                         
                         if (!nuevos.company) return alert('Company requerido');
                         if (!nuevos.ticker) return alert('Ticker requerido');
-                        if (!nuevos.categoria) return alert('Categoría requerida');
                         if (isNaN(parseFloat(nuevos.shares)) || parseFloat(nuevos.shares) <= 0) {
                             return alert('Número de acciones inválido');
                         }
@@ -707,8 +735,7 @@ function cargarIngresosForm() {
                                 company: nuevos.company,
                                 ticker: nuevos.ticker,
                                 shares: parseFloat(nuevos.shares),
-                                purchase_price: parseFloat(nuevos.purchase_price),
-                                categoria: nuevos.categoria
+                                purchase_price: parseFloat(nuevos.purchase_price)
                             })
                         });
                         
@@ -726,6 +753,98 @@ function cargarIngresosForm() {
         }
     }
 
+    // Función para abrir modal de venta
+    function openSellModal(asset, currentPrice) {
+        const modal = document.getElementById('sellAssetModal');
+        const sellPriceInput = document.getElementById('sellPrice');
+        
+        // Llenar datos del asset
+        document.getElementById('sellCompany').textContent = asset.company;
+        document.getElementById('sellTicker').textContent = asset.ticker;
+        document.getElementById('sellShares').textContent = asset.shares;
+        document.getElementById('sellPurchasePrice').textContent = formatearEuro(asset.purchase_price);
+        document.getElementById('sellCurrentPrice').textContent = formatearEuro(currentPrice);
+        
+        // Establecer precio de venta sugerido (precio actual)
+        sellPriceInput.value = currentPrice.toFixed(2);
+        
+        // Calcular valores iniciales
+        updateSellCalculations(asset, currentPrice);
+        
+        // Actualizar cálculos cuando cambia el precio
+        sellPriceInput.oninput = () => {
+            const salePrice = parseFloat(sellPriceInput.value) || 0;
+            updateSellCalculations(asset, salePrice);
+        };
+        
+        // Mostrar modal
+        modal.style.display = 'flex';
+        
+        // Botón cancelar
+        document.getElementById('cancelSellBtn').onclick = () => {
+            modal.style.display = 'none';
+        };
+        
+        // Botón confirmar
+        document.getElementById('confirmSellBtn').onclick = async () => {
+            const salePrice = parseFloat(sellPriceInput.value);
+            if (isNaN(salePrice) || salePrice <= 0) {
+                alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.precioVentaInvalido') : 'Por favor ingresa un precio de venta válido');
+                return;
+            }
+            
+            // Confirmar venta
+            if (!confirm(`¿Confirmar venta de ${asset.shares} acciones de ${asset.company} a ${formatearEuro(salePrice)} por acción?`)) {
+                return;
+            }
+            
+            // Enviar al backend
+            try {
+                const res = await fetch('/sell/asset', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        id: asset.id,
+                        sale_price: salePrice
+                    })
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    const mensaje = typeof gestorIdiomas !== 'undefined' 
+                        ? gestorIdiomas.obtenerTexto('ingresos.ventaExitosa').replace('{profit}', formatearEuro(data.profit))
+                        : `Venta exitosa. Ganancia registrada: ${formatearEuro(data.profit)}`;
+                    alert(mensaje);
+                    modal.style.display = 'none';
+                    cargarAssets();
+                    if (typeof cargarIngresos === 'function') cargarIngresos();
+                } else {
+                    const error = await res.json();
+                    const mensajeError = typeof gestorIdiomas !== 'undefined'
+                        ? gestorIdiomas.obtenerTexto('ingresos.errorVenta').replace('{error}', error.error || 'No se pudo procesar la venta')
+                        : `Error: ${error.error || 'No se pudo procesar la venta'}`;
+                    alert(mensajeError);
+                }
+            } catch (e) {
+                console.error('Error vendiendo asset:', e);
+                alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.errorProcesarVenta') : 'Error al procesar la venta');
+            }
+        };
+    }
+    
+    function updateSellCalculations(asset, salePrice) {
+        const totalInvested = asset.shares * asset.purchase_price;
+        const totalValue = asset.shares * salePrice;
+        const profit = totalValue - totalInvested;
+        
+        document.getElementById('sellTotalInvested').textContent = formatearEuro(totalInvested);
+        document.getElementById('sellTotalValue').textContent = formatearEuro(totalValue);
+        
+        const profitSpan = document.getElementById('sellProfit');
+        profitSpan.textContent = formatearEuro(profit);
+        profitSpan.style.color = profit >= 0 ? '#28a745' : '#dc3545';
+    }
+
     // Agregar asset
     const btnAgregarAsset = document.getElementById('btnAgregarAsset');
     if (btnAgregarAsset) {
@@ -734,18 +853,18 @@ function cargarIngresosForm() {
             const ticker = document.getElementById('tickerAsset').value;
             const shares = parseFloat(document.getElementById('sharesAsset').value);
             const purchase_price = parseFloat(document.getElementById('purchasePriceAsset').value);
-            const categoria_id = selectCatAsset.value;
+            // Categoría interna fija; el backend asignará automáticamente
 
-            if(!company) return alert("Ingresa el nombre de la compañía");
-            if(!ticker) return alert("Ingresa el ticker");
-            if(isNaN(shares) || shares <= 0) return alert("Número de acciones inválido");
-            if(isNaN(purchase_price) || purchase_price <= 0) return alert("Precio de compra inválido");
-            if(!categoria_id) return alert("Selecciona una categoría");
+            if(!company) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.ingresaNombreCompania') : "Ingresa el nombre de la compañía");
+            if(!ticker) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.ingresaTicker') : "Ingresa el ticker");
+            if(isNaN(shares) || shares <= 0) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.accionesInvalidas') : "Número de acciones inválido");
+            if(isNaN(purchase_price) || purchase_price <= 0) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('ingresos.precioCompraInvalido') : "Precio de compra inválido");
+            // No se requiere categoría seleccionable para Assets
 
             await fetch('/add/asset', {
                 method:'POST',
                 headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({company, ticker, shares, purchase_price, categoria_id})
+                body: JSON.stringify({company, ticker, shares, purchase_price})
             });
 
             // Limpiar inputs

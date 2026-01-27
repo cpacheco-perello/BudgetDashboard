@@ -2,6 +2,76 @@
 const buttons = document.querySelectorAll('.tablink');
 const tabContent = document.getElementById('tab-content');
 
+// ===== CONFIGURACIÓN DE MONEDA (extensible a futuro) =====
+const BASE_CURRENCY = 'EUR';
+const currencyOptions = {
+    EUR: { code: 'EUR', symbol: '€', locale: 'es-ES' },
+    USD: { code: 'USD', symbol: '$', locale: 'en-US' }
+};
+
+let currentCurrency = localStorage.getItem('currency') || 'EUR';
+let fxState = {
+    base: BASE_CURRENCY,
+    rates: { [BASE_CURRENCY]: 1 },
+    lastUpdated: 0
+};
+
+async function ensureFxRates(base = BASE_CURRENCY) {
+    const ONE_HOUR = 60 * 60 * 1000;
+    if (fxState.base === base && Date.now() - fxState.lastUpdated < ONE_HOUR && fxState.rates) {
+        return fxState.rates;
+    }
+    try {
+        const res = await fetch(`https://api.exchangerate-api.com/v4/latest/${base}`);
+        const data = await res.json();
+        if (data && data.rates) {
+            fxState = { base, rates: data.rates, lastUpdated: Date.now() };
+            return fxState.rates;
+        }
+    } catch (err) {
+        console.warn('⚠️ No se pudieron obtener tasas FX, usando caché previa', err.message);
+    }
+    return fxState.rates;
+}
+
+function convertAmount(amount) {
+    const numeric = parseFloat(amount || 0);
+    if (!isFinite(numeric)) return 0;
+    const rate = fxState.rates?.[currentCurrency] || 1;
+    return numeric * rate;
+}
+
+function formatCurrency(amount, { convert = false } = {}) {
+    const cfg = currencyOptions[currentCurrency] || currencyOptions[BASE_CURRENCY];
+    const baseValue = parseFloat(amount || 0);
+    const value = convert ? convertAmount(baseValue) : baseValue;
+    try {
+        return new Intl.NumberFormat(cfg.locale, { style: 'currency', currency: cfg.code }).format(isFinite(value) ? value : 0);
+    } catch (_) {
+        // Fallback simple en caso de fallo de Intl
+        return `${cfg.symbol}${(isFinite(value) ? value : 0).toFixed(2)}`;
+    }
+}
+
+window.formatCurrency = formatCurrency;
+window.getSelectedCurrency = () => currentCurrency;
+window.convertAmount = convertAmount;
+
+async function setCurrency(code, { silent = false } = {}) {
+    if (!currencyOptions[code]) return;
+    currentCurrency = code;
+    localStorage.setItem('currency', code);
+    await ensureFxRates(BASE_CURRENCY);
+    if (!silent) {
+        await cargarResumenPeriodos();
+        const tabActiva = document.querySelector('.tablink.active');
+        if (tabActiva) {
+            loadTab(tabActiva.dataset.tab);
+        }
+    }
+    console.log(`💱 Moneda activa: ${code}`);
+}
+
 async function loadTab(tabId) {
     try {
         const res = await fetch(`Pestañas/${tabId}.html`);
@@ -102,6 +172,59 @@ async function cargarResumenPeriodos() {
                         hucha.textContent = formatearEuro(0);
                     }
                 }
+                
+                // Calcular rendimiento del portfolio
+                const portfolio = document.getElementById('portfolio-rendimiento');
+                if (portfolio) {
+                    try {
+                        const resAssets = await fetch('/assets');
+                        if (resAssets.ok) {
+                            const assets = await resAssets.json();
+                            
+                            if (assets.length === 0) {
+                                portfolio.textContent = '€0 (0%)';
+                                portfolio.style.color = '';
+                            } else {
+                                let totalInvested = 0;
+                                let currentValue = 0;
+                                
+                                // Calcular para cada asset
+                                for (const asset of assets) {
+                                    const invested = asset.shares * asset.purchase_price;
+                                    totalInvested += invested;
+                                    
+                                    // Obtener precio actual
+                                    try {
+                                        const priceRes = await fetch(`/asset-price/${asset.ticker}`);
+                                        if (priceRes.ok) {
+                                            const priceData = await priceRes.json();
+                                            const currentPrice = priceData.currentPrice || asset.purchase_price;
+                                            currentValue += asset.shares * currentPrice;
+                                        } else {
+                                            currentValue += invested;
+                                        }
+                                    } catch (e) {
+                                        currentValue += invested;
+                                    }
+                                }
+                                
+                                const profit = currentValue - totalInvested;
+                                const profitPercent = totalInvested > 0 ? (profit / totalInvested) * 100 : 0;
+                                const sign = profit >= 0 ? '+' : '';
+                                
+                                portfolio.textContent = `${sign}${formatearEuro(profit)} (${sign}${profitPercent.toFixed(2)}%)`;
+                                portfolio.style.color = profit >= 0 ? '#22c55e' : '#ef4444';
+                            }
+                        } else {
+                            portfolio.textContent = '€0 (0%)';
+                            portfolio.style.color = '';
+                        }
+                    } catch (e) {
+                        console.error('Error calculando rendimiento del portfolio:', e);
+                        portfolio.textContent = '€0 (0%)';
+                        portfolio.style.color = '';
+                    }
+                }
         }
         
         // Botones de período (solo agregar listeners si no existen)
@@ -186,6 +309,22 @@ setInterval(() => {
     }
 }, 5 * 60 * 1000);
 
+// ===== SELECTOR DE MONEDA EN HEADER =====
+document.addEventListener('DOMContentLoaded', () => {
+    const currencySelect = document.getElementById('currencySelect');
+    if (currencySelect) {
+        const monedaGuardada = localStorage.getItem('currency') || 'EUR';
+        currencySelect.value = monedaGuardada;
+        setCurrency(monedaGuardada, { silent: true });
+        currencySelect.addEventListener('change', (e) => {
+            setCurrency(e.target.value);
+        });
+        console.log('✅ Selector de moneda vinculado');
+    } else {
+        console.warn('⚠️ Elemento currencySelect no encontrado');
+    }
+});
+
 // ===== SELECTOR DE IDIOMA EN HEADER =====
 document.addEventListener('DOMContentLoaded', () => {
     const languageSelect = document.getElementById('languageSelect');
@@ -247,11 +386,10 @@ document.addEventListener('DOMContentLoaded', () => {
 // ===== UTILIDADES GLOBALES =====
 
 /**
- * Formatear un número como moneda en euros
- * @param {number} monto - El monto a formatear
- * @returns {string} - El monto formateado (ej: €1,234.56)
+ * Formatear monto según la moneda seleccionada (default EUR)
  */
 function formatearEuro(monto) {
+    if (typeof formatCurrency === 'function') return formatCurrency(monto, { convert: false });
     if (monto === null || monto === undefined) return '€0.00';
     return '€' + parseFloat(monto).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }

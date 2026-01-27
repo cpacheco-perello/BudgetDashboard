@@ -23,8 +23,22 @@ function cargarGastosForm() {
 
     // Función global para formatear montos con símbolo Euro (punto millar, coma decimal)
     function formatearEuro(monto) {
+        if (typeof window.formatCurrency === 'function') return window.formatCurrency(monto, { convert: false });
         if (monto === null || monto === undefined) return '€0,00';
         return '€' + parseFloat(monto).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function parseAmount(str) {
+        if (!str) return 0;
+        let cleaned = str.replace(/[^\d.,-]/g, '');
+        const lastComma = cleaned.lastIndexOf(',');
+        const lastDot = cleaned.lastIndexOf('.');
+        if (lastComma > lastDot) {
+            cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+        } else {
+            cleaned = cleaned.replace(/,/g, '');
+        }
+        return parseFloat(cleaned) || 0;
     }
 
     async function cargarGastos() {
@@ -164,7 +178,7 @@ function cargarGastosForm() {
                         const input = document.createElement('input');
                         input.type = 'number';
                         input.step = '0.01';
-                        input.value = parseFloat(valor.replace(/[€\s.]/g, '').replace(',', '.')) || 0;
+                        input.value = parseAmount(valor);
                         input.style.width = '100px';
                         celda.innerHTML = '€ ';
                         celda.appendChild(input);

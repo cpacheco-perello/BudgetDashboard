@@ -60,6 +60,15 @@
                 </select>
             </div>
 
+            <!-- Selector de moneda -->
+            <div class="currency-selector">
+                <label for="currencySelect"><i class="fas fa-coins"></i> Moneda:</label>
+                <select id="currencySelect" class="currency-dropdown">
+                    <option value="EUR">EUR</option>
+                    <option value="USD">USD</option>
+                </select>
+            </div>
+
             <!-- Selector de idiomas -->
             <div class="language-selector">
                 <label for="languageSelect" data-i18n="idioma.seleccionar"><i class="fas fa-globe"></i> Idioma:</label>
@@ -122,6 +131,13 @@
             <div>
                 <p data-i18n="resumen.totalHucha">Total Hucha</p>
                 <span id="total-hucha">€0</span>
+            </div>
+        </div>
+        <div class="card-stat portfolio">
+            <i class="fas fa-chart-line"></i>
+            <div>
+                <p data-i18n="resumen.portfolioRendimiento">Rendimiento Portfolio</p>
+                <span id="portfolio-rendimiento">€0 (0%)</span>
             </div>
         </div>
     </div>

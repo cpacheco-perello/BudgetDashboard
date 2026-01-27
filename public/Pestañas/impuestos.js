@@ -1,8 +1,22 @@
 
 // Función global para formatear montos con símbolo Euro (punto millar, coma decimal)
 function formatearEuro(monto) {
+    if (typeof window.formatCurrency === 'function') return window.formatCurrency(monto, { convert: false });
     if (monto === null || monto === undefined) return '€0,00';
     return '€' + parseFloat(monto).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function parseAmount(str) {
+    if (!str) return 0;
+    let cleaned = str.replace(/[^\d.,-]/g, '');
+    const lastComma = cleaned.lastIndexOf(',');
+    const lastDot = cleaned.lastIndexOf('.');
+    if (lastComma > lastDot) {
+        cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+    } else {
+        cleaned = cleaned.replace(/,/g, '');
+    }
+    return parseFloat(cleaned) || 0;
 }
 
 function cargarImpuestosPuntuales() {
@@ -89,7 +103,7 @@ function cargarImpuestosPuntuales() {
                             input = document.createElement('input');
                             input.type = 'number';
                             input.step = '0.01';
-                            input.value = parseFloat(datos[field].replace('€', '').replace(',', '.'));
+                            input.value = parseAmount(datos[field]);
                         } else {
                             input = document.createElement('input');
                             input.type = 'text';
@@ -227,7 +241,7 @@ function cargarImpuestosMensuales() {
                             input = document.createElement('input');
                             input.type = 'number';
                             input.step = '0.01';
-                            input.value = parseFloat(datos[field].replace('€', '').replace(',', '.'));
+                            input.value = parseFloat(datos[field].replace(/[^\d.,-]/g, '').replace(',', '.'));
                         } else {
                             input = document.createElement('input');
                             input.type = 'text';

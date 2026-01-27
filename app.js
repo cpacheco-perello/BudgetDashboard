@@ -32,7 +32,7 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.header('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self'");
+    res.header('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self' https://cdn.jsdelivr.net https://api.exchangerate-api.com https://open.er-api.com https://query1.finance.yahoo.com");
     if (req.method === 'OPTIONS') {
         res.sendStatus(200);
     } else {
@@ -758,9 +758,20 @@ app.get('/assets', async (req, res) => {
     }
 });
 
+// Obtiene el ID de la categoría fija "Assets" (crea si no existe)
+async function getAssetsCategoryId() {
+    // Usamos tipo "ingreso" para cumplir el CHECK existente
+    let cat = await dbGet('SELECT id FROM categorias WHERE nombre=? AND tipo="ingreso"', ['Assets']);
+    if (cat && cat.id) return cat.id;
+    await dbRun('INSERT INTO categorias (nombre, tipo) VALUES (?, ?)', ['Assets', 'ingreso']);
+    cat = await dbGet('SELECT id FROM categorias WHERE nombre=? AND tipo="ingreso"', ['Assets']);
+    return cat.id;
+}
+
 app.post('/add/asset', async (req, res) => {
     try {
-        const { company, ticker, shares, purchase_price, categoria_id } = req.body;
+        const { company, ticker, shares, purchase_price } = req.body;
+        const categoria_id = await getAssetsCategoryId();
         await dbRun(`
             INSERT INTO assets (company, ticker, shares, purchase_price, categoria_id)
             VALUES (?, ?, ?, ?, ?)
@@ -783,18 +794,86 @@ app.post('/delete/asset', async (req, res) => {
 
 app.post('/update/asset', async (req, res) => {
     try {
-        const { id, company, ticker, shares, purchase_price, categoria } = req.body;
-        const catRow = await dbGet('SELECT id FROM categorias WHERE nombre=? AND tipo="ingreso"', [categoria]);
-        if (!catRow) return res.status(400).json({ error: 'Categoría no encontrada' });
+        const { id, company, ticker, shares, purchase_price } = req.body;
+        const categoria_id = await getAssetsCategoryId();
         await dbRun(`
             UPDATE assets 
             SET company=?, ticker=?, shares=?, purchase_price=?, categoria_id=?
             WHERE id=?
-        `, [company, ticker, shares, purchase_price, catRow.id, id]);
+        `, [company, ticker, shares, purchase_price, categoria_id, id]);
         res.json({ success: true });
     } catch (e) {
         console.error(e);
         res.status(500).json({ error: e.message });
+    }
+});
+
+// Vender asset: calcular ganancia y registrar como ingreso puntual
+app.post('/sell/asset', async (req, res) => {
+    try {
+        const { id, sale_price } = req.body;
+        
+        // Obtener datos del asset
+        const asset = await dbGet(`SELECT * FROM assets WHERE id=?`, [id]);
+        if (!asset) {
+            return res.status(404).json({ error: 'Asset no encontrado' });
+        }
+        
+        // Calcular ganancia/pérdida
+        const totalInvested = asset.shares * asset.purchase_price;
+        const totalSale = asset.shares * sale_price;
+        const profit = totalSale - totalInvested;
+        
+        // Obtener categoría fija "Assets"
+        const categoryId = await getAssetsCategoryId();
+        
+        // Fecha actual
+        const fecha = new Date().toISOString().split('T')[0];
+        
+        // Crear descripción de la venta
+        const descripcion = `Venta ${asset.shares} acciones ${asset.company} (${asset.ticker}) @ €${sale_price.toFixed(2)}`;
+        
+        // Si hay ganancia, registrar como ingreso; si hay pérdida, registrar como gasto
+        if (profit >= 0) {
+            // Ganancia: registrar como ingreso puntual
+            await dbRun(
+                `INSERT INTO ingresos_puntuales (fecha, descripcion, monto, bruto, categoria_id) VALUES (?, ?, ?, ?, ?)`,
+                [fecha, descripcion, profit, profit, categoryId]
+            );
+        } else {
+            // Pérdida: registrar como gasto puntual (valor absoluto)
+            // Obtener o crear categoría "Assets" para gastos
+            let gastoCategoryId = await dbGet(
+                `SELECT id FROM categorias WHERE nombre = 'Assets' AND tipo = 'gasto'`
+            );
+            
+            if (!gastoCategoryId) {
+                await dbRun(
+                    `INSERT INTO categorias (nombre, tipo) VALUES ('Assets', 'gasto')`
+                );
+                gastoCategoryId = await dbGet(
+                    `SELECT id FROM categorias WHERE nombre = 'Assets' AND tipo = 'gasto'`
+                );
+            }
+            
+            await dbRun(
+                `INSERT INTO gastos_puntuales (fecha, descripcion, monto, categoria_id) VALUES (?, ?, ?, ?)`,
+                [fecha, descripcion, Math.abs(profit), gastoCategoryId.id]
+            );
+        }
+        
+        // Eliminar el asset de la tabla
+        await dbRun(`DELETE FROM assets WHERE id=?`, [id]);
+        
+        res.json({ 
+            ok: true, 
+            profit: profit,
+            total_invested: totalInvested,
+            total_sale: totalSale
+        });
+    } catch (err) {
+        console.error('Error selling asset:', err);
+        res.status(500).json({ error: 'Error procesando la venta' });
     }
 });
 

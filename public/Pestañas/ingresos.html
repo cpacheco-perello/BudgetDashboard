@@ -187,8 +187,7 @@
             <th data-i18n="ingresos.currentValue">Valor Actual</th>
             <th data-i18n="ingresos.diffPercent">Dif. %</th>
             <th data-i18n="ingresos.diffAmount">Dif. €</th>
-            <th data-i18n="formularios.categoria">Categoría</th>
-            <th style="width:120px;">Acciones</th>
+            <th style="width:150px;">Acciones</th>
           </tr>
           <tr class="insert-row">
             <td><input type="text" id="companyAsset" placeholder="Apple Inc."></td>
@@ -207,7 +206,6 @@
             <td></td>
             <td></td>
             <td></td>
-            <td><select id="categoriaAsset"></select></td>
             <td><button id="btnAgregarAsset"><i class="fas fa-plus"></i></button></td>
           </tr>
         </thead>
@@ -216,3 +214,33 @@
     </div>
   </div>
 </section>
+
+<!-- Modal para confirmar venta de asset -->
+<div id="sellAssetModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; justify-content:center; align-items:center;">
+  <div style="background:white; padding:30px; border-radius:10px; max-width:500px; width:90%; box-shadow:0 4px 20px rgba(0,0,0,0.3);">
+    <h3 style="margin-top:0; color:#333;" data-i18n="ingresos.sellAsset">Vender Asset</h3>
+    <div style="margin:20px 0;">
+      <p><strong data-i18n="ingresos.company">Company:</strong> <span id="sellCompany"></span></p>
+      <p><strong data-i18n="ingresos.ticker">Ticker:</strong> <span id="sellTicker"></span></p>
+      <p><strong data-i18n="ingresos.shares">Acciones:</strong> <span id="sellShares"></span></p>
+      <p><strong data-i18n="ingresos.purchasePrice">Precio Compra:</strong> <span id="sellPurchasePrice"></span></p>
+      <p><strong data-i18n="ingresos.currentPrice">Precio Actual:</strong> <span id="sellCurrentPrice"></span></p>
+    </div>
+    <div style="margin:20px 0;">
+      <label style="display:block; margin-bottom:5px; font-weight:bold;" data-i18n="ingresos.salePrice">Precio de Venta:</label>
+      <div class="input-euro">
+        <span>€</span>
+        <input type="number" id="sellPrice" step="0.01" placeholder="0.00" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:5px;">
+      </div>
+    </div>
+    <div style="margin:20px 0; padding:15px; background:#f0f0f0; border-radius:5px;">
+      <p style="margin:5px 0;"><strong data-i18n="ingresos.totalInvestment">Total Invertido:</strong> <span id="sellTotalInvested"></span></p>
+      <p style="margin:5px 0;"><strong data-i18n="ingresos.saleValue">Valor Venta:</strong> <span id="sellTotalValue"></span></p>
+      <p style="margin:5px 0; font-size:18px;"><strong data-i18n="ingresos.profit">Ganancia/Pérdida:</strong> <span id="sellProfit" style="font-weight:bold;"></span></p>
+    </div>
+    <div style="display:flex; gap:10px; justify-content:flex-end;">
+      <button id="cancelSellBtn" style="padding:10px 20px; background:#6c757d; color:white; border:none; border-radius:5px; cursor:pointer;" data-i18n="formularios.cancelar">Cancelar</button>
+      <button id="confirmSellBtn" style="padding:10px 20px; background:#28a745; color:white; border:none; border-radius:5px; cursor:pointer;" data-i18n="ingresos.confirmSale">Confirmar Venta</button>
+    </div>
+  </div>
+</div>

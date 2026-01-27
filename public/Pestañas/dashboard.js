@@ -19,6 +19,7 @@ const charts = {
 
 // ===== FUNCIONES DE FORMATO GLOBAL =====
 function formatearEuro(monto) {
+    if (typeof window.formatCurrency === 'function') return window.formatCurrency(monto, { convert: false });
     if (monto === null || monto === undefined) return '€0,00';
     return '€' + parseFloat(monto).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }

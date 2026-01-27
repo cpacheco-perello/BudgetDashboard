@@ -4,6 +4,7 @@ function cargarHucha() {
 
     // Formatear cantidad como euro
     function formatearEuro(monto) {
+        if (typeof window.formatCurrency === 'function') return window.formatCurrency(monto, { convert: false });
         return new Intl.NumberFormat('es-ES', {
             style: 'currency',
             currency: 'EUR'
