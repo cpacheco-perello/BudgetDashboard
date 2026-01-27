@@ -54,7 +54,8 @@ const TRADUCCIONES = {
             saldo: 'Saldo',
             totalImpuestos: 'Total Impuestos',
             impuestosPre: 'Pre',
-            impuestosPost: 'Post'
+            impuestosPost: 'Post',
+            totalHucha: 'Total Hucha'
         },
 
         // ===== TEMA =====
@@ -72,7 +73,12 @@ const TRADUCCIONES = {
             espanol: 'Español',
             ingles: 'English',
             portugues: 'Português',
-            frances: 'Français'
+            frances: 'Français',
+            euskera: 'Euskara'
+        },
+        hucha: {
+            concepto: 'Concepto',
+            cantidad: 'Cantidad'
         },
 
         // ===== NAVEGACIÓN =====
@@ -81,7 +87,8 @@ const TRADUCCIONES = {
             gastos: 'Gastos',
             ingresos: 'Ingresos',
             impuestos: 'Impuestos',
-            dashboard: 'Dashboard'
+            dashboard: 'Dashboard',
+            hucha: 'Hucha Real'
         },
 
         // ===== DASHBOARD =====
@@ -281,6 +288,256 @@ const TRADUCCIONES = {
         }
     },
 
+    eu: {
+        app: {
+            titulo: 'Finantza Arbel'
+        },
+        temas: {
+            azul: 'Urdin Profesionala',
+            verde: 'Berde Modernoa',
+            naranja: 'Laranja Energetikoa',
+            turquesa: 'Turkesa Freskoa',
+            purpura: 'More Modernoa',
+            rojo: 'Gorri Dotorea',
+            indigo: 'Indigo Leuna',
+            teal: 'Teal Profesionala',
+            gris: 'Gris Korporatiboa',
+            rosado: 'Arrosa Modernoa',
+            cian: 'Cian Bizia',
+            lima: 'Lima Freskoa',
+            esmeralda: 'Esmeralda Premium',
+            ambar: 'Amber Urre',
+            violeta: 'Bioleta Mistikua',
+            fresa: 'Marrubi Arrosa',
+            oceano: 'Ozeano Sakona',
+            bosque: 'Basoa Berdea',
+            atardecer: 'Ilunabarra',
+            medianoche: 'Gauerdiko Iluna',
+            neon: 'Neon Ziberpunk',
+            mint: 'Menda Leuna',
+            coral: 'Koralezko Tropikala',
+            lavanda: 'Laranja Dotorea',
+            grisminimal: 'Gris Minimalista',
+            bronce: 'Brontze Vintage',
+            cielo: 'Zeru Garbia'
+        },
+        periodos: {
+            un_mes: '1 Hilabete',
+            tres_meses: '3 Hilabete',
+            seis_meses: '6 Hilabete',
+            un_anio: '1 Urte',
+            cinco_anios: '5 Urte',
+            diez_anios: '10 Urte'
+        },
+        resumen: {
+            totalIngresos: 'Sarrera Guztira',
+            totalGastos: 'Gastu Guztira',
+            saldo: 'Saldoa',
+            totalImpuestos: 'Zergen Guztira',
+            impuestosPre: 'Aurre',
+            impuestosPost: 'Ondoren',
+            totalHucha: 'Kutxa Guztira'
+        },
+        tema: {
+            cambiarTema: '🎨 Gaia:',
+            seleccionar: 'Gaia aukeratu',
+            claro: 'Argia',
+            oscuro: 'Iluna',
+            automático: 'Automatikoa'
+        },
+        idioma: {
+            seleccionar: '🌐 Hizkuntza:',
+            espanol: 'Espainiera',
+            ingles: 'Ingelesa',
+            portugues: 'Portugesa',
+            frances: 'Frantsesa',
+            euskera: 'Euskara'
+        },
+        hucha: {
+            concepto: 'Kontzeptua',
+            cantidad: 'Kopurua'
+        },
+        nav: {
+            categorias: 'Kategoriak',
+            gastos: 'Gastua',
+            ingresos: 'Sarrerak',
+            impuestos: 'Zergak',
+            dashboard: 'Arbela',
+            hucha: 'Kutxa'
+        },
+        dashboard: {
+            titulo: 'Laburpen Finantzarioa',
+            periodoRapido: 'Epe Azkarra',
+            desde: 'Noiztik',
+            hasta: 'Noiz arte',
+            desdeDate: 'Hasiera data aukeratu',
+            hastaDate: 'Amaiera data aukeratu',
+            actualizar: 'Eguneratu',
+            totalPeriodo: 'Epearen Guztira',
+            gastosPorMes: 'Hilabeteko Gastuak',
+            todasCategorias: 'Kategoria guztiak',
+            ingresos: 'Sarrerak',
+            gastos: 'Gastua',
+            ahorros: 'Aurreztuak',
+            ingresosPorCategoria: 'Kategoriaren araberako sarrerak',
+            gastosPorCategoria: 'Kategoriaren araberako gastuak',
+            media: 'Batazbestekoa',
+            varianza: 'Bariazioa',
+            desviacion: 'Desbiderapena',
+            mediaMensualTotal: 'Hilabeteko batazbesteko guztira',
+            impuestosCategoria: 'Zergak',
+            errorHastaMenorDesde: 'Amaiera data ezin da hasiera data baino lehenago izan',
+            seleccionaRango: 'Aukeratu data tarte bat'
+        },
+        categorias: {
+            titulo: 'Kategoriak Kudeatu',
+            gastos: 'Gastua',
+            ingresos: 'Sarrerak',
+            categoriasGasto: 'Gastu Kategoriak',
+            categoriasIngreso: 'Sarrera Kategoriak',
+            nuevaCategoria: 'Kategoria berria...',
+            noHayCategoriasGasto: 'Ez dago gastu kategoriarik',
+            noHayCategoriasIngreso: 'Ez dago sarrera kategoriarik',
+            categoriaAgregada: 'Kategoria ondo gehitu da',
+            categoriaEliminada: 'Kategoria ondo ezabatu da',
+            categoriaActualizada: 'Kategoria ondo eguneratu da'
+        },
+        gastos: {
+            titulo: 'Gastua Kudeatu',
+            puntuales: 'Behin-behineko Gastuak',
+            mensuales: 'Hileko Gastuak',
+            descripcion: 'Deskribapena...',
+            desde: 'Noiztik',
+            hasta: 'Noiz arte',
+            monto: 'Zenbatekoa',
+            mostrarAntiguos: 'Zaharrak erakutsi',
+            ocultarAntiguos: 'Zaharrak ezkutatu',
+            fraccionar: 'Zatitu',
+            noHayGastos: 'Ez dago gasturik',
+            gastoAgregado: 'Gastu ondo gehitu da',
+            gastoEliminado: 'Gastu ondo ezabatu da',
+            gastoActualizado: 'Gastu ondo eguneratu da',
+            validarFecha: 'Mesedez, hautatu data egoki bat',
+            validarMonto: 'Mesedez, sartu zenbateko egoki bat',
+            validarCategoria: 'Mesedez, hautatu kategoria bat'
+        },
+        ingresos: {
+            titulo: 'Sarrerak Kudeatu',
+            puntuales: 'Behin-behineko Sarrerak',
+            mensuales: 'Hileko Sarrerak',
+            cuenta_remunerada: 'Errentadun Kontua',
+            descripcion: 'Deskribapena...',
+            desde: 'Noiztik',
+            hasta: 'Noiz arte',
+            bruto: 'Gordina',
+            aportacionInicial: 'Hasierako Ekarpena',
+            aportacionMensual: 'Hileko Ekarpena',
+            interes: 'Interesa (%)',
+            interesGenerado: 'Sortutako Interesa',
+            mostrarAntiguos: 'Zaharrak erakutsi',
+            ocultarAntiguos: 'Zaharrak ezkutatu',
+            noHayIngresos: 'Ez dago sarrerarik',
+            ingresoAgregado: 'Sarrera ondo gehitu da',
+            ingresoEliminado: 'Sarrera ondo ezabatu da',
+            ingresoActualizado: 'Sarrera ondo eguneratu da',
+            validarFecha: 'Mesedez, hautatu data egoki bat',
+            validarMonto: 'Mesedez, sartu zenbateko egoki bat',
+            validarCategoria: 'Mesedez, hautatu kategoria bat'
+        },
+        taxes: {
+            agregarPuntual: 'Behin-behineko Zerga Gehitu',
+            agregarMensual: 'Hileko Zerga Gehitu',
+            impuestoAgregado: 'Zerga ondo gehitu da',
+            impuestoEliminado: 'Zerga ondo ezabatu da',
+            impuestoActualizado: 'Zerga ondo eguneratu da',
+            desde: 'Noiztik',
+            hasta: 'Noiz arte'
+        },
+        formularios: {
+            guardar: 'Gorde',
+            cancelar: 'Utzi',
+            editar: 'Editatu',
+            eliminar: 'Ezabatu',
+            agregar: 'Gehitu',
+            buscar: 'Bilatu',
+            nombre: 'Izena',
+            descripcion: 'Deskribapena',
+            cantidad: 'Kopurua',
+            monto: 'Zenbatekoa',
+            categoria: 'Kategoria',
+            fecha: 'Data',
+            desde: 'Noiztik',
+            hasta: 'Noiz arte',
+            bruto: 'Gordina',
+            interes: 'Interesa',
+            accion: 'Ekintza',
+            acciones: 'Ekintzak',
+            obligatorio: 'Derrigorrezko eremua',
+            confirmarEliminar: 'Ziur zaude hau ezabatu nahi duzula?',
+            si: 'Bai',
+            no: 'Ez',
+            cerrar: 'Itxi',
+            aceptar: 'Onartu',
+            rechazar: 'Baztertu'
+        },
+        botones: {
+            agregar: 'Gehitu',
+            actualizar: 'Eguneratu',
+            editar: 'Editatu',
+            eliminar: 'Ezabatu',
+            guardar: 'Gorde',
+            cancelar: 'Utzi'
+        },
+        tabs: {
+            puntuales: 'Behin-behinekoak',
+            mensuales: 'Hilekoak'
+        },
+        mensajes: {
+            exito: 'Eragiketa ondo burutu da',
+            error: 'Errore bat gertatu da',
+            cargando: 'Kargatzen...',
+            noHayDatos: 'Ez dago daturik',
+            seleccionaRango: 'Aukeratu data tarte bat',
+            categoriasCargadas: 'Kategoriak kargatuta',
+            dashboardActualizado: 'Arbela eguneratuta',
+            errorCargando: 'Errorea datuak kargatzean',
+            errorGuardando: 'Errorea datuak gordetzean',
+            errorEliminando: 'Errorea datuak ezabatzean',
+            validacionError: 'Mesedez, bete derrigorrezko eremu guztiak',
+            confirmacion: 'Berrespena beharrezkoa'
+        },
+        tablas: {
+            sinResultados: 'Emaitzarik ez',
+            fecha: 'Data',
+            descripcion: 'Deskribapena',
+            monto: 'Zenbatekoa',
+            categoria: 'Kategoria',
+            acciones: 'Ekintzak',
+            cargando: 'Kargatzen...',
+            mostrandoRegistros: '{0} / {1} erregistro erakusten',
+            siguiente: 'Hurrengoa',
+            anterior: 'Aurrekoa',
+            primera: 'Lehena',
+            ultima: 'Azkena',
+            porPagina: 'Erregistroak orrialdeko'
+        },
+        errores: {
+            campoObligatorio: 'Eremu hau derrigorrezkoa da',
+            formatoInvalido: 'Formatu baliogabea',
+            montoNegativo: 'Zenbatekoa ezin da negatiboa izan',
+            fechaInvalida: 'Data baliogabea',
+            seleccionaCategoria: 'Kategoria bat hautatu behar duzu',
+            seleccionaFecha: 'Data bat hautatu behar duzu',
+            sinConexion: 'Konexio errorea',
+            tiempoAgotado: 'Konexio denbora agortuta'
+        },
+        confirmaciones: {
+            guardar: 'Aldaketak gorde nahi dituzu?',
+            eliminar: 'Ziur zaude elementu hau ezabatu nahi duzula?',
+            cancelar: 'Eragiketa hau utzi nahi duzu?',
+            salirSinGuardar: 'Aldaketak gorde gabe irten nahi duzu?'
+        }
+    },
     en: {
         app: {
             titulo: 'Financial Dashboard'
@@ -328,7 +585,8 @@ const TRADUCCIONES = {
             saldo: 'Balance',
             totalImpuestos: 'Total Taxes',
             impuestosPre: 'Pre',
-            impuestosPost: 'Post'
+            impuestosPost: 'Post',
+            totalHucha: 'Total Piggy Bank'
         },
         tema: {
             cambiarTema: '🎨 Theme:',
@@ -344,12 +602,17 @@ const TRADUCCIONES = {
             portugues: 'Português',
             frances: 'Français'
         },
+        hucha: {
+            concepto: 'Concept',
+            cantidad: 'Amount'
+        },
         nav: {
             categorias: 'Categories',
             gastos: 'Expenses',
             ingresos: 'Income',
             impuestos: 'Taxes',
-            dashboard: 'Dashboard'
+            dashboard: 'Dashboard',
+            hucha: 'Piggy Bank'
         },
         dashboard: {
             titulo: 'Financial Summary',
@@ -579,7 +842,8 @@ const TRADUCCIONES = {
             saldo: 'Saldo',
             totalImpuestos: 'Total de Impostos',
             impuestosPre: 'Pré',
-            impuestosPost: 'Pós'
+            impuestosPost: 'Pós',
+            totalHucha: 'Total Poupança'
         },
         tema: {
             cambiarTema: '🎨 Tema:',
@@ -595,12 +859,17 @@ const TRADUCCIONES = {
             portugues: 'Português',
             frances: 'Français'
         },
+        hucha: {
+            concepto: 'Conceito',
+            cantidad: 'Valor'
+        },
         nav: {
             categorias: 'Categorias',
             gastos: 'Despesas',
             ingresos: 'Receitas',
             impuestos: 'Impostos',
-            dashboard: 'Painel'
+            dashboard: 'Painel',
+            hucha: 'Poupança'
         },
         dashboard: {
             titulo: 'Resumo Financeiro',
@@ -830,7 +1099,8 @@ const TRADUCCIONES = {
             saldo: 'Solde',
             totalImpuestos: 'Impôts Totaux',
             impuestosPre: 'Pré',
-            impuestosPost: 'Post'
+            impuestosPost: 'Post',
+            totalHucha: 'Tirelire Totale'
         },
         tema: {
             cambiarTema: '🎨 Thème:',
@@ -846,12 +1116,17 @@ const TRADUCCIONES = {
             portugues: 'Português',
             frances: 'Français'
         },
+        hucha: {
+            concepto: 'Concept',
+            cantidad: 'Montant'
+        },
         nav: {
             categorias: 'Catégories',
             gastos: 'Dépenses',
             ingresos: 'Revenus',
             impuestos: 'Impôts',
-            dashboard: 'Tableau de Bord'
+            dashboard: 'Tableau de Bord',
+            hucha: 'Tirelire'
         },
         dashboard: {
             titulo: 'Résumé Financier',

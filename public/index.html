@@ -68,6 +68,7 @@
                     <option value="en" data-i18n="idioma.ingles">English</option>
                     <option value="pt" data-i18n="idioma.portugues">Português</option>
                     <option value="fr" data-i18n="idioma.frances">Français</option>
+                    <option value="eu" data-i18n="idioma.euskera">Euskara</option>
                 </select>
             </div>
         </div>
@@ -116,6 +117,13 @@
                 <span id="total-taxes">€0</span>
             </div>
         </div>
+        <div class="card-stat hucha">
+            <i class="fas fa-piggy-bank"></i>
+            <div>
+                <p data-i18n="resumen.totalHucha">Total Hucha</p>
+                <span id="total-hucha">€0</span>
+            </div>
+        </div>
     </div>
 </header>
 
@@ -125,6 +133,7 @@
     <button class="tablink" data-tab="ingresos" data-i18n="nav.ingresos"><i class="fas fa-money-bill"></i> Ingresos</button>
     <button class="tablink" data-tab="impuestos" data-i18n="nav.impuestos"><i class="fas fa-receipt"></i> Impuestos</button>
     <button class="tablink" data-tab="dashboard" data-i18n="nav.dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</button>
+    <button class="tablink" data-tab="hucha" data-i18n="nav.hucha"><i class="fas fa-piggy-bank"></i> Hucha Real</button>
 </nav>
 
 <main id="tab-content"></main>
@@ -143,8 +152,10 @@
 <script src="Pestañas/categorias.js"></script>
 <script src="Pestañas/gastos.js"></script>
 <script src="Pestañas/ingresos.js"></script>
+
 <script src="Pestañas/dashboard.js"></script>
 <script src="Pestañas/impuestos.js"></script>
+<script src="Pestañas/hucha.js"></script>
 
 
 

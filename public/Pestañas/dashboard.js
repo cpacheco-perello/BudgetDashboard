@@ -17,6 +17,12 @@ const charts = {
 };
 
 
+// ===== FUNCIONES DE FORMATO GLOBAL =====
+function formatearEuro(monto) {
+    if (monto === null || monto === undefined) return '€0,00';
+    return '€' + parseFloat(monto).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 // ===== FUNCIONES DE EVENT LISTENERS (GLOBALES) =====
 function manejarClickPeriodo(e) {
     const btn = e.target.closest('.quick-period-btn');
@@ -438,7 +444,7 @@ function obtenerLabelsTraducidos() {
                         borderWidth: 1,
                         callbacks: {
                             label: function(ctx) {
-                                return '€' + ctx.raw.toFixed(2);
+                                return formatearEuro(ctx.raw);
                             }
                         }
                     }
@@ -449,7 +455,7 @@ function obtenerLabelsTraducidos() {
                             color: '#666', 
                             font: { size: 11 },
                             callback: function(value) {
-                                return '€' + value.toFixed(0);
+                                return formatearEuro(value);
                             }
                         },
                         grid: { color: 'rgba(0, 0, 0, 0.19)' }
@@ -535,7 +541,7 @@ function obtenerLabelsTraducidos() {
                             tension: 0.4
                         },
                         {
-                            label: labelsTraducidos.impuestosTotales + ' €',
+                            label: labelsTraducidos.impuestosCategoria + ' €',
                             data: impuestosMes,
                             backgroundColor: aclararColor(temasGraficos.warning, 0.7),
                             borderColor: temasGraficos.warning,
@@ -564,7 +570,7 @@ function obtenerLabelsTraducidos() {
                         // ===== TÍTULO CON MEDIA Y VARIANZA =====
                         title: {
                             display: true,
-                            text: `Ingresos: €${mediaIngresos.toFixed(2)} | Cuentas Rem: €${mediaCuentasRemuneradas.toFixed(2)} | Desv: ${varianzaIngresos.toFixed(2)}`,
+                            text: `Ingresos: ${formatearEuro(mediaIngresos)} | Cuentas Rem: ${formatearEuro(mediaCuentasRemuneradas)} | Desv: ${formatearEuro(varianzaIngresos)}`,
                             font: { size: 13, weight: '600' },
                             padding: { top: 5, bottom: 10 }
                         },
@@ -581,7 +587,7 @@ function obtenerLabelsTraducidos() {
                                     borderDash: [6, 6],
                                     label: {
                                         display: true,
-                                        content: `Media Total €${(mediaIngresos + mediaCuentasRemuneradas).toFixed(2)}`,
+                                        content: `Media Total ${formatearEuro(mediaIngresos + mediaCuentasRemuneradas)}`,
                                         position: 'end',
                                         backgroundColor: 'rgba(0,0,0,0.7)',
                                         color: '#fff',
@@ -623,7 +629,7 @@ function obtenerLabelsTraducidos() {
                             // ===== TÍTULO CON MEDIA Y VARIANZA =====
                             title: {
                                 display: true,
-                                text: `${labelsTraducidos.media}: €${mediaGastos.toFixed(2)}   |   ${labelsTraducidos.desviacion}: €${varianzaGastos.toFixed(2)}`,
+                                text: `${labelsTraducidos.media}: ${formatearEuro(mediaGastos)}   |   ${labelsTraducidos.desviacion}: ${formatearEuro(varianzaGastos)}`,
                                 font: { size: 13, weight: '600' },
                                 padding: { top: 5, bottom: 10 }
                             },
@@ -640,7 +646,7 @@ function obtenerLabelsTraducidos() {
                                         borderDash: [6, 6],
                                         label: {
                                             display: true,
-                                            content: `${labelsTraducidos.media} €${mediaGastos.toFixed(2)}`,
+                                            content: `${labelsTraducidos.media} ${formatearEuro(mediaGastos)}`,
                                             position: 'end',
                                             backgroundColor: 'rgba(0,0,0,0.7)',
                                             color: '#fff',
@@ -681,7 +687,7 @@ charts.ahorros = new Chart(document.getElementById('chartAhorros'), {
             // ===== TÍTULO CON MEDIA Y DESVIACIÓN =====
             title: {
                 display: true,
-                text: `${labelsTraducidos.media}: €${mediaAhorros.toFixed(2)}   |   ${labelsTraducidos.desviacion}: €${desviacionAhorros.toFixed(2)}`,
+                text: `${labelsTraducidos.media}: ${formatearEuro(mediaAhorros)}   |   ${labelsTraducidos.desviacion}: ${formatearEuro(desviacionAhorros)}`,
                 font: { size: 13, weight: '600' },
                 padding: { top: 5, bottom: 10 }
             },
@@ -698,7 +704,7 @@ charts.ahorros = new Chart(document.getElementById('chartAhorros'), {
                         borderDash: [6, 6],
                         label: {
                             display: true,
-                            content: `${labelsTraducidos.media} €${mediaAhorros.toFixed(2)}`,
+                            content: `${labelsTraducidos.media} ${formatearEuro(mediaAhorros)}`,
                             position: 'end',
                             backgroundColor: 'rgba(0,0,0,0.7)',
                             color: '#fff',
@@ -759,10 +765,9 @@ charts.ahorros = new Chart(document.getElementById('chartAhorros'), {
                                     const total = valIngresosTotal.reduce((a,b)=>a+b,0);
                                     const perc=((ctx.raw/total)*100).toFixed(1);
                                     
-                                    let tooltip = `Total: €${ctx.raw.toFixed(2)} (${perc}%)`;
-                                    if (ingresos > 0) tooltip += `\nIngresos: €${ingresos.toFixed(2)}`;
-                                    if (cuentasRem > 0) tooltip += `\nCuentas Rem: €${cuentasRem.toFixed(2)}`;
-                                    
+                                    let tooltip = `Total: ${formatearEuro(ctx.raw)} (${perc}%)`;
+                                    if (ingresos > 0) tooltip += `\nIngresos: ${formatearEuro(ingresos)}`;
+                                    if (cuentasRem > 0) tooltip += `\nCuentas Rem: ${formatearEuro(cuentasRem)}`;
                                     return tooltip;
                                 }
                             }
@@ -806,6 +811,7 @@ charts.ahorros = new Chart(document.getElementById('chartAhorros'), {
                                     const total=valGastos.reduce((a,b)=>a+b,0); 
                                     const perc=((ctx.raw/total)*100).toFixed(1); 
                                     return `${ctx.label}: €${ctx.raw.toFixed(2)} (${perc}%)`; 
+                                                                    return `${ctx.label}: ${formatearEuro(ctx.raw)} (${perc}%)`;
                                 }
                             }
                         },
@@ -857,7 +863,7 @@ charts.ahorros = new Chart(document.getElementById('chartAhorros'), {
             // ===== TÍTULO CON MEDIA Y VARIANZA =====
             title: {
                 display: true,
-                text: `${labelsTraducidos.mediaMensualTotal}: €${mediaGastosMes.toFixed(2)}   |   ${labelsTraducidos.desviacion}: ${varianzaGastosMes.toFixed(2)}`,
+                text: `${labelsTraducidos.mediaMensualTotal}: ${formatearEuro(mediaGastosMes)}   |   ${labelsTraducidos.desviacion}: ${formatearEuro(varianzaGastosMes)}`,
                 font: { size: 13, weight: '600' },
                 padding: { top: 5, bottom: 10 }
             },
@@ -874,7 +880,7 @@ charts.ahorros = new Chart(document.getElementById('chartAhorros'), {
                         borderDash: [6, 6],
                         label: {
                             display: true,
-                            content: `${labelsTraducidos.media} €${mediaGastosMes.toFixed(2)}`,
+                            content: `${labelsTraducidos.media} ${formatearEuro(mediaGastosMes)}`,
                             position: 'end',
                             backgroundColor: 'rgba(0,0,0,0.7)',
                             color: '#fff',
@@ -1025,13 +1031,13 @@ charts.ahorros = new Chart(document.getElementById('chartAhorros'), {
                             borderWidth: 1,
                             callbacks: {
                                 label: function(ctx) {
-                                    return '€' + ctx.raw.toFixed(2);
+                                    return formatearEuro(ctx.raw);
                                 }
                             }
                         },
                         title: {
                             display: true,
-                            text: `Media mensual total: €${mediaGastosMes.toFixed(2)}   |   Desviación: ${varianzaGastosMes.toFixed(2)}`,
+                            text: `Media mensual total: ${formatearEuro(mediaGastosMes)}   |   Desviación: ${formatearEuro(varianzaGastosMes)}`,
                             font: { size: 13, weight: '600' },
                             padding: { top: 5, bottom: 10 }
                         }

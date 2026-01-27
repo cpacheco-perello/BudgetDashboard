@@ -1,4 +1,9 @@
-// ============== IMPUESTOS PUNTUALES ==============
+
+// Función global para formatear montos con símbolo Euro (punto millar, coma decimal)
+function formatearEuro(monto) {
+    if (monto === null || monto === undefined) return '€0,00';
+    return '€' + parseFloat(monto).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
 function cargarImpuestosPuntuales() {
     fetch('/impuestos-puntuales')

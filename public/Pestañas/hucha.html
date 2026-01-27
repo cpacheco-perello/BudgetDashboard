@@ -1,0 +1,26 @@
+<section id="hucha" class="tab" style="display:block;">
+    <h2 data-i18n="nav.hucha">Hucha Real</h2>
+
+    <div style="margin-bottom:15px;"></div>
+
+    <table id="tablaHucha">
+        <thead>
+            <tr>
+                <th data-i18n="hucha.concepto">Concepto</th>
+                <th data-i18n="hucha.cantidad">Cantidad</th>
+                <th style="width:120px;">Acciones</th>
+            </tr>
+            <tr class="insert-row">
+                <td><input type="text" id="conceptoHucha" placeholder="Concepto..."></td>
+                <td>
+                    <div class="input-euro" style="display:flex;align-items:center;gap:8px;">
+                        <span>€</span>
+                        <input type="number" id="cantidadHucha" step="0.01" placeholder="0.00" style="width:100px;">
+                    </div>
+                </td>
+                <td><button id="btnAgregarHucha"><i class="fas fa-plus"></i></button></td>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</section>

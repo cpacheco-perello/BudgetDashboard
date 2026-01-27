@@ -1,5 +1,21 @@
+/**
+ * CONFIGURACIÓN CENTRALIZADA DE TEMAS
+ * Estructura estándar para todos los temas:
+ * - primary: color principal
+ * - primaryDark: variante oscura del principal
+ * - success: color de éxito
+ * - danger: color de error
+ * - dangerDark: variante oscura del error
+ * - warning: color de advertencia
+ * - info: color de información
+ * - light: color claro/fondo
+ * - bgPrimary: fondo con opacidad del color principal
+ * - bgPrimaryDark: fondo con opacidad del color principal oscuro
+ * - nombre: nombre visible del tema
+ */
 const TEMAS = {
     // ===== TEMAS ORIGINALES =====
+    
     azul: {
         primary: '#0066cc',
         primaryDark: '#0052a3',
@@ -13,6 +29,7 @@ const TEMAS = {
         bgPrimaryDark: 'rgba(0, 82, 163, 0.12)',
         nombre: 'Azul Profesional'
     },
+
     verde: {
         primary: '#16a34a',
         primaryDark: '#15803d',
@@ -26,6 +43,7 @@ const TEMAS = {
         bgPrimaryDark: 'rgba(21, 128, 61, 0.12)',
         nombre: 'Verde Moderno'
     },
+
     naranja: {
         primary: '#ea580c',
         primaryDark: '#c2410c',
@@ -39,6 +57,7 @@ const TEMAS = {
         bgPrimaryDark: 'rgba(194, 65, 12, 0.12)',
         nombre: 'Naranja Energético'
     },
+
     turquesa: {
         primary: '#06b6d4',
         primaryDark: '#0891b2',
@@ -52,6 +71,7 @@ const TEMAS = {
         bgPrimaryDark: 'rgba(8, 145, 178, 0.12)',
         nombre: 'Turquesa Fresco'
     },
+
     purpura: {
         primary: '#a855f7',
         primaryDark: '#9333ea',
@@ -65,6 +85,7 @@ const TEMAS = {
         bgPrimaryDark: 'rgba(147, 51, 234, 0.12)',
         nombre: 'Púrpura Moderno'
     },
+
     rojo: {
         primary: '#dc2626',
         primaryDark: '#b91c1c',
@@ -78,6 +99,7 @@ const TEMAS = {
         bgPrimaryDark: 'rgba(185, 28, 28, 0.12)',
         nombre: 'Rojo Elegante'
     },
+
     indigo: {
         primary: '#4f46e5',
         primaryDark: '#4338ca',
@@ -91,6 +113,7 @@ const TEMAS = {
         bgPrimaryDark: 'rgba(67, 56, 202, 0.12)',
         nombre: 'Índigo Suave'
     },
+
     teal: {
         primary: '#0d9488',
         primaryDark: '#115e59',
@@ -104,6 +127,7 @@ const TEMAS = {
         bgPrimaryDark: 'rgba(17, 94, 89, 0.12)',
         nombre: 'Teal Profesional'
     },
+
     gris: {
         primary: '#1f2937',
         primaryDark: '#111827',
@@ -117,6 +141,7 @@ const TEMAS = {
         bgPrimaryDark: 'rgba(17, 24, 39, 0.12)',
         nombre: 'Gris Corporativo'
     },
+
     rosado: {
         primary: '#ec4899',
         primaryDark: '#be185d',
@@ -131,9 +156,8 @@ const TEMAS = {
         nombre: 'Rosado Moderno'
     },
 
-    // ===== NUEVOS TEMAS =====
-    
-    // Tema Cian Vibrante
+    // ===== TEMAS ADICIONALES =====
+
     cian: {
         primary: '#0891b2',
         primaryDark: '#0e7490',
@@ -148,7 +172,6 @@ const TEMAS = {
         nombre: 'Cian Vibrante'
     },
 
-    // Tema Lima Fresco
     lima: {
         primary: '#84cc16',
         primaryDark: '#65a30d',
@@ -163,7 +186,6 @@ const TEMAS = {
         nombre: 'Lima Fresco'
     },
 
-    // Tema Esmeralda Premium
     esmeralda: {
         primary: '#059669',
         primaryDark: '#047857',
@@ -178,7 +200,6 @@ const TEMAS = {
         nombre: 'Esmeralda Premium'
     },
 
-    // Tema Ámbar Dorado
     ambar: {
         primary: '#d97706',
         primaryDark: '#b45309',
@@ -193,7 +214,6 @@ const TEMAS = {
         nombre: 'Ámbar Dorado'
     },
 
-    // Tema Violeta Místico
     violeta: {
         primary: '#7c3aed',
         primaryDark: '#6d28d9',
@@ -208,7 +228,6 @@ const TEMAS = {
         nombre: 'Violeta Místico'
     },
 
-    // Tema Fresa Rosa
     fresa: {
         primary: '#f43f5e',
         primaryDark: '#e11d48',
@@ -223,7 +242,6 @@ const TEMAS = {
         nombre: 'Fresa Rosa'
     },
 
-    // Tema Océano Profundo
     oceano: {
         primary: '#1e40af',
         primaryDark: '#1e3a8a',
@@ -238,7 +256,6 @@ const TEMAS = {
         nombre: 'Océano Profundo'
     },
 
-    // Tema Bosque Verde
     bosque: {
         primary: '#15803d',
         primaryDark: '#14532d',
@@ -253,7 +270,6 @@ const TEMAS = {
         nombre: 'Bosque Verde'
     },
 
-    // Tema Atardecer
     atardecer: {
         primary: '#ea580c',
         primaryDark: '#b3280e',
@@ -268,7 +284,6 @@ const TEMAS = {
         nombre: 'Atardecer'
     },
 
-    // Tema Medianoche Oscuro
     medianoche: {
         primary: '#0f172a',
         primaryDark: '#020617',
@@ -283,7 +298,6 @@ const TEMAS = {
         nombre: 'Medianoche Oscuro'
     },
 
-    // Tema Neón Ciberpunk
     neon: {
         primary: '#ff006e',
         primaryDark: '#d9007a',
@@ -298,7 +312,6 @@ const TEMAS = {
         nombre: 'Neón Ciberpunk'
     },
 
-    // Tema Mint Suave
     mint: {
         primary: '#14b8a6',
         primaryDark: '#0d9488',
@@ -313,7 +326,6 @@ const TEMAS = {
         nombre: 'Mint Suave'
     },
 
-    // Tema Coral Tropical
     coral: {
         primary: '#ff6b6b',
         primaryDark: '#d63031',
@@ -328,7 +340,6 @@ const TEMAS = {
         nombre: 'Coral Tropical'
     },
 
-    // Tema Lavanda Elegante
     lavanda: {
         primary: '#c084fc',
         primaryDark: '#a855f7',
@@ -343,7 +354,6 @@ const TEMAS = {
         nombre: 'Lavanda Elegante'
     },
 
-    // Tema Gris Minimalista
     grisminimal: {
         primary: '#6b7280',
         primaryDark: '#374151',
@@ -358,7 +368,6 @@ const TEMAS = {
         nombre: 'Gris Minimalista'
     },
 
-    // Tema Bronce Vintage
     bronce: {
         primary: '#92400e',
         primaryDark: '#78350f',
@@ -373,7 +382,6 @@ const TEMAS = {
         nombre: 'Bronce Vintage'
     },
 
-    // Tema Cielo Claro
     cielo: {
         primary: '#3b82f6',
         primaryDark: '#1d4ed8',
@@ -389,9 +397,28 @@ const TEMAS = {
     }
 };
 
+/**
+ * Gestor centralizado de temas
+ * Maneja la aplicación, cambio y persistencia de temas
+ */
 class GestorTemas {
+    // Constantes
+    static STORAGE_KEY = 'tema';
+    static DEFAULT_THEME = 'verde';
+    static CSS_PROPERTIES = [
+        'primary',
+        'primary-dark',
+        'success',
+        'danger',
+        'danger-dark',
+        'warning',
+        'info',
+        'light',
+        'bg-primary',
+        'bg-primary-dark'
+    ];
+
     constructor() {
-        // Esperar a que el DOM esté completamente cargado
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.inicializar());
         } else {
@@ -399,9 +426,10 @@ class GestorTemas {
         }
     }
 
+    /**
+     * Inicializa el gestor de temas
+     */
     inicializar() {
-        console.log('🎨 GestorTemas: Inicializando...');
-        
         this.themeSelect = document.getElementById('themeSelect');
         
         if (!this.themeSelect) {
@@ -409,25 +437,19 @@ class GestorTemas {
             return;
         }
 
-        console.log('✅ Elemento themeSelect encontrado');
-
-        // Obtener tema guardado o usar verde por defecto
-        this.temaActual = localStorage.getItem('tema') || 'verde';
-        console.log('📌 Tema actual:', this.temaActual);
-
-        // Aplicar tema guardado
+        this.temaActual = localStorage.getItem(GestorTemas.STORAGE_KEY) || GestorTemas.DEFAULT_THEME;
+        
         this.aplicarTema(this.temaActual);
         this.themeSelect.value = this.temaActual;
-
-        // Escuchar cambios en el selector
-        this.themeSelect.addEventListener('change', (e) => {
-            console.log('🎨 Cambiando tema a:', e.target.value);
-            this.cambiarTema(e.target.value);
-        });
+        this.themeSelect.addEventListener('change', (e) => this.cambiarTema(e.target.value));
 
         console.log('✅ GestorTemas inicializado correctamente');
     }
 
+    /**
+     * Aplica un tema a la aplicación
+     * @param {string} nombreTema - Identificador del tema
+     */
     aplicarTema(nombreTema) {
         const tema = TEMAS[nombreTema];
         
@@ -436,45 +458,69 @@ class GestorTemas {
             return;
         }
 
-        console.log('🎨 Aplicando tema:', tema.nombre);
-
-        // Actualizar variables CSS en :root
         const root = document.documentElement;
-        root.style.setProperty('--primary', tema.primary);
-        root.style.setProperty('--primary-dark', tema.primaryDark);
-        root.style.setProperty('--success', tema.success);
-        root.style.setProperty('--danger', tema.danger);
-        root.style.setProperty('--danger-dark', tema.dangerDark);
-        root.style.setProperty('--warning', tema.warning);
-        root.style.setProperty('--info', tema.info);
-        root.style.setProperty('--light', tema.light);
-        root.style.setProperty('--bg-primary', tema.bgPrimary);
-        root.style.setProperty('--bg-primary-dark', tema.bgPrimaryDark);
 
-        // Actualizar background del body
+        // Aplicar todas las propiedades CSS del tema
+        this._aplicarPropiedadesCss(root, tema);
+        
+        // Actualizar fondo del body
         document.body.style.background = `linear-gradient(135deg, ${tema.bgPrimary} 0%, ${tema.bgPrimaryDark} 100%)`;
 
-        console.log('✅ Tema aplicado exitosamente');
+        console.log(`🎨 Tema "${tema.nombre}" aplicado exitosamente`);
     }
 
+    /**
+     * Aplica las propiedades CSS del tema al elemento root
+     * @private
+     */
+    _aplicarPropiedadesCss(root, tema) {
+        const propiedades = {
+            'primary': tema.primary,
+            'primary-dark': tema.primaryDark,
+            'success': tema.success,
+            'danger': tema.danger,
+            'danger-dark': tema.dangerDark,
+            'warning': tema.warning,
+            'info': tema.info,
+            'light': tema.light,
+            'bg-primary': tema.bgPrimary,
+            'bg-primary-dark': tema.bgPrimaryDark
+        };
+
+        Object.entries(propiedades).forEach(([propiedad, valor]) => {
+            root.style.setProperty(`--${propiedad}`, valor);
+        });
+
+        // Aplicar gradientes derivados del tema
+        root.style.setProperty('--gradient-primary', `linear-gradient(135deg, ${tema.primary} 0%, ${tema.primaryDark} 100%)`);
+        root.style.setProperty('--gradient-success', `linear-gradient(135deg, ${tema.success} 0%, rgba(34, 197, 94, 0.8) 100%)`);
+        root.style.setProperty('--gradient-danger', `linear-gradient(135deg, ${tema.danger} 0%, rgba(239, 68, 68, 0.8) 100%)`);
+        root.style.setProperty('--gradient-warning', `linear-gradient(135deg, ${tema.warning} 0%, rgba(245, 158, 11, 0.8) 100%)`);
+        root.style.setProperty('--gradient-info', `linear-gradient(135deg, ${tema.info} 0%, #0891b2 100%)`);
+        root.style.setProperty('--gradient-hucha', `linear-gradient(135deg, ${tema.info} 0%, #0369a1 100%)`);
+        root.style.setProperty('--gradient-bruto', `linear-gradient(135deg, ${tema.warning} 0%, ${tema.info} 100%)`);
+    }
+
+    /**
+     * Cambia el tema actual y guarda en localStorage
+     * @param {string} nombreTema - Identificador del tema
+     */
     cambiarTema(nombreTema) {
         this.aplicarTema(nombreTema);
         this.temaActual = nombreTema;
-        
-        // Guardar en localStorage
-        localStorage.setItem('tema', nombreTema);
-        console.log('💾 Tema guardado en localStorage:', nombreTema);
+        localStorage.setItem(GestorTemas.STORAGE_KEY, nombreTema);
 
-        // Mostrar notificación
-        this.mostrarNotificacion(`Tema cambiado a ${TEMAS[nombreTema].nombre}`);
-
-        // ✅ Disparar evento personalizado
+        this._mostrarNotificacion(`Tema cambiado a ${TEMAS[nombreTema].nombre}`);
         document.dispatchEvent(new CustomEvent('temaActualizado', { 
             detail: { tema: nombreTema } 
         }));
     }
 
-    mostrarNotificacion(mensaje) {
+    /**
+     * Muestra una notificación temporal
+     * @private
+     */
+    _mostrarNotificacion(mensaje) {
         const notif = document.createElement('div');
         notif.className = 'notif-tema';
         notif.textContent = mensaje;
@@ -494,24 +540,42 @@ class GestorTemas {
         `;
 
         document.body.appendChild(notif);
-
         setTimeout(() => {
             notif.style.animation = 'slideOut 0.3s ease forwards';
             setTimeout(() => notif.remove(), 300);
         }, 2000);
     }
 
+    /**
+     * Obtiene la lista de temas disponibles
+     * @returns {Array} Array con id y nombre de cada tema
+     */
     obtenerTemas() {
-        return Object.keys(TEMAS).map(key => ({
-            id: key,
-            nombre: TEMAS[key].nombre
+        return Object.entries(TEMAS).map(([id, tema]) => ({
+            id,
+            nombre: tema.nombre
         }));
     }
 
+    /**
+     * Obtiene el tema actualmente aplicado
+     * @returns {string} Identificador del tema actual
+     */
     obtenerTemaActual() {
         return this.temaActual;
     }
+
+    /**
+     * Valida que un tema exista
+     * @param {string} nombreTema - Identificador del tema
+     * @returns {boolean} True si el tema existe
+     */
+    existeTema(nombreTema) {
+        return nombreTema in TEMAS;
+    }
 }
 
-// Instanciar el gestor de temas
+
+// ==================== INICIALIZACIÓN ====================
+// Instancia global del gestor de temas
 const gestorTemas = new GestorTemas();

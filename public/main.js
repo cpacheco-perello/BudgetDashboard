@@ -17,11 +17,14 @@ async function loadTab(tabId) {
         }
 
         // Inicializar la lógica específica de cada pestaña
-        if (tabId === 'categorias') initCategorias();
-        if (tabId === 'gastos') cargarGastosForm();
-        if (tabId === 'ingresos') cargarIngresosForm();
-        if (tabId === 'impuestos') inicializarTaxes();
-        if (tabId === 'dashboard') cargarDashboardForm();
+            if (tabId === 'categorias') initCategorias();
+            if (tabId === 'gastos') cargarGastosForm();
+            if (tabId === 'ingresos') cargarIngresosForm();
+            if (tabId === 'impuestos') inicializarTaxes();
+            if (tabId === 'dashboard') cargarDashboardForm();
+            if (tabId === 'hucha') {
+                if (typeof cargarHucha !== 'undefined') cargarHucha();
+            }
 
     } catch (error) {
         console.error(`❌ Error cargando pestaña ${tabId}:`, error);
@@ -66,7 +69,7 @@ async function cargarResumenPeriodos() {
 
         resumenData = await res.json();
         
-        function actualizarResumen(periodo) {
+            async function actualizarResumen(periodo) {
             if (!resumenData || !resumenData[periodo]) {
                 console.warn(`⚠️ Datos no disponibles para período: ${periodo}`);
                 return;
@@ -77,11 +80,28 @@ async function cargarResumenPeriodos() {
             const gastos = document.getElementById('total-gastos');
             const saldo = document.getElementById('saldo');
             const taxes = document.getElementById('total-taxes');
+                const hucha = document.getElementById('total-hucha');
 
-            if (ingresos) ingresos.textContent = `€${stats.ingresos.toFixed(2)}`;
-            if (gastos) gastos.textContent = `€${stats.gastos.toFixed(2)}`;
-            if (saldo) saldo.textContent = `€${stats.ahorro.toFixed(2)}`;
-            if (taxes) taxes.textContent = `€${(stats.impuestos || 0).toFixed(2)}`;
+            if (ingresos) ingresos.textContent = formatearEuro(stats.ingresos);
+            if (gastos) gastos.textContent = formatearEuro(stats.gastos);
+            if (saldo) saldo.textContent = formatearEuro(stats.ahorro);
+            if (taxes) taxes.textContent = formatearEuro(stats.impuestos || 0);
+
+                // Obtener total hucha
+                if (hucha) {
+                    try {
+                        const resHucha = await fetch('/hucha');
+                        if (resHucha.ok) {
+                            const dataHucha = await resHucha.json();
+                            const totalHucha = dataHucha.reduce((acc, item) => acc + (parseFloat(item.cantidad) || 0), 0);
+                            hucha.textContent = formatearEuro(totalHucha);
+                        } else {
+                            hucha.textContent = formatearEuro(0);
+                        }
+                    } catch {
+                        hucha.textContent = formatearEuro(0);
+                    }
+                }
         }
         
         // Botones de período (solo agregar listeners si no existen)
@@ -123,17 +143,26 @@ async function cargarResumenPeriodos() {
         console.log('✅ Resumen de períodos cargado');
 
     } catch (error) {
+
         console.error('❌ Error cargando resumen de períodos:', error);
         // Mostrar valores por defecto si hay error
         const ingresos = document.getElementById('total-ingresos');
         const gastos = document.getElementById('total-gastos');
         const saldo = document.getElementById('saldo');
         const taxes = document.getElementById('total-taxes');
+        const hucha = document.getElementById('total-hucha');
 
-        if (ingresos) ingresos.textContent = '€0.00';
-        if (gastos) gastos.textContent = '€0.00';
-        if (saldo) saldo.textContent = '€0.00';
-        if (taxes) taxes.textContent = '€0.00';
+        if (typeof formatearEuro !== 'function') {
+            window.formatearEuro = function(monto) {
+                if (monto === null || monto === undefined) return '€0,00';
+                return '€' + parseFloat(monto).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            };
+        }
+        if (ingresos) ingresos.textContent = formatearEuro(0);
+        if (gastos) gastos.textContent = formatearEuro(0);
+        if (saldo) saldo.textContent = formatearEuro(0);
+        if (taxes) taxes.textContent = formatearEuro(0);
+        if (hucha) hucha.textContent = formatearEuro(0);
 
         // Reintentar en 5 segundos
         setTimeout(() => {

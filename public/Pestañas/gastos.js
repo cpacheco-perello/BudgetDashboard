@@ -21,12 +21,10 @@ function cargarGastosForm() {
         });
     }
 
-    // Función para formatear montos con símbolo Euro
+    // Función global para formatear montos con símbolo Euro (punto millar, coma decimal)
     function formatearEuro(monto) {
-        return new Intl.NumberFormat('es-ES', {
-            style: 'currency',
-            currency: 'EUR'
-        }).format(monto);
+        if (monto === null || monto === undefined) return '€0,00';
+        return '€' + parseFloat(monto).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
     async function cargarGastos() {

@@ -9,12 +9,10 @@ function cargarIngresosForm() {
     const selectCatM = document.getElementById('categoriaIngresoMensual');
     const selectCatCR = document.getElementById('categoriaCuentaRemunerada');
 
-    // Función para formatear montos con símbolo Euro
+    // Función global para formatear montos con símbolo Euro (punto millar, coma decimal)
     function formatearEuro(monto) {
-        return new Intl.NumberFormat('es-ES', {
-            style: 'currency',
-            currency: 'EUR'
-        }).format(monto);
+        if (monto === null || monto === undefined) return '€0,00';
+        return '€' + parseFloat(monto).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
     // Cargar categorías de ingresos
@@ -56,7 +54,7 @@ function cargarIngresosForm() {
                 <td class="editable" data-field="fecha">${i.fecha}</td>
                 <td class="editable" data-field="descripcion">${i.descripcion}</td>
                 <td class="editable" data-field="monto"><strong>${formatearEuro(i.monto)}</strong></td>
-                <td class="editable" data-field="bruto"><strong>${i.bruto ? formatearEuro(i.bruto) : '—'}</strong></td>
+                <td class="editable" data-field="bruto"><strong>${i.bruto !== undefined && i.bruto !== null ? formatearEuro(i.bruto) : '—'}</strong></td>
                 <td class="editable" data-field="categoria">${i.categoria}</td>
                 <td>
                     <button class="editBtn btn-editar" title="Editar" style="margin-right:8px;">
@@ -92,7 +90,7 @@ function cargarIngresosForm() {
                     <td class="editable" data-field="hasta">${i.hasta}</td>
                     <td class="editable" data-field="descripcion">${i.descripcion}</td>
                     <td class="editable" data-field="monto"><strong>${formatearEuro(i.monto)}</strong></td>
-                    <td class="editable" data-field="bruto"><strong>${i.bruto ? formatearEuro(i.bruto) : '—'}</strong></td>
+                    <td class="editable" data-field="bruto"><strong>${i.bruto !== undefined && i.bruto !== null ? formatearEuro(i.bruto) : '—'}</strong></td>
                     <td class="editable" data-field="categoria">${i.categoria}</td>
                     <td>
                         <button class="editBtn btn-editar" title="Editar" style="margin-right:8px;">

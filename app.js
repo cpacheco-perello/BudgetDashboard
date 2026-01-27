@@ -1,3 +1,5 @@
+
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const sqlite3 = require('sqlite3').verbose();
@@ -161,7 +163,13 @@ CREATE TABLE IF NOT EXISTS gastos_puntuales (
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE RESTRICT
 )`);
-
+db.run(`
+CREATE TABLE IF NOT EXISTS hucha (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    concepto TEXT NOT NULL,
+    cantidad REAL NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+)`);
 db.run(`
 CREATE TABLE IF NOT EXISTS gastos_mensuales (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -361,7 +369,60 @@ app.post('/update/categoria', async (req, res) => {
         res.status(400).json({ error: err.message });
     }
 });
+// ================== HUCHA REAL ==================
+db.run(`
+CREATE TABLE IF NOT EXISTS hucha (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    concepto TEXT NOT NULL,
+    cantidad REAL NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+)`);
 
+app.get('/hucha', async (req, res) => {
+    try {
+        const rows = await dbAll('SELECT * FROM hucha ORDER BY created_at DESC');
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/add/hucha', async (req, res) => {
+    const { concepto, cantidad } = req.body;
+    if (!concepto || !cantidad || isNaN(cantidad)) {
+        return res.status(400).json({ error: 'Datos inválidos' });
+    }
+    try {
+        await dbRun('INSERT INTO hucha (concepto, cantidad) VALUES (?, ?)', [concepto, cantidad]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/delete/hucha', async (req, res) => {
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ error: 'ID requerido' });
+    try {
+        await dbRun('DELETE FROM hucha WHERE id = ?', [id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/update/hucha', async (req, res) => {
+    const { id, concepto, cantidad } = req.body;
+    if (!id || !concepto || !cantidad || isNaN(cantidad)) {
+        return res.status(400).json({ error: 'Datos inválidos' });
+    }
+    try {
+        await dbRun('UPDATE hucha SET concepto = ?, cantidad = ? WHERE id = ?', [concepto, cantidad, id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 // ================== CUENTA REMUNERADA ==================
 
 app.post('/add/cuenta_remunerada', async (req, res) => {
