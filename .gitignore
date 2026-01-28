@@ -1,6 +1,7 @@
 node_modules/
 dist/
 win-unpacked/
+documentacion/
 *.exe
 *.blockmap
 *.log

@@ -1,15 +1,16 @@
 const { app: electronApp, BrowserWindow } = require('electron');
-const server = require('./app'); // tu Express app
+const server = require('./src/app'); // Ruta actualizada al app refactorizado
+const config = require('./src/config/config');
 
 let mainWindow;
 
 async function startApp() {
     try {
-        const PORT = 3000; // fijo, evita problemas con ESM
+        const PORT = config.PORT;
 
         // Iniciar backend
         const srv = server.listen(PORT, () => {
-            console.log(`Backend escuchando en http://localhost:${PORT}`);
+            console.log(`✅ Backend escuchando en http://localhost:${PORT}`);
 
             // Crear ventana principal solo cuando el backend esté listo
             mainWindow = new BrowserWindow({
@@ -29,7 +30,7 @@ async function startApp() {
         });
 
         srv.on('error', (err) => {
-            console.error('❌ No se pudo iniciar el servidor. Tal vez el puerto 3000 está ocupado.', err);
+            console.error('❌ No se pudo iniciar el servidor. Tal vez el puerto está ocupado.', err);
         });
 
     } catch (err) {

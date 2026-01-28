@@ -109,7 +109,7 @@ function initCategorias() {
                     if (res.ok) {
                         tdNombre.textContent = nuevoNombre;
                     } else {
-                        alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('categorias.errorActualizar') : 'Error al actualizar la categoría');
+                        showAlert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('categorias.errorActualizar') : 'Error al actualizar la categoría');
                         tdNombre.textContent = nombreActual;
                     }
                 };
@@ -138,7 +138,8 @@ function initCategorias() {
                 const textoConfirmar = typeof gestorIdiomas !== 'undefined'
                     ? gestorIdiomas.obtenerTexto('categorias.confirmarEliminar').replace('{nombre}', nombre)
                     : `¿Eliminar categoría "${nombre}"?`;
-                if (!confirm(textoConfirmar)) {
+                const confirmed = await showConfirm(textoConfirmar);
+                if (!confirmed) {
                     return;
                 }
 
@@ -153,7 +154,11 @@ function initCategorias() {
                     tr.style.animation = 'slideOut 0.3s ease forwards';
                     setTimeout(() => cargarCategorias(), 300);
                 } else {
-                    alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('categorias.errorEliminar') : 'Error al eliminar la categoría');
+                    const errorData = await res.json().catch(() => ({ error: 'Error desconocido' }));
+                    const mensaje = errorData.error || 'Error al eliminar la categoría';
+                    showAlert(typeof gestorIdiomas !== 'undefined' 
+                        ? gestorIdiomas.obtenerTexto('categorias.errorEliminar') + ': ' + mensaje
+                        : mensaje);
                 }
             });
         });
@@ -182,7 +187,7 @@ function initCategorias() {
                 const msg = typeof gestorIdiomas !== 'undefined'
                     ? gestorIdiomas.obtenerTexto('categorias.errorAgregar').replace('{error}', error.error || gestorIdiomas.obtenerTexto('categorias.noPudoAgregar'))
                     : 'Error: ' + (error.error || 'No se pudo agregar la categoría');
-                alert(msg);
+                showAlert(msg);
                 console.error('Error agregando categoría:', error);
             }
         } catch (err) {
@@ -190,7 +195,7 @@ function initCategorias() {
             const msg = typeof gestorIdiomas !== 'undefined'
                 ? gestorIdiomas.obtenerTexto('categorias.errorConexion').replace('{error}', err.message)
                 : 'Error de conexión: ' + err.message;
-            alert(msg);
+            showAlert(msg);
         }
     });
 
@@ -217,7 +222,7 @@ function initCategorias() {
                 const msg = typeof gestorIdiomas !== 'undefined'
                     ? gestorIdiomas.obtenerTexto('categorias.errorAgregar').replace('{error}', error.error || gestorIdiomas.obtenerTexto('categorias.noPudoAgregar'))
                     : 'Error: ' + (error.error || 'No se pudo agregar la categoría');
-                alert(msg);
+                showAlert(msg);
                 console.error('Error agregando categoría:', error);
             }
         } catch (err) {
@@ -225,7 +230,7 @@ function initCategorias() {
             const msg = typeof gestorIdiomas !== 'undefined'
                 ? gestorIdiomas.obtenerTexto('categorias.errorConexion').replace('{error}', err.message)
                 : 'Error de conexión: ' + err.message;
-            alert(msg);
+            showAlert(msg);
         }
     });
 
@@ -252,7 +257,7 @@ function initCategorias() {
                 const msg = typeof gestorIdiomas !== 'undefined'
                     ? gestorIdiomas.obtenerTexto('categorias.errorAgregar').replace('{error}', error.error || gestorIdiomas.obtenerTexto('categorias.noPudoAgregar'))
                     : 'Error: ' + (error.error || 'No se pudo agregar la categoría');
-                alert(msg);
+                showAlert(msg);
                 console.error('Error agregando categoría:', error);
             }
         } catch (err) {
@@ -260,7 +265,7 @@ function initCategorias() {
             const msg = typeof gestorIdiomas !== 'undefined'
                 ? gestorIdiomas.obtenerTexto('categorias.errorConexion').replace('{error}', err.message)
                 : 'Error de conexión: ' + err.message;
-            alert(msg);
+            showAlert(msg);
         }
     });
 

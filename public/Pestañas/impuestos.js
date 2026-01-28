@@ -1,430 +1,152 @@
-
-// Función global para formatear montos con símbolo Euro (punto millar, coma decimal)
-function formatearEuro(monto) {
-    if (typeof window.formatCurrency === 'function') return window.formatCurrency(monto, { convert: false });
-    if (monto === null || monto === undefined) return '€0,00';
-    return '€' + parseFloat(monto).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function parseAmount(str) {
-    if (!str) return 0;
-    let cleaned = str.replace(/[^\d.,-]/g, '');
-    const lastComma = cleaned.lastIndexOf(',');
-    const lastDot = cleaned.lastIndexOf('.');
-    if (lastComma > lastDot) {
-        cleaned = cleaned.replace(/\./g, '').replace(',', '.');
-    } else {
-        cleaned = cleaned.replace(/,/g, '');
-    }
-    return parseFloat(cleaned) || 0;
-}
-
-function cargarImpuestosPuntuales() {
-    fetch('/impuestos-puntuales')
-        .then(r => r.json())
-        .then(data => {
-            const tbody = document.querySelector('#tabla-impuestos-puntuales tbody');
-            tbody.innerHTML = '';
-            
-            data.forEach(imp => {
-                const tr = document.createElement('tr');
-                const tituloEditar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.editar') : 'Editar';
-                const tituloEliminar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.eliminar') : 'Eliminar';
-                tr.dataset.id = imp.id;
-                tr.dataset.type = 'puntual';
-                tr.innerHTML = `
-                    <td class="editable" data-field="fecha">${imp.fecha}</td>
-                    <td class="editable" data-field="descripcion">${imp.descripcion}</td>
-                    <td class="editable" data-field="monto"><strong>${formatearEuro(imp.monto)}</strong></td>
-                    <td class="editable" data-field="categoria">${imp.categoria}</td>
-                    <td>
-                        <button class="editBtn btn-editar" title="${tituloEditar}" style="margin-right:8px;">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button data-id="${imp.id}" class="delP btn-eliminar" title="${tituloEliminar}" style="display:inline-block;">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-            
-            // Eliminar Puntuales
-            document.querySelectorAll('.delP').forEach(b => {
-                b.onclick = async () => {
-                    if (!confirm(gestorIdiomas.obtenerTexto('confirmaciones.eliminar'))) return;
-                    await fetch('/delete/impuesto_puntual', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: b.dataset.id })
-                    });
-                    cargarImpuestosPuntuales();
-                    cargarResumenPeriodos();
-                };
-            });
-
-            // Editar filas
-            document.querySelectorAll('#tabla-impuestos-puntuales .editBtn').forEach(btn => {
-                btn.onclick = (e) => {
-                    const tr = btn.closest('tr');
-                    const id = tr.dataset.id;
-                    
-                    // Obtener datos originales
-                    const celdas = tr.querySelectorAll('td.editable');
-                    const datos = {};
-                    const originales = {};
-                    
-                    celdas.forEach(celda => {
-                        const field = celda.dataset.field;
-                        datos[field] = celda.textContent.trim();
-                        originales[field] = celda.textContent.trim();
-                    });
-
-                    // Obtener categorías
-                    const selectCat = document.getElementById('cat-impuesto-p');
-                    const categorias = Array.from(selectCat.options).map(o => ({ id: o.value, nombre: o.textContent }));
-
-                    celdas.forEach(celda => {
-                        const field = celda.dataset.field;
-                        let input;
-
-                        if (field === 'fecha') {
-                            input = document.createElement('input');
-                            input.type = 'date';
-                            input.value = datos[field];
-                        } else if (field === 'categoria') {
-                            input = document.createElement('select');
-                            categorias.forEach(cat => {
-                                const opt = document.createElement('option');
-                                opt.value = cat.id;
-                                opt.textContent = cat.nombre;
-                                if (cat.nombre === datos[field]) opt.selected = true;
-                                input.appendChild(opt);
-                            });
-                        } else if (field === 'monto') {
-                            input = document.createElement('input');
-                            input.type = 'number';
-                            input.step = '0.01';
-                            input.value = parseAmount(datos[field]);
-                        } else {
-                            input = document.createElement('input');
-                            input.type = 'text';
-                            input.value = datos[field];
-                        }
-
-                        input.style.width = '100%';
-                        celda.innerHTML = '';
-                        celda.appendChild(input);
-                    });
-
-                    // Reemplazar botones por Guardar/Cancelar
-                    const tdAcciones = tr.querySelector('td:last-child');
-                    tdAcciones.innerHTML = `
-                        <button class="saveBtn" style="background:#4CAF50;color:white;padding:5px 10px;border:none;cursor:pointer;border-radius:3px;margin-right:5px;">
-                            <i class="fas fa-save"></i>
-                        </button>
-                        <button class="cancelBtn" style="background:#f44336;color:white;padding:5px 10px;border:none;cursor:pointer;border-radius:3px;">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    `;
-
-                    // Guardar
-                    tdAcciones.querySelector('.saveBtn').onclick = async () => {
-                        const fecha = tr.querySelector('[data-field="fecha"] input').value;
-                        const desc = tr.querySelector('[data-field="descripcion"] input').value;
-                        const monto = parseFloat(tr.querySelector('[data-field="monto"] input').value);
-                        const categoria = tr.querySelector('[data-field="categoria"] select').selectedOptions[0].text;
-
-                        const res = await fetch('/update/impuesto_puntual', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ id, fecha, descripcion: desc, monto, categoria })
-                        });
-
-                        if (res.ok) {
-                            cargarImpuestosPuntuales();
-                            cargarResumenPeriodos();
-                        }
-                    };
-
-                    // Cancelar
-                    tdAcciones.querySelector('.cancelBtn').onclick = () => {
-                        cargarImpuestosPuntuales();
-                    };
-                };
-            });
-        });
-}
-
-// ============== IMPUESTOS MENSUALES ==============
-
-function cargarImpuestosMensuales() {
-    fetch('/impuestos-mensuales')
-        .then(r => r.json())
-        .then(data => {
-            const tbody = document.querySelector('#tabla-impuestos-mensuales tbody');
-            tbody.innerHTML = '';
-            
-            data.forEach(imp => {
-                const tr = document.createElement('tr');
-                const tituloEditar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.editar') : 'Editar';
-                const tituloEliminar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.eliminar') : 'Eliminar';
-                tr.dataset.id = imp.id;
-                tr.dataset.type = 'mensual';
-                tr.innerHTML = `
-                    <td class="editable" data-field="descripcion">${imp.descripcion}</td>
-                    <td class="editable" data-field="monto"><strong>${formatearEuro(imp.monto)}</strong></td>
-                    <td class="editable" data-field="categoria">${imp.categoria}</td>
-                    <td class="editable" data-field="desde">${imp.desde}</td>
-                    <td class="editable" data-field="hasta">${imp.hasta}</td>
-                    <td>
-                        <button class="editBtn btn-editar" title="${tituloEditar}" style="margin-right:8px;">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button data-id="${imp.id}" class="delM btn-eliminar" title="${tituloEliminar}" style="display:inline-block;">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            // Eliminar Mensuales
-            document.querySelectorAll('.delM').forEach(b => {
-                b.onclick = async () => {
-                    if (!confirm(gestorIdiomas.obtenerTexto('confirmaciones.eliminar'))) return;
-                    await fetch('/delete/impuesto_mensual', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: b.dataset.id })
-                    });
-                    cargarImpuestosMensuales();
-                    cargarResumenPeriodos();
-                };
-            });
-
-            // Editar filas
-            document.querySelectorAll('#tabla-impuestos-mensuales .editBtn').forEach(btn => {
-                btn.onclick = (e) => {
-                    const tr = btn.closest('tr');
-                    const id = tr.dataset.id;
-                    
-                    // Obtener datos originales
-                    const celdas = tr.querySelectorAll('td.editable');
-                    const datos = {};
-                    const originales = {};
-                    
-                    celdas.forEach(celda => {
-                        const field = celda.dataset.field;
-                        datos[field] = celda.textContent.trim();
-                        originales[field] = celda.textContent.trim();
-                    });
-
-                    // Obtener categorías
-                    const selectCat = document.getElementById('cat-impuesto-m');
-                    const categorias = Array.from(selectCat.options).map(o => ({ id: o.value, nombre: o.textContent }));
-
-                    celdas.forEach(celda => {
-                        const field = celda.dataset.field;
-                        let input;
-
-                        if (field === 'desde' || field === 'hasta') {
-                            input = document.createElement('input');
-                            input.type = 'date';
-                            input.value = datos[field];
-                        } else if (field === 'categoria') {
-                            input = document.createElement('select');
-                            categorias.forEach(cat => {
-                                const opt = document.createElement('option');
-                                opt.value = cat.id;
-                                opt.textContent = cat.nombre;
-                                if (cat.nombre === datos[field]) opt.selected = true;
-                                input.appendChild(opt);
-                            });
-                        } else if (field === 'monto') {
-                            input = document.createElement('input');
-                            input.type = 'number';
-                            input.step = '0.01';
-                            input.value = parseFloat(datos[field].replace(/[^\d.,-]/g, '').replace(',', '.'));
-                        } else {
-                            input = document.createElement('input');
-                            input.type = 'text';
-                            input.value = datos[field];
-                        }
-
-                        input.style.width = '100%';
-                        celda.innerHTML = '';
-                        celda.appendChild(input);
-                    });
-
-                    // Reemplazar botones por Guardar/Cancelar
-                    const tdAcciones = tr.querySelector('td:last-child');
-                    tdAcciones.innerHTML = `
-                        <button class="saveBtn" style="background:#4CAF50;color:white;padding:5px 10px;border:none;cursor:pointer;border-radius:3px;margin-right:5px;">
-                            <i class="fas fa-save"></i>
-                        </button>
-                        <button class="cancelBtn" style="background:#f44336;color:white;padding:5px 10px;border:none;cursor:pointer;border-radius:3px;">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    `;
-
-                    // Guardar
-                    tdAcciones.querySelector('.saveBtn').onclick = async () => {
-                        const desc = tr.querySelector('[data-field="descripcion"] input').value;
-                        const monto = parseFloat(tr.querySelector('[data-field="monto"] input').value);
-                        const categoria = tr.querySelector('[data-field="categoria"] select').selectedOptions[0].text;
-                        const desde = tr.querySelector('[data-field="desde"] input').value;
-                        const hasta = tr.querySelector('[data-field="hasta"] input').value;
-
-                        const res = await fetch('/update/impuesto_mensual', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ id, descripcion: desc, monto, categoria, desde, hasta })
-                        });
-
-                        if (res.ok) {
-                            cargarImpuestosMensuales();
-                            cargarResumenPeriodos();
-                        }
-                    };
-
-                    // Cancelar
-                    tdAcciones.querySelector('.cancelBtn').onclick = () => {
-                        cargarImpuestosMensuales();
-                    };
-                };
-            });
-        });
-}
-
-// ============== INICIALIZAR ==============
-
-let impuestosInicializado = false;
+/**
+ * Impuestos - Versión simplificada usando TransactionManager
+ * Delega TODO el CRUD y edición a clase base
+ */
 
 async function inicializarTaxes() {
+    // Inicializar TransactionManager para impuestos
+    const impuestosManager = new TransactionManager({
+        entityName: 'impuestos',
+        entityNameSingular: 'impuesto',
+        categoryType: 'impuestos',
+        endpoints: {
+            puntuales: 'impuestos_puntuales',
+            mensuales: 'impuestos_mensuales',
+            delete: {
+                puntual: '/delete/impuesto_puntual',
+                mensual: '/delete/impuesto_mensual'
+            }
+        },
+        tables: {
+            puntuales: '#tabla-impuestos-puntuales tbody',
+            mensuales: '#tabla-impuestos-mensuales tbody'
+        },
+        selects: {
+            puntuales: '#cat-impuesto-p',
+            mensuales: '#cat-impuesto-m'
+        },
+        showOldFlag: 'showOldImpuestos'
+    });
 
-        const res = await fetch('/categorias');
-        const data = await res.json();
-        const categorias = data.impuestos || [];
-        
-        // Rellenar selects
-        const selectP = document.getElementById('cat-impuesto-p');
-        const selectM = document.getElementById('cat-impuesto-m');
-        
-        (Array.isArray(categorias) ? categorias : []).forEach(cat => {
-            const opt1 = document.createElement('option');
-            opt1.value = cat.id;
-            opt1.textContent = cat.nombre;
-            selectP.appendChild(opt1);
-            
-            const opt2 = document.createElement('option');
-            opt2.value = cat.id;
-            opt2.textContent = cat.nombre;
-            selectM.appendChild(opt2);
+    // Inicializar manager (esperar a cargar datos y categorías)
+    try {
+        await impuestosManager.init();
+        console.log('✅ TransactionManager inicializado para impuestos');
+    } catch (err) {
+        console.error('❌ Error inicializando TransactionManager:', err);
+        return;
+    }
+
+    // ===== AGREGAR IMPUESTO PUNTUAL =====
+    document.getElementById('btnAgregarImpuestoPuntual').onclick = async () => {
+        const fecha = document.getElementById('fecha-impuesto-p').value;
+        const desc = document.getElementById('desc-impuesto-p').value;
+        const monto = parseFloat(document.getElementById('monto-impuesto-p').value);
+        const categoria = document.getElementById('cat-impuesto-p').value;
+
+        if (!fecha) return showAlert(impuestosManager.t('impuestos.fechaRequerida', "Fecha requerida"));
+        if (!desc) return showAlert(impuestosManager.t('impuestos.descripcionRequerida', "Descripción requerida"));
+        if (isNaN(monto) || monto <= 0) return showAlert(impuestosManager.t('impuestos.montoInvalido', "Monto inválido"));
+        if (!categoria) return showAlert(impuestosManager.t('impuestos.categoriaRequerida', "Categoría requerida"));
+
+        await fetch('/add/impuesto_puntual', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fecha, descripcion: desc, monto, categoria_id: categoria })
         });
+
+        // Limpiar formulario
+        document.getElementById('fecha-impuesto-p').value = '';
+        document.getElementById('desc-impuesto-p').value = '';
+        document.getElementById('monto-impuesto-p').value = '';
         
-        impuestosInicializado = true;
-        console.log('✅ Categorías de impuestos cargadas correctamente');
+        impuestosManager.loadData();
+        if (typeof cargarResumenPeriodos === 'function') cargarResumenPeriodos();
+    };
 
-    
-    // Cargar datos siempre
-    cargarImpuestosPuntuales();
-    cargarImpuestosMensuales();
+    // ===== AGREGAR IMPUESTO MENSUAL =====
+    document.getElementById('btnAgregarImpuestoMensual').onclick = async () => {
+        const desde = document.getElementById('desde-impuesto-m').value;
+        const hasta = document.getElementById('hasta-impuesto-m').value;
+        const desc = document.getElementById('desc-impuesto-m').value;
+        const monto = parseFloat(document.getElementById('monto-impuesto-m').value);
+        const categoria = document.getElementById('cat-impuesto-m').value;
 
-    // ===== EVENT LISTENERS PARA AGREGAR (SIEMPRE) =====
-    const btnAgregarP = document.getElementById('btnAgregarImpuestoPuntual');
-    const btnAgregarM = document.getElementById('btnAgregarImpuestoMensual');
+        const validarYYYYMM = (valor) => /^\d{4}-(0[1-9]|1[0-2])$/.test(valor);
+
+        if (!validarYYYYMM(desde)) return showAlert(impuestosManager.t('impuestos.formatoDesde', "Formato debe ser YYYY-MM"));
+        if (!validarYYYYMM(hasta)) return showAlert(impuestosManager.t('impuestos.formatoHasta', "Formato debe ser YYYY-MM"));
+        if (!desc) return showAlert(impuestosManager.t('impuestos.descripcionRequerida', "Descripción requerida"));
+        if (isNaN(monto) || monto <= 0) return showAlert(impuestosManager.t('impuestos.montoInvalido', "Monto inválido"));
+        if (!categoria) return showAlert(impuestosManager.t('impuestos.categoriaRequerida', "Categoría requerida"));
+
+        await fetch('/add/impuesto_mensual', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ desde, hasta, descripcion: desc, monto, categoria_id: categoria })
+        });
+
+        // Limpiar formulario
+        document.getElementById('desde-impuesto-m').value = '';
+        document.getElementById('hasta-impuesto-m').value = '';
+        document.getElementById('desc-impuesto-m').value = '';
+        document.getElementById('monto-impuesto-m').value = '';
+        
+        impuestosManager.loadData();
+        if (typeof cargarResumenPeriodos === 'function') cargarResumenPeriodos();
+    };
+
+    // ===== TOGGLE MOSTRAR/OCULTAR ANTIGUOS =====
+    window.showOldImpuestos = false;
+    const toggleBtns = [
+        document.getElementById('toggleImpuestosPuntualesAntiguos'),
+        document.getElementById('toggleImpuestosMensualesAntiguos')
+    ].filter(Boolean);
     
-    if (btnAgregarP) {
-        btnAgregarP.onclick = async () => {
-            const fecha = document.getElementById('fecha-impuesto-p').value;
-            const desc = document.getElementById('desc-impuesto-p').value;
-            const monto = parseFloat(document.getElementById('monto-impuesto-p').value);
-            const categoria_id = parseInt(document.getElementById('cat-impuesto-p').value);
-            
-            if (!fecha || !desc || isNaN(monto) || !categoria_id) {
-                alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('taxes.completaCampos') : 'Completa todos los campos');
-                return;
-            }
-            
-            const res = await fetch('/add/impuesto_puntual', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({fecha, descripcion: desc, monto, categoria_id})
-            });
-            
-            if(res.ok) {
-                document.getElementById('fecha-impuesto-p').value = '';
-                document.getElementById('desc-impuesto-p').value = '';
-                document.getElementById('monto-impuesto-p').value = '';
-                cargarImpuestosPuntuales();
-                cargarResumenPeriodos();
-            }
+    if (toggleBtns.length) {
+        const updateAll = () => {
+            const textoMostrar = impuestosManager.t('gastos.mostrarAntiguos', 'Mostrar antiguos');
+            const textoOcultar = impuestosManager.t('gastos.ocultarAntiguos', 'Ocultar antiguos');
+            toggleBtns.forEach(b => b.textContent = window.showOldImpuestos ? textoOcultar : textoMostrar);
         };
-    }
-    
-    if (btnAgregarM) {
-        btnAgregarM.onclick = async () => {
-            const desc = document.getElementById('desc-impuesto-m').value;
-            const monto = parseFloat(document.getElementById('monto-impuesto-m').value);
-            const categoria_id = parseInt(document.getElementById('cat-impuesto-m').value);
-            const desde = document.getElementById('desde-impuesto-m').value;
-            const hasta = document.getElementById('hasta-impuesto-m').value;
-            
-            if (!desc || isNaN(monto) || !categoria_id || !desde || !hasta) {
-                alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('taxes.completaCampos') : 'Completa todos los campos');
-                return;
-            }
-            
-            const res = await fetch('/add/impuesto_mensual', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({descripcion: desc, monto, categoria_id, desde, hasta})
-            });
-            
-            if(res.ok) {
-                document.getElementById('desc-impuesto-m').value = '';
-                document.getElementById('monto-impuesto-m').value = '';
-                document.getElementById('desde-impuesto-m').value = '';
-                document.getElementById('hasta-impuesto-m').value = '';
-                cargarImpuestosMensuales();
-                cargarResumenPeriodos();
-            }
-        };
+        toggleBtns.forEach(b => b.addEventListener('click', () => {
+            window.showOldImpuestos = !window.showOldImpuestos;
+            updateAll();
+            impuestosManager.loadData();
+        }));
+        updateAll();
     }
 
-    // ===== TAB NAVIGATION (SIEMPRE REASIGNAR) =====
-    // Obtener los botones específicos de impuestos
-    const btnsPuntual = document.querySelector('[data-target="tabImpuestosPuntuales"]');
-    const btnsMensual = document.querySelector('[data-target="tabImpuestosMensuales"]');
+    // ===== SUBPESTAÑAS =====
+    const btnPuntuales = document.querySelector('[data-target="tabImpuestosPuntuales"]');
+    const btnMensuales = document.querySelector('[data-target="tabImpuestosMensuales"]');
     const tabPuntuales = document.getElementById('tabImpuestosPuntuales');
     const tabMensuales = document.getElementById('tabImpuestosMensuales');
-    
-    if (btnsPuntual && btnsMensual && tabPuntuales && tabMensuales) {
-        // Limpiar listeners previos
-        btnsPuntual.onclick = null;
-        btnsMensual.onclick = null;
-        
-        // Asignar nuevos listeners
-        btnsPuntual.onclick = () => {
+
+    if (btnPuntuales && btnMensuales && tabPuntuales && tabMensuales) {
+        btnPuntuales.onclick = () => {
             tabPuntuales.style.display = 'block';
             tabMensuales.style.display = 'none';
-            btnsPuntual.classList.add('active');
-            btnsMensual.classList.remove('active');
+            btnPuntuales.classList.add('active');
+            btnMensuales.classList.remove('active');
         };
 
-        btnsMensual.onclick = () => {
+        btnMensuales.onclick = () => {
             tabPuntuales.style.display = 'none';
             tabMensuales.style.display = 'block';
-            btnsPuntual.classList.remove('active');
-            btnsMensual.classList.add('active');
+            btnPuntuales.classList.remove('active');
+            btnMensuales.classList.add('active');
         };
 
-        // Establecer Puntuales como activo por defecto
-        btnsPuntual.classList.add('active');
-        btnsMensual.classList.remove('active');
+        btnPuntuales.classList.add('active');
     }
-    
-    console.log('✅ Impuestos inicializados correctamente');
-}
 
+    // ===== LISTENER PARA CAMBIOS DE IDIOMA =====
+    document.addEventListener('idiomaActualizado', () => {
+        if (toggleBtns.length) {
+            const textoMostrar = impuestosManager.t('gastos.mostrarAntiguos', 'Mostrar antiguos');
+            const textoOcultar = impuestosManager.t('gastos.ocultarAntiguos', 'Ocultar antiguos');
+            toggleBtns.forEach(b => b.textContent = window.showOldImpuestos ? textoOcultar : textoMostrar);
+        }
+    });
+}

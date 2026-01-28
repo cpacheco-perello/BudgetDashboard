@@ -16,12 +16,33 @@ const charts = {
     gastosMes: null
 };
 
-
-// ===== FUNCIONES DE FORMATO GLOBAL =====
-function formatearEuro(monto) {
-    if (typeof window.formatCurrency === 'function') return window.formatCurrency(monto, { convert: false });
+// ===== USAR FORMATEO GLOBAL =====
+// Alias para mantener compatibilidad con código existente
+const formatearEuro = (monto) => {
+    if (typeof window.formatCurrency === 'function') {
+        return window.formatCurrency(monto, { convert: false });
+    }
     if (monto === null || monto === undefined) return '€0,00';
     return '€' + parseFloat(monto).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+// ===== HANDLER PARA RECALCULAR ESTADÍSTICAS AL OCULTAR/MOSTRAR SERIES =====
+function crearLegendClickHandler() {
+    return function(e, legendItem, legend) {
+        const chart = legend.chart;
+        const index = legendItem.datasetIndex;
+        
+        // Comportamiento por defecto: ocultar/mostrar serie
+        const meta = chart.getDatasetMeta(index);
+        meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
+        
+        // Recalcular estadísticas si la función existe
+        if (chart.updateChartStats) {
+            chart.updateChartStats();
+        }
+        
+        chart.update();
+    };
 }
 
 // ===== FUNCIONES DE EVENT LISTENERS (GLOBALES) =====
@@ -249,6 +270,56 @@ function calcularDesviacion(arr) {
     return Math.sqrt(calcularVarianza(arr));
 }
 
+// ===== FUNCIONES AUXILIARES PARA CREAR GRÁFICOS =====
+function crearOpcionesGrafico(optComun, titulo, apilado = false, conLegend = true) {
+    const opciones = {
+        ...optComun,
+        plugins: {
+            ...optComun.plugins,
+            legend: {
+                ...optComun.plugins.legend,
+                onClick: crearLegendClickHandler()
+            },
+            title: {
+                display: true,
+                text: titulo,
+                font: { size: 13, weight: '600' },
+                padding: { top: 5, bottom: 10 }
+            }
+        }
+    };
+    
+    if (apilado) {
+        opciones.scales = {
+            ...optComun.scales,
+            x: { ...optComun.scales.x, stacked: true },
+            y: { ...optComun.scales.y, stacked: true }
+        };
+    }
+    
+    return opciones;
+}
+
+function crearDataset(label, data, color, apilado = false) {
+    return {
+        label,
+        data,
+        backgroundColor: aclararColor(color, 0.7),
+        borderColor: color,
+        borderWidth: apilado ? 2 : 3,
+        borderRadius: 6,
+        tension: 0.4,
+        fill: !apilado
+    };
+}
+
+function crearUpdateChartStats(datosOriginales, calcularFn) {
+    return function() {
+        const datos = calcularFn.call(this, datosOriginales);
+        this.options.plugins.title.text = datos.titulo;
+    };
+}
+
 // ===== Función para obtener labels traducidos =====
 function obtenerLabelsTraducidos() {
     const textos = {
@@ -262,7 +333,12 @@ function obtenerLabelsTraducidos() {
         media: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.media') : 'Media',
         varianza: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.varianza') : 'Varianza',
         desviacion: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.desviacion') : 'Desviación',
-        mediaMensualTotal: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.mediaMensualTotal') : 'Media mensual total'
+        desviacionAbrev: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.desviacionAbrev') : 'Desv',
+        mediaTotal: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.mediaTotal') : 'Media Total',
+        mediaMensualTotal: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.mediaMensualTotal') : 'Media mensual total',
+        cuentasRemuneradas: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.cuentasRemuneradas') : 'Cuentas Remuneradas',
+        impuestosIngresos: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosIngresos') : 'Impuestos (ingresos)',
+        impuestosOtros: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosOtros') : 'Impuestos (otros)'
     };
     return textos;
 }
@@ -286,7 +362,7 @@ function obtenerLabelsTraducidos() {
                 ? gestorIdiomas.obtenerTexto('dashboard.errorHastaMenorDesde')
                 : 'La fecha "hasta" no puede ser menor que "desde"';
             console.warn('⚠️ ' + mensajeError);
-            alert(mensajeError);
+            showAlert(mensajeError);
             return;
         }
 
@@ -295,9 +371,12 @@ function obtenerLabelsTraducidos() {
         try {
             // Totales
             const resTotales = await fetch(`/ahorros-mes?desde=${desde}&hasta=${hasta}`);
+            if (!resTotales.ok) {
+                throw new Error(`Error ${resTotales.status}: ${resTotales.statusText}`);
+            }
             const dataTotales = await resTotales.json();
             
-            if (!dataTotales || dataTotales.length === 0) {
+            if (!Array.isArray(dataTotales) || dataTotales.length === 0) {
                 console.warn('⚠️ No hay datos para este período');
                 return;
             }
@@ -473,6 +552,11 @@ function obtenerLabelsTraducidos() {
             const dataImpuestosMes = await resImpuestosMes.json();
             const impuestosMes = dataImpuestosMes.map(m => m.impuestos || 0);
             const totalImpuestos = impuestosMes.reduce((sum, m) => sum + m, 0);
+            
+            // ===== OBTENER IMPUESTOS STANDALONE (de tablas impuestos_puntuales/mensuales) =====
+            const totalImpuestosStandalone = labelsMeses.reduce((sum, mes) => {
+                return sum + (dataGastoMes[mes]?.['taxes'] || 0);
+            }, 0);
 
             // ===== GRÁFICO TOTALES =====
             const labelsTraducidos = obtenerLabelsTraducidos();
@@ -480,31 +564,68 @@ function obtenerLabelsTraducidos() {
             charts.totales = new Chart(document.getElementById('chartTotales'), {
                 type:'bar',
                 data:{
-                    labels:[labelsTraducidos.ingresos, labelsTraducidos.gastos, labelsTraducidos.ahorros, labelsTraducidos.impuestosTotales],
-                    datasets:[{
-                        label:'€',
-                        data:[totalIngresos,totalGastos,totalAhorros,totalImpuestos],
-                        backgroundColor:[
-                            temasGraficos.success,
-                            temasGraficos.danger,
-                            temasGraficos.info,
-                            temasGraficos.warning
-                        ],
-                        borderColor:[
-                            temasGraficos.success,
-                            temasGraficos.danger,
-                            temasGraficos.info,
-                            temasGraficos.warning
-                        ],
-                        borderWidth: 2,
-                        borderRadius: 8
-                    }]
+                    labels:['Income Bruto', 'Gastos + Impuestos', labelsTraducidos.ahorros],
+                    datasets:[
+                        {
+                            label: labelsTraducidos.ingresos,
+                            data:[totalIngresos, 0, 0],
+                            backgroundColor: temasGraficos.success,
+                            borderColor: temasGraficos.success,
+                            borderWidth: 2,
+                            borderRadius: 8
+                        },
+                        {
+                            label: labelsTraducidos.cuentasRemuneradas,
+                            data:[totalCuentasRemuneradas, 0, 0],
+                            backgroundColor: temasGraficos.primary,
+                            borderColor: temasGraficos.primary,
+                            borderWidth: 2,
+                            borderRadius: 8
+                        },
+                        {
+                            label: labelsTraducidos.impuestosIngresos,
+                            data:[totalImpuestos, 0, 0],
+                            backgroundColor: temasGraficos.warning,
+                            borderColor: temasGraficos.warning,
+                            borderWidth: 2,
+                            borderRadius: 8
+                        },
+                        {
+                            label: labelsTraducidos.gastos,
+                            data:[0, totalGastos, 0],
+                            backgroundColor: temasGraficos.danger,
+                            borderColor: temasGraficos.danger,
+                            borderWidth: 2,
+                            borderRadius: 8
+                        },
+                        {
+                            label: labelsTraducidos.impuestosOtros,
+                            data:[0, totalImpuestosStandalone, 0],
+                            backgroundColor: '#e7a33c',
+                            borderColor: '#e7a33c',
+                            borderWidth: 2,
+                            borderRadius: 8
+                        },
+                        {
+                            label: labelsTraducidos.ahorros,
+                            data:[0, 0, totalAhorros],
+                            backgroundColor: temasGraficos.info,
+                            borderColor: temasGraficos.info,
+                            borderWidth: 2,
+                            borderRadius: 8
+                        }
+                    ]
                 },
                 options:{ 
                     ...optComun, 
                     plugins:{ 
                         ...optComun.plugins, 
-                        legend:{ display:false }
+                        legend:{ display:true, position: 'bottom' }
+                    },
+                    scales: {
+                        ...optComun.scales,
+                        x: { ...optComun.scales.x, stacked: true },
+                        y: { ...optComun.scales.y, stacked: true }
                     }
                 }
             });
@@ -516,90 +637,39 @@ function obtenerLabelsTraducidos() {
             // Media y varianza
             const mediaIngresos = calcularMedia(ingresosMes);
             const mediaCuentasRemuneradas = calcularMedia(cuentasRemuneradasMes);
-            const varianzaIngresos = calcularDesviacion(ingresosMes);
+            const mediaImpuestosMes = calcularMedia(impuestosMes);
+            const mediaTotalIngresos = mediaIngresos + mediaCuentasRemuneradas + mediaImpuestosMes;
+            // Calcular desviación sobre la suma de los tres
+            const sumaTotalPorMes = ingresosMes.map((ing, idx) => ing + cuentasRemuneradasMes[idx] + impuestosMes[idx]);
+            const varianzaIngresos = calcularDesviacion(sumaTotalPorMes);
 
+            const tituloIngresos = `${labelsTraducidos.media}: ${formatearEuro(mediaTotalIngresos)} | ${labelsTraducidos.desviacion}: ${formatearEuro(varianzaIngresos)}`;
+            
             charts.ingresos = new Chart(document.getElementById('chartIngresos'), {
                 type: 'bar',
-                data:{
+                data: {
                     labels: meses,
-                    datasets:[
-                        { 
-                            label: labelsTraducidos.ingresos + ' €', 
-                            data: ingresosMes, 
-                            backgroundColor: aclararColor(temasGraficos.success, 0.7),
-                            borderColor: temasGraficos.success,
-                            borderWidth: 2,
-                            borderRadius: 6,
-                            tension: 0.4
-                        },
-                        {
-                            label: 'Cuentas Remuneradas €',
-                            data: cuentasRemuneradasMes,
-                            backgroundColor: aclararColor(temasGraficos.info, 0.7),
-                            borderColor: temasGraficos.info,
-                            borderWidth: 2,
-                            borderRadius: 6,
-                            tension: 0.4
-                        },
-                        {
-                            label: labelsTraducidos.impuestosCategoria + ' €',
-                            data: impuestosMes,
-                            backgroundColor: aclararColor(temasGraficos.warning, 0.7),
-                            borderColor: temasGraficos.warning,
-                            borderWidth: 2,
-                            borderRadius: 6,
-                            tension: 0.4
-                        }
+                    datasets: [
+                        crearDataset(labelsTraducidos.ingresos + ' €', ingresosMes, temasGraficos.success, true),
+                        crearDataset(labelsTraducidos.cuentasRemuneradas + ' €', cuentasRemuneradasMes, temasGraficos.primary, true),
+                        crearDataset(labelsTraducidos.impuestosCategoria + ' €', impuestosMes, temasGraficos.warning, true)
                     ]
                 },
-            options:{ 
-                                ...optComun,
-                    scales: {
-                        ...optComun.scales,
-                        x: {
-                            ...optComun.scales.x,
-                            stacked: true
-                        },
-                        y: {
-                            ...optComun.scales.y,
-                            stacked: true
-                        }
-                    },
-                    plugins:{
-                        ...optComun.plugins,
-
-                        // ===== TÍTULO CON MEDIA Y VARIANZA =====
-                        title: {
-                            display: true,
-                            text: `Ingresos: ${formatearEuro(mediaIngresos)} | Cuentas Rem: ${formatearEuro(mediaCuentasRemuneradas)} | Desv: ${formatearEuro(varianzaIngresos)}`,
-                            font: { size: 13, weight: '600' },
-                            padding: { top: 5, bottom: 10 }
-                        },
-
-                        // ===== LÍNEA HORIZONTAL DE MEDIA =====
-                        annotation: {
-                            annotations: {
-                                lineaMedia: {
-                                    type: 'line',
-                                    yMin: mediaIngresos + mediaCuentasRemuneradas,
-                                    yMax: mediaIngresos + mediaCuentasRemuneradas,
-                                    borderColor: temasGraficos.primaryDark,
-                                    borderWidth: 2,
-                                    borderDash: [6, 6],
-                                    label: {
-                                        display: true,
-                                        content: `Media Total ${formatearEuro(mediaIngresos + mediaCuentasRemuneradas)}`,
-                                        position: 'end',
-                                        backgroundColor: 'rgba(0,0,0,0.7)',
-                                        color: '#fff',
-                                        padding: 6
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                options: crearOpcionesGrafico(optComun, tituloIngresos, true)
             });
+            
+            charts.ingresos.updateChartStats = function() {
+                const visibleIngresos = this.isDatasetVisible(0) ? ingresosMes : ingresosMes.map(() => 0);
+                const visibleCuentas = this.isDatasetVisible(1) ? cuentasRemuneradasMes : cuentasRemuneradasMes.map(() => 0);
+                const visibleImpuestos = this.isDatasetVisible(2) ? impuestosMes : impuestosMes.map(() => 0);
+                
+                const sumaTotalVisiblePorMes = visibleIngresos.map((ing, idx) => ing + visibleCuentas[idx] + visibleImpuestos[idx]);
+                const mediaTot = calcularMedia(visibleIngresos) + calcularMedia(visibleCuentas) + calcularMedia(visibleImpuestos);
+                const desv = calcularDesviacion(sumaTotalVisiblePorMes);
+                
+                this.options.plugins.title.text = `${labelsTraducidos.mediaTotal}: ${formatearEuro(mediaTot)} | ${labelsTraducidos.desviacionAbrev}: ${formatearEuro(desv)}`;
+            };
+            
             window.chartsInstances.push(charts.ingresos);
 
 
@@ -607,116 +677,48 @@ function obtenerLabelsTraducidos() {
                 const mediaGastos = calcularMedia(gastosMes);
                 const varianzaGastos = calcularDesviacion(gastosMes);
 
+                const tituloGastos = `${labelsTraducidos.media}: ${formatearEuro(mediaGastos)}   |   ${labelsTraducidos.desviacion}: ${formatearEuro(varianzaGastos)}`;
+                
                 charts.gastos = new Chart(document.getElementById('chartGastos'), {
                     type: 'bar',
                     data: {
                         labels: meses,
-                        datasets: [{ 
-                            label: labelsTraducidos.gastos + ' €', 
-                            data: gastosMes, 
-                            backgroundColor: aclararColor(temasGraficos.danger, 0.7),
-                            borderColor: temasGraficos.danger,
-                            borderWidth: 2,
-                            borderRadius: 6,
-                            tension: 1
-                        }]
+                        datasets: [crearDataset(labelsTraducidos.gastos + ' €', gastosMes, temasGraficos.danger, false)]
                     },
-                   options:{ 
-                    ...optComun, 
-
-                        plugins: {
-                            ...optComun.plugins,
-
-                            // ===== TÍTULO CON MEDIA Y VARIANZA =====
-                            title: {
-                                display: true,
-                                text: `${labelsTraducidos.media}: ${formatearEuro(mediaGastos)}   |   ${labelsTraducidos.desviacion}: ${formatearEuro(varianzaGastos)}`,
-                                font: { size: 13, weight: '600' },
-                                padding: { top: 5, bottom: 10 }
-                            },
-
-                            // ===== LÍNEA HORIZONTAL DE MEDIA =====
-                            annotation: {
-                                annotations: {
-                                    lineaMedia: {
-                                        type: 'line',
-                                        yMin: mediaGastos,
-                                        yMax: mediaGastos,
-                                        borderColor: temasGraficos.warning,
-                                        borderWidth: 2,
-                                        borderDash: [6, 6],
-                                        label: {
-                                            display: true,
-                                            content: `${labelsTraducidos.media} ${formatearEuro(mediaGastos)}`,
-                                            position: 'end',
-                                            backgroundColor: 'rgba(0,0,0,0.7)',
-                                            color: '#fff',
-                                            padding: 6
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    options: crearOpcionesGrafico(optComun, tituloGastos, false)
                 });
+            
+            charts.gastos.updateChartStats = function() {
+                const visibleGastos = this.isDatasetVisible(0) ? gastosMes : [];
+                const mediaGast = calcularMedia(visibleGastos);
+                const desvGast = calcularDesviacion(visibleGastos);
+                this.options.plugins.title.text = `${labelsTraducidos.media}: ${formatearEuro(mediaGast)}   |   ${labelsTraducidos.desviacion}: ${formatearEuro(desvGast)}`;
+            };
+            
             window.chartsInstances.push(charts.gastos);
 
 // Calcular media y desviación
 const mediaAhorros = calcularMedia(ahorrosMes);
 const desviacionAhorros = calcularDesviacion(ahorrosMes);
 
+const tituloAhorros = `${labelsTraducidos.media}: ${formatearEuro(mediaAhorros)}   |   ${labelsTraducidos.desviacion}: ${formatearEuro(desviacionAhorros)}`;
+
 charts.ahorros = new Chart(document.getElementById('chartAhorros'), {
-    type:'bar',
-    data:{
+    type: 'bar',
+    data: {
         labels: meses,
-        datasets:[{ 
-            label: labelsTraducidos.ahorros + ' €', 
-            data: ahorrosMes, 
-            backgroundColor: aclararColor(temasGraficos.info, 0.3),
-            borderColor: temasGraficos.info,
-            borderWidth: 3,
-            borderRadius: 6,
-            tension: 0.4,
-            fill: true
-        }]
+        datasets: [crearDataset(labelsTraducidos.ahorros + ' €', ahorrosMes, temasGraficos.info, false)]
     },
-    options:{
-        ...optComun,
-        plugins: {
-            ...optComun.plugins,
-
-            // ===== TÍTULO CON MEDIA Y DESVIACIÓN =====
-            title: {
-                display: true,
-                text: `${labelsTraducidos.media}: ${formatearEuro(mediaAhorros)}   |   ${labelsTraducidos.desviacion}: ${formatearEuro(desviacionAhorros)}`,
-                font: { size: 13, weight: '600' },
-                padding: { top: 5, bottom: 10 }
-            },
-
-            // ===== LÍNEA HORIZONTAL DE MEDIA =====
-            annotation: {
-                annotations: {
-                    lineaMedia: {
-                        type: 'line',
-                        yMin: mediaAhorros,
-                        yMax: mediaAhorros,
-                        borderColor: temasGraficos.success,
-                        borderWidth: 2,
-                        borderDash: [6, 6],
-                        label: {
-                            display: true,
-                            content: `${labelsTraducidos.media} ${formatearEuro(mediaAhorros)}`,
-                            position: 'end',
-                            backgroundColor: 'rgba(0,0,0,0.7)',
-                            color: '#fff',
-                            padding: 6
-                        }
-                    }
-                }
-            }
-        }
-    }
+    options: crearOpcionesGrafico(optComun, tituloAhorros, false)
 });
+
+charts.ahorros.updateChartStats = function() {
+    const visibleAhorros = this.isDatasetVisible(0) ? ahorrosMes : [];
+    const mediaAh = calcularMedia(visibleAhorros);
+    const desvAh = calcularDesviacion(visibleAhorros);
+    this.options.plugins.title.text = `${labelsTraducidos.media}: ${formatearEuro(mediaAh)}   |   ${labelsTraducidos.desviacion}: ${formatearEuro(desvAh)}`;
+};
+
             window.chartsInstances.push(charts.ahorros);
 
 
@@ -843,57 +845,28 @@ charts.ahorros = new Chart(document.getElementById('chartAhorros'), {
             const mediaGastosMes = calcularMedia(totalesMes);
             const varianzaGastosMes = calcularDesviacion(totalesMes);
 
+            const tituloGastosMes = `${labelsTraducidos.mediaMensualTotal}: ${formatearEuro(mediaGastosMes)}   |   ${labelsTraducidos.desviacion}: ${formatearEuro(varianzaGastosMes)}`;
+            
             charts.gastosMes = new Chart(document.getElementById('chartGastosMes'), {
                 type: 'bar',
-                data:{ 
+                data: { 
                     labels: labelsMeses, 
                     datasets: datasetsMesCat 
                 },
-                options:{ 
-                                ...optComun, 
-                                
-                scales: {
-            x: { stacked: true },
-            y: { stacked: true }
-            },
+                options: crearOpcionesGrafico(optComun, tituloGastosMes, true)
+            });
 
-         
-        plugins: {
-            ...optComun.plugins,
-
-            // ===== TÍTULO CON MEDIA Y VARIANZA =====
-            title: {
-                display: true,
-                text: `${labelsTraducidos.mediaMensualTotal}: ${formatearEuro(mediaGastosMes)}   |   ${labelsTraducidos.desviacion}: ${formatearEuro(varianzaGastosMes)}`,
-                font: { size: 13, weight: '600' },
-                padding: { top: 5, bottom: 10 }
-            },
-
-            // ===== LÍNEA HORIZONTAL DE MEDIA (TOTAL STACK) =====
-            annotation: {
-                annotations: {
-                    lineaMedia: {
-                        type: 'line',
-                        yMin: mediaGastosMes,
-                        yMax: mediaGastosMes,
-                        borderColor: temasGraficos.info,
-                        borderWidth: 2,
-                        borderDash: [6, 6],
-                        label: {
-                            display: true,
-                            content: `${labelsTraducidos.media} ${formatearEuro(mediaGastosMes)}`,
-                            position: 'end',
-                            backgroundColor: 'rgba(0,0,0,0.7)',
-                            color: '#fff',
-                            padding: 6
-                        }
-                    }
-                }
-            }
-        }
-    }
-});
-
+charts.gastosMes.updateChartStats = function() {
+    const totalesMesBis = labelsMeses.map((mes, idx) => {
+        return this.data.datasets.reduce((sum, ds, dsIdx) => {
+            return sum + (this.isDatasetVisible(dsIdx) ? (ds.data[idx] || 0) : 0);
+        }, 0);
+    });
+    
+    const mediaGM = calcularMedia(totalesMesBis);
+    const desvGM = calcularDesviacion(totalesMesBis);
+    this.options.plugins.title.text = `${labelsTraducidos.mediaMensualTotal}: ${formatearEuro(mediaGM)}   |   ${labelsTraducidos.desviacion}: ${formatearEuro(desvGM)}`;
+};
 
             console.log('✅ Dashboard actualizado correctamente');
             window.chartsInstances.push(charts.gastosMes);
@@ -928,6 +901,9 @@ charts.ahorros = new Chart(document.getElementById('chartAhorros'), {
         if (!desde || !hasta) return;
 
         try {
+            // Obtener labels traducidos
+            const labelsTraducidos = obtenerLabelsTraducidos();
+            
             // Obtener gastos por mes y categoría
             const resGastoMes = await fetch(`/gastos-categoria-mes?desde=${desde}&hasta=${hasta}`);
             const dataGastoMes = await resGastoMes.json();
@@ -1038,7 +1014,7 @@ charts.ahorros = new Chart(document.getElementById('chartAhorros'), {
                         },
                         title: {
                             display: true,
-                            text: `Media mensual total: ${formatearEuro(mediaGastosMes)}   |   Desviación: ${formatearEuro(varianzaGastosMes)}`,
+                            text: `${labelsTraducidos.mediaMensualTotal}: ${formatearEuro(mediaGastosMes)}   |   ${labelsTraducidos.desviacion}: ${formatearEuro(varianzaGastosMes)}`,
                             font: { size: 13, weight: '600' },
                             padding: { top: 5, bottom: 10 }
                         }

@@ -154,6 +154,22 @@
 
 <main id="tab-content"></main>
 
+<!-- Sistema de modales personalizados -->
+<div id="customModal" class="custom-modal">
+    <div class="custom-modal-content">
+        <div class="custom-modal-header">
+            <h3 id="customModalTitle"></h3>
+        </div>
+        <div class="custom-modal-body">
+            <p id="customModalMessage"></p>
+        </div>
+        <div class="custom-modal-footer">
+            <button id="customModalConfirm" class="modal-btn modal-btn-confirm">Aceptar</button>
+            <button id="customModalCancel" class="modal-btn modal-btn-cancel" style="display:none;">Cancelar</button>
+        </div>
+    </div>
+</div>
+
 <!-- ⚠️ ORDEN CORRECTO DE SCRIPTS ⚠️ -->
 <!-- 1. Primero: Traducciones -->
 <script src="idiomas/traducciones.js"></script>
@@ -164,16 +180,19 @@
 <!-- 3. Tercero: Sistema de temas -->
 <script src="Temas/temas.js"></script>
 
-<!-- 4. Cuarto: Páginas/Pestañas -->
+<!-- 4. Sistema de modales personalizados -->
+<script src="js/customModal.js"></script>
+
+<!-- 5. Cuarto: Clases base y utilidades -->
+<script src="js/TransactionManager.js"></script>
+
+<!-- 5. Quinto: Páginas/Pestañas -->
 <script src="Pestañas/categorias.js"></script>
 <script src="Pestañas/gastos.js"></script>
 <script src="Pestañas/ingresos.js"></script>
-
 <script src="Pestañas/dashboard.js"></script>
 <script src="Pestañas/impuestos.js"></script>
 <script src="Pestañas/hucha.js"></script>
-
-
 
 <!-- 6. Último: Main.js -->
 <script src="main.js"></script>

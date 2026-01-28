@@ -331,6 +331,13 @@ main {
     width: 100%;
     overflow-x: hidden;
     box-sizing: border-box;
+    min-height: 600px;
+    transition: min-height 0.3s ease-in-out;
+}
+
+#tab-content {
+    opacity: 1;
+    transition: opacity 0.3s ease-in-out;
 }
 
 .tab {
@@ -836,6 +843,11 @@ table td {
     transition: var(--transition);
 }
 
+table tbody {
+    opacity: 1;
+    transition: opacity 0.2s ease-in-out;
+}
+
 table tbody tr {
     transition: var(--transition);
     background: white;
@@ -1005,10 +1017,48 @@ table tbody tr:hover .nombre-categoria {
     flex-wrap: wrap;
     align-items: flex-end;
     background: var(--bg-white);
-    padding: var(--spacing-3xl);
+    padding: var(--spacing-xl) var(--spacing-3xl);
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-md);
     border-left: 4px solid var(--primary);
+    max-height: 60px;
+    overflow: hidden;
+    transition: max-height 0.4s ease, padding 0.4s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.filtros-dashboard::before {
+    content: '▼';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: 600;
+    color: var(--primary);
+    font-size: 0.95rem;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.filtros-dashboard:hover {
+    max-height: 500px;
+    padding: var(--spacing-3xl);
+    cursor: default;
+}
+
+.filtros-dashboard:hover::before {
+    opacity: 0;
+}
+
+.filtros-dashboard .filtro-group {
+    opacity: 0;
+    transition: opacity 0.3s ease 0.2s;
+}
+
+.filtros-dashboard:hover .filtro-group {
+    opacity: 1;
 }
 
 .filtro-group {
@@ -1664,4 +1714,114 @@ table tbody tr:hover .nombre-categoria {
     z-index: 9999;
     font-weight: 600;
     font-size: 0.9rem;
+}
+
+/* ==================== MODALES PERSONALIZADOS ==================== */
+.custom-modal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    animation: fadeIn 0.2s ease;
+}
+
+.custom-modal.show {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.custom-modal-content {
+    background-color: var(--bg-white);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    width: 90%;
+    max-width: 450px;
+    animation: slideDown 0.3s ease;
+    overflow: hidden;
+}
+
+.custom-modal-header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    padding: 1.2rem 1.5rem;
+}
+
+.custom-modal-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.custom-modal-body {
+    padding: 1.5rem;
+    color: var(--text-primary);
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.custom-modal-body p {
+    margin: 0;
+}
+
+.custom-modal-footer {
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.8rem;
+    background-color: var(--gray-50);
+    border-top: 1px solid var(--border-light);
+}
+
+.modal-btn {
+    padding: 0.6rem 1.5rem;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.modal-btn-confirm {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+}
+
+.modal-btn-confirm:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+}
+
+.modal-btn-cancel {
+    background: var(--gray-200);
+    color: var(--text-primary);
+}
+
+.modal-btn-cancel:hover {
+    background: var(--gray-300);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }

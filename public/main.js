@@ -2,6 +2,9 @@
 const buttons = document.querySelectorAll('.tablink');
 const tabContent = document.getElementById('tab-content');
 
+// Guardar posición de scroll por pestaña
+const scrollPositions = {};
+
 // ===== CONFIGURACIÓN DE MONEDA (extensible a futuro) =====
 const BASE_CURRENCY = 'EUR';
 const currencyOptions = {
@@ -74,8 +77,25 @@ async function setCurrency(code, { silent = false } = {}) {
 
 async function loadTab(tabId) {
     try {
+        // Guardar posición de scroll de la pestaña actual
+        const currentTab = document.querySelector('.tablink.active');
+        if (currentTab) {
+            scrollPositions[currentTab.dataset.tab] = window.scrollY;
+        }
+        
+        // Agregar clase de carga para transición suave
+        tabContent.style.opacity = '0';
+        
+        // Esperar a que termine la transición de fade out
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
         const res = await fetch(`Pestañas/${tabId}.html`);
         const html = await res.text();
+        
+        // Restaurar scroll ANTES de cambiar el contenido
+        const savedPosition = scrollPositions[tabId] || 0;
+        
+        // Cambiar contenido mientras está oculto
         tabContent.innerHTML = html;
 
         console.log(`📄 Pestaña cargada: ${tabId}`);
@@ -87,19 +107,29 @@ async function loadTab(tabId) {
         }
 
         // Inicializar la lógica específica de cada pestaña
-            if (tabId === 'categorias') initCategorias();
-            if (tabId === 'gastos') cargarGastosForm();
-            if (tabId === 'ingresos') cargarIngresosForm();
-            if (tabId === 'impuestos') inicializarTaxes();
-            if (tabId === 'dashboard') cargarDashboardForm();
-            if (tabId === 'hucha') {
-                if (typeof cargarHucha !== 'undefined') cargarHucha();
-            }
+        if (tabId === 'categorias') initCategorias();
+        if (tabId === 'gastos') cargarGastosForm();
+        if (tabId === 'ingresos') cargarIngresosForm();
+        if (tabId === 'impuestos') await inicializarTaxes();
+        if (tabId === 'dashboard') cargarDashboardForm();
+        if (tabId === 'hucha') {
+            if (typeof cargarHucha !== 'undefined') await cargarHucha();
+        }
+        
+        // Restaurar scroll después de cargar todo
+        window.scrollTo({ top: savedPosition, behavior: 'instant' });
+        
+        // Mostrar con transición después de que todo esté listo
+        requestAnimationFrame(() => {
+            tabContent.style.opacity = '1';
+        });
 
     } catch (error) {
         console.error(`❌ Error cargando pestaña ${tabId}:`, error);
+        tabContent.style.opacity = '1';
     }
 }
+
 
 // Evento de clic en las pestañas
 buttons.forEach(btn => {

@@ -116,6 +116,11 @@ const TRADUCCIONES = {
             media: 'Media',
             varianza: 'Varianza',
             desviacion: 'Desviación',
+            desviacionAbrev: 'Desv',
+            mediaTotal: 'Media Total',
+            cuentasRemuneradas: 'Cuentas Remuneradas',
+            impuestosIngresos: 'Impuestos (ingresos)',
+            impuestosOtros: 'Impuestos (otros)',
             mediaMensualTotal: 'Media mensual total',
             impuestosCategoria: 'Impuestos',
             errorHastaMenorDesde: 'La fecha "hasta" no puede ser menor que "desde"',
@@ -307,6 +312,14 @@ const TRADUCCIONES = {
             numeroPartes: 'Número de partes'
         },
 
+        // ===== MODALES =====
+        modal: {
+            informacion: 'Información',
+            error: 'Error',
+            advertencia: 'Advertencia',
+            confirmar: 'Confirmar'
+        },
+
         // ===== BOTONES =====
         botones: {
             agregar: 'Agregar',
@@ -493,6 +506,11 @@ const TRADUCCIONES = {
             media: 'Average',
             varianza: 'Variance',
             desviacion: 'Deviation',
+            desviacionAbrev: 'Std Dev',
+            mediaTotal: 'Total Average',
+            cuentasRemuneradas: 'Savings Accounts',
+            impuestosIngresos: 'Taxes (income)',
+            impuestosOtros: 'Taxes (other)',
             mediaMensualTotal: 'Total monthly average',
             impuestosCategoria: 'Taxes',
             errorHastaMenorDesde: 'End date cannot be earlier than start date',
@@ -684,6 +702,14 @@ const TRADUCCIONES = {
             numeroPartes: 'Number of parts'
         },
 
+        // ===== MODALES =====
+        modal: {
+            informacion: 'Information',
+            error: 'Error',
+            advertencia: 'Warning',
+            confirmar: 'Confirm'
+        },
+
         // ===== BOTONES =====
         botones: {
             agregar: 'Add',
@@ -870,6 +896,11 @@ const TRADUCCIONES = {
             media: 'Média',
             varianza: 'Variância',
             desviacion: 'Desvio',
+            desviacionAbrev: 'Desv',
+            mediaTotal: 'Média Total',
+            cuentasRemuneradas: 'Contas Poupança',
+            impuestosIngresos: 'Impostos (receita)',
+            impuestosOtros: 'Impostos (outros)',
             mediaMensualTotal: 'Média mensal total',
             impuestosCategoria: 'Impostos',
             errorHastaMenorDesde: 'A data "até" não pode ser anterior à "de"',
@@ -1247,6 +1278,11 @@ const TRADUCCIONES = {
             media: 'Moyenne',
             varianza: 'Variance',
             desviacion: 'Écart',
+            desviacionAbrev: 'Éc',
+            mediaTotal: 'Moyenne Totale',
+            cuentasRemuneradas: 'Comptes d\'Épargne',
+            impuestosIngresos: 'Impôts (revenus)',
+            impuestosOtros: 'Impôts (autres)',
             mediaMensualTotal: 'Moyenne mensuelle totale',
             impuestosCategoria: 'Impôts',
             errorHastaMenorDesde: 'La date "à" ne peut pas être antérieure à "de"',
@@ -1624,6 +1660,11 @@ const TRADUCCIONES = {
             media: 'Batezbestekoa',
             varianza: 'Bariantza',
             desviacion: 'Desbideratzea',
+            desviacionAbrev: 'Desb',
+            mediaTotal: 'Batezbesteko Guztira',
+            cuentasRemuneradas: 'Aurrezki Kontuak',
+            impuestosIngresos: 'Zergak (diru-sarrerak)',
+            impuestosOtros: 'Zergak (beste)',
             mediaMensualTotal: 'Hileroko batezbesteko guztira',
             impuestosCategoria: 'Zergak',
             errorHastaMenorDesde: '"Noizera" data ezin da "noiztik" baino lehenagokoa izan',

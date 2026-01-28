@@ -1,303 +1,50 @@
+/**
+ * Gastos - Versión simplificada usando TransactionManager
+ * Mantiene lógica específica: agregar gastos, fraccionamiento
+ * Delega CRUD y edición a clase base
+ */
 function cargarGastosForm() {
-    const tbodyP = document.querySelector('#tablaGastosPuntuales tbody');
-    const tbodyM = document.querySelector('#tablaGastosMensuales tbody');
-
-    const selectCatP = document.getElementById('categoriaGasto');
-    const selectCatM = document.getElementById('categoriaMensual');
-
-    async function cargarCategorias() {
-        const res = await fetch('/categorias');
-        const data = await res.json();
-
-        selectCatP.innerHTML = '';
-        selectCatM.innerHTML = '';
-
-        data.gastos.forEach(cat => {
-            const opt = document.createElement('option');
-            opt.value = cat.id;
-            opt.textContent = cat.nombre;
-            selectCatP.appendChild(opt);
-            selectCatM.appendChild(opt.cloneNode(true));
-        });
-    }
-
-    // Función global para formatear montos con símbolo Euro (punto millar, coma decimal)
-    function formatearEuro(monto) {
-        if (typeof window.formatCurrency === 'function') return window.formatCurrency(monto, { convert: false });
-        if (monto === null || monto === undefined) return '€0,00';
-        return '€' + parseFloat(monto).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
-
-    function parseAmount(str) {
-        if (!str) return 0;
-        let cleaned = str.replace(/[^\d.,-]/g, '');
-        const lastComma = cleaned.lastIndexOf(',');
-        const lastDot = cleaned.lastIndexOf('.');
-        if (lastComma > lastDot) {
-            cleaned = cleaned.replace(/\./g, '').replace(',', '.');
-        } else {
-            cleaned = cleaned.replace(/,/g, '');
-        }
-        return parseFloat(cleaned) || 0;
-    }
-
-    async function cargarGastos() {
-        const res = await fetch('/dashboard');
-        const data = await res.json();
-
-        // fecha de hoy (inicio del día) para filtrar antiguos
-        const today = new Date();
-        today.setHours(0,0,0,0);
-
-        // Puntuales
-        tbodyP.innerHTML = '';
-        data.gastos_puntuales.forEach(g => {
-            const gDate = new Date(g.fecha);
-            if (!window.showOldGastos && gDate <= today) return; // ocultar antiguos si flag desactivado
-            const tr = document.createElement('tr');
-            const tituloEditar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.editar') : 'Editar';
-            const tituloEliminar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.eliminar') : 'Eliminar';
-            tr.dataset.id = g.id;
-            tr.dataset.type = 'puntual';
-            tr.innerHTML = `
-                <td class="editable" data-field="fecha">${g.fecha}</td>
-                <td class="editable" data-field="descripcion">${g.descripcion}</td>
-                <td class="editable" data-field="monto"><strong>${formatearEuro(g.monto)}</strong></td>
-                <td class="editable" data-field="categoria">${g.categoria}</td>
-                <td>
-                    <button class="editBtn btn-editar" title="${tituloEditar}" style="margin-right:8px;">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button data-id="${g.id}" class="delP btn-eliminar" title="${tituloEliminar}" style="display:inline-block;">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
-            `;
-            tbodyP.appendChild(tr);
-        });
-
-        // Mensuales
-        tbodyM.innerHTML = '';
-        data.gastos_mensuales.forEach(g => {
-            // 'hasta' puede venir como YYYY-MM o YYYY-MM-DD
-            function parseEndDate(v) {
-                if (!v) return new Date(0);
-                if (/^\d{4}-\d{2}$/.test(v)) {
-                    const [y,m] = v.split('-').map(Number);
-                    return new Date(y, m, 0); // último día del mes
-                }
-                return new Date(v);
+    // Inicializar TransactionManager para gastos
+    const gastosManager = new TransactionManager({
+        entityName: 'gastos',
+        entityNameSingular: 'gasto',
+        categoryType: 'gastos',
+        endpoints: {
+            puntuales: 'gastos_puntuales',
+            mensuales: 'gastos_mensuales',
+            delete: {
+                puntual: '/delete/gasto_puntual',
+                mensual: '/delete/gasto_mensual'
             }
-            const endDate = parseEndDate(g.hasta);
-            if (!window.showOldGastos && endDate <= today) return;
-            const tr = document.createElement('tr');
-            const tituloEditar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.editar') : 'Editar';
-            const tituloEliminar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.eliminar') : 'Eliminar';
-            tr.dataset.id = g.id;
-            tr.dataset.type = 'mensual';
-            tr.innerHTML = `
-                <td class="editable" data-field="desde">${g.desde}</td>
-                <td class="editable" data-field="hasta">${g.hasta}</td>
-                <td class="editable" data-field="descripcion">${g.descripcion}</td>
-                <td class="editable" data-field="monto"><strong>${formatearEuro(g.monto)}</strong></td>
-                <td class="editable" data-field="categoria">${g.categoria}</td>
-                <td>
-                    <button class="editBtn btn-editar" title="${tituloEditar}" style="margin-right:8px;">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button data-id="${g.id}" class="delM btn-eliminar" title="${tituloEliminar}" style="display:inline-block;">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
-            `;
-            tbodyM.appendChild(tr);
-        });
+        },
+        tables: {
+            puntuales: '#tablaGastosPuntuales tbody',
+            mensuales: '#tablaGastosMensuales tbody'
+        },
+        selects: {
+            puntuales: '#categoriaGasto',
+            mensuales: '#categoriaMensual'
+        },
+        showOldFlag: 'showOldGastos'
+    });
 
-        // Eliminar Puntuales
-        document.querySelectorAll('.delP').forEach(b => {
-            b.onclick = async () => {
-                if (!confirm(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.confirmarEliminarPuntual') : '¿Eliminar este gasto?')) return;
-                await fetch('/delete/gasto_puntual', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: b.dataset.id })
-                });
-                cargarGastos();
-            };
-        });
+    // Inicializar manager
+    gastosManager.init();
 
-        // Eliminar Mensuales
-        document.querySelectorAll('.delM').forEach(b => {
-            b.onclick = async () => {
-                if (!confirm(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.confirmarEliminarMensual') : '¿Eliminar este gasto mensual?')) return;
-                await fetch('/delete/gasto_mensual', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: b.dataset.id })
-                });
-                cargarGastos();
-            };
-        });
-
-        // Editar filas
-        document.querySelectorAll('.editBtn').forEach(btn => {
-            btn.onclick = (e) => {
-                const tr = btn.closest('tr');
-                const tipo = tr.dataset.type;
-                const id = tr.dataset.id;
-                
-                // Obtener datos originales
-                const celdas = tr.querySelectorAll('td.editable');
-                const datos = {};
-                const originales = {};
-                
-                celdas.forEach(celda => {
-                    const field = celda.dataset.field;
-                    const valor = celda.textContent.trim();
-                    datos[field] = valor;
-                    originales[field] = valor;
-                });
-
-                // Convertir a modo edición
-                const categorias = tipo === 'puntual' 
-                    ? Array.from(selectCatP.options).map(o => ({ id: o.value, nombre: o.textContent }))
-                    : Array.from(selectCatM.options).map(o => ({ id: o.value, nombre: o.textContent }));
-
-                celdas.forEach(celda => {
-                    const field = celda.dataset.field;
-                    const valor = datos[field];
-                    
-                    if (field === 'categoria') {
-                        const select = document.createElement('select');
-                        categorias.forEach(cat => {
-                            const opt = document.createElement('option');
-                            opt.value = cat.nombre;
-                            opt.textContent = cat.nombre;
-                            if (cat.nombre === valor) opt.selected = true;
-                            select.appendChild(opt);
-                        });
-                        celda.innerHTML = '';
-                        celda.appendChild(select);
-                    } else if (field === 'monto') {
-                        const input = document.createElement('input');
-                        input.type = 'number';
-                        input.step = '0.01';
-                        input.value = parseAmount(valor);
-                        input.style.width = '100px';
-                        celda.innerHTML = '€ ';
-                        celda.appendChild(input);
-                    } else if (field === 'fecha' || field === 'desde' || field === 'hasta') {
-                        const input = document.createElement('input');
-                        input.type = field === 'monto' ? 'number' : 'text';
-                        input.value = valor;
-                        if (field === 'desde' || field === 'hasta') {
-                            input.placeholder = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('formularios.placeholderYYYYMM') : 'YYYY-MM';
-                            input.maxLength = '7';
-                        }
-                        input.style.width = field === 'fecha' || field === 'desde' || field === 'hasta' ? '120px' : '200px';
-                        celda.innerHTML = '';
-                        celda.appendChild(input);
-                    } else {
-                        const input = document.createElement('input');
-                        input.type = 'text';
-                        input.value = valor;
-                        input.style.width = '200px';
-                        celda.innerHTML = '';
-                        celda.appendChild(input);
-                    }
-                });
-
-                // Reemplazar botones por Guardar/Cancelar
-                const tdAcciones = tr.querySelector('td:last-child');
-                tdAcciones.innerHTML = `
-                    <button class="saveBtn" style="background:#4CAF50;color:white;padding:5px 10px;border:none;cursor:pointer;border-radius:3px;margin-right:5px;">
-                        <i class="fas fa-save"></i>
-                    </button>
-                    <button class="cancelBtn" style="background:#f44336;color:white;padding:5px 10px;border:none;cursor:pointer;border-radius:3px;">
-                        <i class="fas fa-times"></i>
-                    </button>
-                `;
-
-                // Guardar
-                tdAcciones.querySelector('.saveBtn').onclick = async () => {
-                    const nuevos = {};
-                    let cambios = false;
-
-                    tr.querySelectorAll('td.editable').forEach(celda => {
-                        const field = celda.dataset.field;
-                        const input = celda.querySelector('input, select');
-                        if (input) {
-                            nuevos[field] = input.value;
-                            if (input.value !== originales[field]) cambios = true;
-                        }
-                    });
-
-                    if (!cambios) {
-                        alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.noHayCambios') : 'No hay cambios');
-                        cargarGastos();
-                        return;
-                    }
-
-                    // Validaciones
-                    if (!nuevos.descripcion) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.descripcionRequerida') : 'Descripción requerida');
-                    if (!nuevos.categoria) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.categoriaRequerida') : 'Categoría requerida');
-                    if (isNaN(parseFloat(nuevos.monto)) || parseFloat(nuevos.monto) <= 0) {
-                        return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.montoInvalido') : 'Monto inválido');
-                    }
-
-                    if (tipo === 'puntual') {
-                        if (!nuevos.fecha) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.fechaRequerida') : 'Fecha requerida');
-                        await fetch('/update/gasto_puntual', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                id: id,
-                                fecha: nuevos.fecha,
-                                descripcion: nuevos.descripcion,
-                                monto: parseFloat(nuevos.monto),
-                                categoria: nuevos.categoria
-                            })
-                        });
-                    } else {
-                        if (!validarYYYYMM(nuevos.desde)) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.formatoDesde') : "El campo 'Desde' debe tener formato YYYY-MM");
-                        if (!validarYYYYMM(nuevos.hasta)) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.formatoHasta') : "El campo 'Hasta' debe tener formato YYYY-MM");
-                        await fetch('/update/gasto_mensual', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                id: id,
-                                desde: nuevos.desde,
-                                hasta: nuevos.hasta,
-                                descripcion: nuevos.descripcion,
-                                monto: parseFloat(nuevos.monto),
-                                categoria: nuevos.categoria
-                            })
-                        });
-                    }
-
-                    cargarGastos();
-                };
-
-                // Cancelar
-                tdAcciones.querySelector('.cancelBtn').onclick = () => {
-                    cargarGastos();
-                };
-            };
-        });
-    }
-
-    // Agregar gasto puntual
+    // ===== LÓGICA ESPECÍFICA: AGREGAR GASTO PUNTUAL =====
     document.getElementById('btnAgregarGastoPuntual').onclick = async () => {
         const fecha = document.getElementById('fechaGasto').value;
         const desc = document.getElementById('descGasto').value;
         const monto = parseFloat(document.getElementById('montoGasto').value);
-
         const fraccionar = document.getElementById('fraccionarGasto')?.checked;
         const partes = parseInt(document.getElementById('partesGasto')?.value || '1', 10) || 1;
+        const selectCatP = document.getElementById('categoriaGasto');
 
-        if (!fecha) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.seleccionaFecha') : "Selecciona una fecha");
-        if (!desc) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.ingresaDescripcion') : "Ingresa una descripción");
-        if (isNaN(monto) || monto <= 0) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.montoInvalido') : "Monto inválido");
+        // Validaciones
+        if (!fecha) return showAlert(gastosManager.t('gastos.seleccionaFecha', "Selecciona una fecha"));
+        if (!desc) return showAlert(gastosManager.t('gastos.ingresaDescripcion', "Ingresa una descripción"));
+        if (isNaN(monto) || monto <= 0) return showAlert(gastosManager.t('gastos.montoInvalido', "Monto inválido"));
+
         // Si no se fracciona, enviar una sola entrada
         if (!fraccionar || partes <= 1) {
             await fetch('/add/gasto_puntual', {
@@ -320,10 +67,7 @@ function cargarGastosForm() {
                 const d = new Date(dateStr);
                 const day = d.getDate();
                 d.setMonth(d.getMonth() + months);
-                // si el mes cambió y día se desplazó, ajustar al último día del mes
-                if (d.getDate() !== day) {
-                    d.setDate(0);
-                }
+                if (d.getDate() !== day) d.setDate(0);
                 const y = d.getFullYear();
                 const m = String(d.getMonth() + 1).padStart(2, '0');
                 const dd = String(d.getDate()).padStart(2, '0');
@@ -340,18 +84,17 @@ function cargarGastosForm() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         fecha: partFecha,
-                        descripcion: desc + (typeof gestorIdiomas !== 'undefined'
-                            ? gestorIdiomas.obtenerTexto('gastos.parteFraccion').replace('{parte}', i + 1).replace('{total}', partes)
-                            : ` (parte ${i + 1}/${partes})`),
+                        descripcion: desc + gastosManager.t('gastos.parteFraccion', ` (parte ${i + 1}/${partes})`)
+                            .replace('{parte}', i + 1).replace('{total}', partes),
                         monto: partMonto,
                         categoria_id: selectCatP.value
                     })
                 }));
             }
-
             await Promise.all(promises);
         }
 
+        // Limpiar formulario
         document.getElementById('fechaGasto').value = '';
         document.getElementById('descGasto').value = '';
         document.getElementById('montoGasto').value = '';
@@ -359,35 +102,12 @@ function cargarGastosForm() {
         if (chk) chk.checked = false;
         const partsInput = document.getElementById('partesGasto');
         if (partsInput) partsInput.value = '1';
-        cargarGastos();
+        
+        gastosManager.loadData();
+        if (typeof cargarResumenPeriodos === 'function') cargarResumenPeriodos();
     };
 
-    // Toggle mostrar/ocultar gastos antiguos (aplica a puntuales y mensuales)
-    window.showOldGastos = false;
-    const toggleBtns = [
-        document.getElementById('toggleGastosAntiguos'),
-        document.getElementById('toggleGastosMensualesAntiguos')
-    ].filter(Boolean);
-    if (toggleBtns.length) {
-        const updateAll = () => {
-            const textoMostrar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.mostrarAntiguos') : 'Mostrar antiguos';
-            const textoOcultar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.ocultarAntiguos') : 'Ocultar antiguos';
-            toggleBtns.forEach(b => b.textContent = window.showOldGastos ? textoOcultar : textoMostrar);
-        };
-        toggleBtns.forEach(b => b.addEventListener('click', () => {
-            window.showOldGastos = !window.showOldGastos;
-            updateAll();
-            cargarGastos();
-        }));
-        updateAll();
-    }
-
-    // Función para validar YYYY-MM
-    function validarYYYYMM(valor) {
-        return /^\d{4}-(0[1-9]|1[0-2])$/.test(valor);
-    }
-
-    // Agregar gasto mensual
+    // ===== LÓGICA ESPECÍFICA: AGREGAR GASTO MENSUAL =====
     document.getElementById('btnAgregarMensual').onclick = async () => {
         const desde = document.getElementById('desdeGasto').value;
         const hasta = document.getElementById('hastaGasto').value;
@@ -395,14 +115,15 @@ function cargarGastosForm() {
         const monto = parseFloat(document.getElementById('montoMensual').value);
         const categoria = document.getElementById('categoriaMensual').value;
 
-        // Validaciones
-        if (!validarYYYYMM(desde)) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.formatoDesde') : "El campo 'Desde' debe tener formato YYYY-MM");
-        if (!validarYYYYMM(hasta)) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.formatoHasta') : "El campo 'Hasta' debe tener formato YYYY-MM");
-        if (!desc) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.descripcionRequerida') : "Descripción requerida");
-        if (isNaN(monto) || monto <= 0) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.montoInvalido') : "Monto inválido");
-        if (!categoria) return alert(typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.seleccionaCategoria') : "Selecciona una categoría");
+        // Validación de formato YYYY-MM
+        const validarYYYYMM = (valor) => /^\d{4}-(0[1-9]|1[0-2])$/.test(valor);
 
-        // Enviar al backend
+        if (!validarYYYYMM(desde)) return showAlert(gastosManager.t('gastos.formatoDesde', "El campo 'Desde' debe tener formato YYYY-MM"));
+        if (!validarYYYYMM(hasta)) return showAlert(gastosManager.t('gastos.formatoHasta', "El campo 'Hasta' debe tener formato YYYY-MM"));
+        if (!desc) return showAlert(gastosManager.t('gastos.descripcionRequerida', "Descripción requerida"));
+        if (isNaN(monto) || monto <= 0) return showAlert(gastosManager.t('gastos.montoInvalido', "Monto inválido"));
+        if (!categoria) return showAlert(gastosManager.t('gastos.seleccionaCategoria', "Selecciona una categoría"));
+
         await fetch('/add/gasto_mensual', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -415,44 +136,42 @@ function cargarGastosForm() {
             })
         });
 
+        // Limpiar formulario
         document.getElementById('desdeGasto').value = '';
         document.getElementById('hastaGasto').value = '';
         document.getElementById('descMensual').value = '';
         document.getElementById('montoMensual').value = '';
-        cargarGastos();
+        
+        gastosManager.loadData();
+        if (typeof cargarResumenPeriodos === 'function') cargarResumenPeriodos();
     };
 
-    // Subpestañas
+    // ===== TOGGLE MOSTRAR/OCULTAR ANTIGUOS =====
+    window.showOldGastos = false;
+    const toggleBtns = [
+        document.getElementById('toggleGastosAntiguos'),
+        document.getElementById('toggleGastosMensualesAntiguos')
+    ].filter(Boolean);
+    
+    if (toggleBtns.length) {
+        const updateAll = () => {
+            const textoMostrar = gastosManager.t('gastos.mostrarAntiguos', 'Mostrar antiguos');
+            const textoOcultar = gastosManager.t('gastos.ocultarAntiguos', 'Ocultar antiguos');
+            toggleBtns.forEach(b => b.textContent = window.showOldGastos ? textoOcultar : textoMostrar);
+        };
+        toggleBtns.forEach(b => b.addEventListener('click', () => {
+            window.showOldGastos = !window.showOldGastos;
+            updateAll();
+            gastosManager.loadData();
+        }));
+        updateAll();
+    }
+
+    // ===== SUBPESTAÑAS =====
     const btnPuntuales = document.getElementById('tabGastosPuntualesBtn');
     const btnMensuales = document.getElementById('tabGastosMensualesBtn');
     const tabPuntuales = document.getElementById('tabGastosPuntuales');
     const tabMensuales = document.getElementById('tabGastosMensuales');
-
-    // Toggle mostrar/ocultar campo de partes para fraccionamiento
-    const chkFraccionar = document.getElementById('fraccionarGasto');
-    const inputPartes = document.getElementById('partesGasto');
-    const spanFraccionar = document.querySelector('span[data-i18n="gastos.fraccionar"]');
-    
-    if (chkFraccionar && inputPartes) {
-        const setVisible = (visible) => {
-            inputPartes.style.display = visible ? 'inline-block' : 'none';
-            inputPartes.setAttribute('aria-hidden', visible ? 'false' : 'true');
-        };
-        setVisible(!!chkFraccionar.checked);
-        chkFraccionar.addEventListener('change', () => {
-            setVisible(!!chkFraccionar.checked);
-            if (!chkFraccionar.checked) inputPartes.value = '1';
-        });
-        
-        // Permitir hacer clic en el texto para activar el checkbox
-        if (spanFraccionar) {
-            spanFraccionar.style.cursor = 'pointer';
-            spanFraccionar.addEventListener('click', () => {
-                chkFraccionar.checked = !chkFraccionar.checked;
-                chkFraccionar.dispatchEvent(new Event('change'));
-            });
-        }
-    }
 
     btnPuntuales.onclick = () => {
         tabPuntuales.style.display = 'block';
@@ -468,22 +187,39 @@ function cargarGastosForm() {
         btnMensuales.classList.add('active');
     };
 
-    // Establecer active por defecto en Puntuales
     btnPuntuales.classList.add('active');
 
-    // Listener para cambios de idioma
+    // ===== TOGGLE FRACCIONAMIENTO =====
+    const chkFraccionar = document.getElementById('fraccionarGasto');
+    const inputPartes = document.getElementById('partesGasto');
+    const spanFraccionar = document.querySelector('span[data-i18n="gastos.fraccionar"]');
+    
+    if (chkFraccionar && inputPartes) {
+        const setVisible = (visible) => {
+            inputPartes.style.display = visible ? 'inline-block' : 'none';
+            inputPartes.setAttribute('aria-hidden', visible ? 'false' : 'true');
+        };
+        setVisible(!!chkFraccionar.checked);
+        chkFraccionar.addEventListener('change', () => {
+            setVisible(!!chkFraccionar.checked);
+            if (!chkFraccionar.checked) inputPartes.value = '1';
+        });
+        
+        if (spanFraccionar) {
+            spanFraccionar.style.cursor = 'pointer';
+            spanFraccionar.addEventListener('click', () => {
+                chkFraccionar.checked = !chkFraccionar.checked;
+                chkFraccionar.dispatchEvent(new Event('change'));
+            });
+        }
+    }
+
+    // ===== LISTENER PARA CAMBIOS DE IDIOMA =====
     document.addEventListener('idiomaActualizado', () => {
-        const toggleBtns = [
-            document.getElementById('toggleGastosAntiguos'),
-            document.getElementById('toggleGastosMensualesAntiguos')
-        ].filter(Boolean);
         if (toggleBtns.length) {
-            const textoMostrar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.mostrarAntiguos') : 'Mostrar antiguos';
-            const textoOcultar = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('gastos.ocultarAntiguos') : 'Ocultar antiguos';
+            const textoMostrar = gastosManager.t('gastos.mostrarAntiguos', 'Mostrar antiguos');
+            const textoOcultar = gastosManager.t('gastos.ocultarAntiguos', 'Ocultar antiguos');
             toggleBtns.forEach(b => b.textContent = window.showOldGastos ? textoOcultar : textoMostrar);
         }
     });
-
-    cargarCategorias();
-    cargarGastos();
 }
