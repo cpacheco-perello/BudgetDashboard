@@ -22,63 +22,6 @@ A lightweight **personal finance dashboard** to track your **income, expenses, a
 
 ### Installation
 
-```bash
-# Install dependencies
-npm install
-
-# Start the application
-npm start
-```
-
-### Configuration
-
-1. Copy `.env.example` to `.env`
-2. Adjust settings if needed (defaults work out of the box)
-
-```bash
-cp .env.example .env
-```
-
----
-
-## 📁 Project Structure
-
-The project has been refactored into a **modular architecture**:
-
-- **`src/config/`** - Configuration and database setup
-- **`src/routes/`** - API routes organized by domain
-- **`src/services/`** - Reusable business logic
-- **`src/migrations/`** - Versioned database migrations
-- **`src/middleware/`** - Security, CORS, error handling
-- **`src/utils/`** - Helpers and utilities
-
-📖 See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed documentation.
-
----
-
-## 🗄️ Database Migrations
-
-Migrations run **automatically** on startup:
-
-```
-✅ Creating migration 001_initial_tables
-✅ Creating migration 002_add_indexes
-✅ All migrations completed successfully
-```
-
-To add a new migration, create `src/migrations/00X_name.js`:
-
-```javascript
-async function up(db, dbRun) {
-    await dbRun(db, `CREATE TABLE ...`);
-}
-
-async function down(db, dbRun) {
-    await dbRun(db, `DROP TABLE ...`);
-}
-
-module.exports = { up, down };
-```
 
 ---
 
@@ -92,13 +35,6 @@ module.exports = { up, down };
 
 ---
 
-## 🏗️ Recent Improvements
-
-- ✅ **Modular architecture** - Reduced from 1742 lines to 20+ organized files
-- ✅ **Versioned migrations** - Automatic database schema management
-- ✅ **Eliminated code duplication** - Generic services for CRUD operations
-- ✅ **Performance indexes** - 40% faster queries
-- ✅ **Centralized configuration** - Environment variables support
 
 ---
 
