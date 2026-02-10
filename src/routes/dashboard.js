@@ -8,7 +8,13 @@ const {
     calcularInteresGenerado, 
     calcularInteresesMensuales,
     restarFecha,
-    contarMesesDesde28 
+    contarMesesDesde28,
+    generarArrayMeses,
+    esMensualActivo,
+    agregarPuntualesPorMes,
+    agregarMensualesPorMes,
+    agregarImpuestosPuntualesPorMes,
+    agregarImpuestosMensualesPorMes
 } = require('../utils/calculations');
 
 const router = express.Router();
@@ -18,11 +24,13 @@ const gastosPuntualesService = new PuntualService('gastos_puntuales');
 const gastosMensualesService = new MensualService('gastos_mensuales');
 const ingresosPuntualesService = new PuntualService('ingresos_puntuales');
 const ingresosMensualesService = new MensualService('ingresos_mensuales');
+const gastosRealesService = new PuntualService('gastos_reales');
+const ingresosRealesService = new PuntualService('ingresos_reales');
 const impuestosPuntualesService = new PuntualService('impuestos_puntuales');
 const impuestosMensualesService = new MensualService('impuestos_mensuales');
 
 /**
- * GET /dashboard - Obtener todos los datos para el dashboard
+ * GET /dashboard - Obtener todos los datos para las tablas del dashboard
  */
 router.get('/dashboard', async (req, res) => {
     try {
@@ -32,6 +40,8 @@ router.get('/dashboard', async (req, res) => {
         const ingresos_mensuales = await ingresosMensualesService.getAll(config.QUERY_LIMIT);
         const impuestos_puntuales = await impuestosPuntualesService.getAll(config.QUERY_LIMIT);
         const impuestos_mensuales = await impuestosMensualesService.getAll(config.QUERY_LIMIT);
+        const gastos_reales = await gastosRealesService.getAll(config.QUERY_LIMIT);
+        const ingresos_reales = await ingresosRealesService.getAll(config.QUERY_LIMIT);
 
         const cuenta_remunerada = await dbAll(db, `
             SELECT cr.id, cr.descripcion, cr.monto, cr.aportacion_mensual, cr.interes, cr.desde, cr.hasta, c.nombre AS categoria
@@ -53,6 +63,8 @@ router.get('/dashboard', async (req, res) => {
             ingresos_mensuales,
             impuestos_puntuales,
             impuestos_mensuales,
+            gastos_reales,
+            ingresos_reales,
             cuenta_remunerada: cuenta_remunerada_con_interes
         });
 
@@ -63,208 +75,79 @@ router.get('/dashboard', async (req, res) => {
 });
 
 /**
- * GET /gastos-periodo - Obtener gastos por período
+ * GET /dashboard-rango-fechas - Obtener rango de fechas disponible
  */
-router.get('/gastos-periodo', async (req, res) => {
+router.get('/dashboard-rango-fechas', async (req, res) => {
+    const formatDateLocal = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
     try {
-        const { desde, hasta, categoria_id } = req.query;
-        if (!desde || !hasta) return res.status(400).send("Debes enviar desde y hasta en formato YYYY-MM-DD");
+        const row = await dbGet(db, `
+            SELECT MIN(fecha) AS min, MAX(fecha) AS max
+            FROM (
+                SELECT fecha FROM gastos_puntuales
+                UNION ALL SELECT fecha FROM ingresos_puntuales
+                UNION ALL SELECT fecha FROM impuestos_puntuales
+                UNION ALL SELECT fecha FROM gastos_reales
+                UNION ALL SELECT fecha FROM ingresos_reales
+                UNION ALL SELECT desde AS fecha FROM gastos_mensuales
+                UNION ALL SELECT hasta AS fecha FROM gastos_mensuales
+                UNION ALL SELECT desde AS fecha FROM ingresos_mensuales
+                UNION ALL SELECT hasta AS fecha FROM ingresos_mensuales
+                UNION ALL SELECT desde AS fecha FROM impuestos_mensuales
+                UNION ALL SELECT hasta AS fecha FROM impuestos_mensuales
+                UNION ALL SELECT desde AS fecha FROM cuenta_remunerada
+                UNION ALL SELECT hasta AS fecha FROM cuenta_remunerada
+            )
+            WHERE fecha IS NOT NULL
+        `);
 
-        const desdeDate = new Date(desde);
-        const hastaDate = new Date(hasta);
-
-        const totalPuntuales = await gastosPuntualesService.getByPeriod(desde, hasta, categoria_id);
-        const gastosMensuales = await gastosMensualesService.getAllForCalculations(categoria_id);
-
-        let totalMensuales = 0;
-        gastosMensuales.forEach(g => {
-            const gDesde = new Date(g.desde + "-28");
-            const gHasta = g.hasta ? new Date(g.hasta + "-28") : new Date(9999,11,31);
-            const end = hastaDate < gHasta ? hastaDate : gHasta;
-            let current = new Date(gDesde > desdeDate ? gDesde : desdeDate);
-
-            while (current <= end) {
-                totalMensuales += g.monto;
-                current.setMonth(current.getMonth() + 1);
-            }
-        });
-
-        res.json({
-            totalPuntuales,
-            totalMensuales,
-            totalGastos: totalPuntuales + totalMensuales
-        });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-/**
- * GET /ingresos-periodo - Obtener ingresos por período
- */
-router.get('/ingresos-periodo', async (req, res) => {
-    try {
-        const { desde, hasta, categoria_id } = req.query;
-        if (!desde || !hasta) return res.status(400).send("Debes enviar desde y hasta en formato YYYY-MM-DD");
-
-        const desdeDate = new Date(desde);
-        const hastaDate = new Date(hasta);
-
-        const totalPuntuales = await ingresosPuntualesService.getByPeriod(desde, hasta, categoria_id);
-        const ingresosMensuales = await ingresosMensualesService.getAllForCalculations(categoria_id);
-
-        let totalMensuales = 0;
-        ingresosMensuales.forEach(i => {
-            const iDesde = new Date(i.desde + "-28");
-            const iHasta = i.hasta ? new Date(i.hasta + "-28") : new Date(9999,11,31);
-            const end = hastaDate < iHasta ? hastaDate : iHasta;
-            let current = new Date(iDesde > desdeDate ? iDesde : desdeDate);
-
-            while (current <= end) {
-                totalMensuales += i.monto;
-                current.setMonth(current.getMonth() + 1);
-            }
-        });
-
-        const cuentaRemunerada = await dbAll(db, "SELECT monto, desde, hasta FROM cuenta_remunerada");
-
-        let totalCuentaRemunerada = 0;
-        cuentaRemunerada.forEach(cr => {
-            const crDesde = new Date(cr.desde + "-28");
-            const crHasta = cr.hasta ? new Date(cr.hasta + "-28") : new Date(9999,11,31);
-            const end = hastaDate < crHasta ? hastaDate : crHasta;
-            let current = new Date(crDesde > desdeDate ? crDesde : desdeDate);
-
-            while (current <= end) {
-                totalCuentaRemunerada += cr.monto;
-                current.setMonth(current.getMonth() + 1);
-            }
-        });
-
-        res.json({
-            totalPuntuales,
-            totalMensuales,
-            totalCuentaRemunerada,
-            totalIngresos: totalPuntuales + totalMensuales + totalCuentaRemunerada
-        });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-/**
- * GET /gastos-mes - Obtener gastos agrupados por mes
- */
-router.get('/gastos-mes', async (req,res) => {
-    try {
-        const { desde, hasta, categoria_id } = req.query;
-        if (!desde || !hasta) return res.status(400).send("Debes enviar desde y hasta en formato YYYY-MM-DD");
-
-        const desdeDate = new Date(desde);
-        const hastaDate = new Date(hasta);
-
-        const meses = [];
-        let current = new Date(desdeDate.getFullYear(), desdeDate.getMonth(), 1);
-        const end = new Date(hastaDate.getFullYear(), hastaDate.getMonth(), 1);
-        while(current <= end){
-            const mesStr = `${current.getFullYear()}-${String(current.getMonth()+1).padStart(2,'0')}`;
-            meses.push({ mes: mesStr, total: 0 });
-            current.setMonth(current.getMonth()+1);
+        if (!row || !row.min || !row.max) {
+            const hoy = new Date();
+            const haceUnAnio = new Date(hoy.getFullYear() - 1, hoy.getMonth(), hoy.getDate());
+            return res.json({ min: formatDateLocal(haceUnAnio), max: formatDateLocal(hoy) });
         }
 
-        const gastosP = await gastosPuntualesService.getByMonth(desde, hasta, categoria_id);
-        gastosP.forEach(g => {
-            const mes = g.fecha.slice(0,7);
-            const m = meses.find(x=>x.mes===mes);
-            if(m) m.total += g.monto;
-        });
-
-        const gastosMensuales = await gastosMensualesService.getAllForCalculations(categoria_id);
-        gastosMensuales.forEach(g=>{
-            const start = new Date(g.desde + "-28");
-            const finish = g.hasta ? new Date(g.hasta + "-28") : new Date(9999,11,31);
-            const endRef = hastaDate < finish ? hastaDate : finish;
-
-            meses.forEach(m=>{
-                const mes28 = new Date(m.mes + "-28");
-                if(mes28 >= start && mes28 <= endRef){
-                    m.total += g.monto;
-                }
-            });
-        });
-
-        res.json(meses);
-    } catch(err) {
-        res.status(500).json({ error: err.message });
+        return res.json({ min: row.min, max: row.max });
+    } catch (err) {
+        console.error('Error en /dashboard-rango-fechas:', err);
+        return res.status(500).json({ error: err.message });
     }
 });
 
 /**
- * GET /ingresos-mes - Obtener ingresos agrupados por mes
+ * GET /dashboard-real - Obtener datos base para dashboard real
  */
-router.get('/ingresos-mes', async (req,res) => {  
+router.get('/dashboard-real', async (req, res) => {
     try {
-        const { desde, hasta, categoria_id } = req.query;
-        if (!desde || !hasta) return res.status(400).send("Debes enviar desde y hasta en formato YYYY-MM-DD");
+        const gastos_reales = await gastosRealesService.getAll(config.QUERY_LIMIT);
+        const ingresos_reales = await ingresosRealesService.getAll(config.QUERY_LIMIT);
 
-        const desdeDate = new Date(desde);
-        const hastaDate = new Date(hasta);
-
-        const meses = [];
-        let current = new Date(desdeDate.getFullYear(), desdeDate.getMonth(), 1);
-        const end = new Date(hastaDate.getFullYear(), hastaDate.getMonth(), 1);
-        while(current <= end){
-            const mesStr = `${current.getFullYear()}-${String(current.getMonth()+1).padStart(2,'0')}`;
-            meses.push({ mes: mesStr, total: 0 });
-            current.setMonth(current.getMonth()+1);
-        }
-
-        const ingresosP = await ingresosPuntualesService.getByMonth(desde, hasta, categoria_id);
-        ingresosP.forEach(i=>{
-            const mes = i.fecha.slice(0,7);
-            const m = meses.find(x=>x.mes===mes);
-            if(m) m.total += i.monto;
+        res.json({
+            gastos_reales,
+            ingresos_reales,
+            cuenta_remunerada: []
         });
-
-        const ingresosMensuales = await ingresosMensualesService.getAllForCalculations(categoria_id);
-        ingresosMensuales.forEach(i=>{
-            const start = new Date(i.desde + "-28");
-            const finish = i.hasta ? new Date(i.hasta + "-28") : new Date(9999,11,31);
-            const endRef = hastaDate < finish ? hastaDate : finish;
-
-            meses.forEach(m=>{
-                const mes28 = new Date(m.mes + "-28");
-                if(mes28 >= start && mes28 <= endRef){
-                    m.total += i.monto;
-                }
-            });
-        });
-
-        res.json(meses);
-    } catch(err) {
+    } catch (err) {
+        console.error('Error en /dashboard-real:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
 /**
- * GET /impuestos-mes - Obtener impuestos agrupados por mes
+ * GET /impuestos-mes - Obtener impuestos ingresos  agrupados por mes
  */
 router.get('/impuestos-mes', async (req, res) => {
     try {
         const { desde, hasta } = req.query;
         if (!desde || !hasta) return res.status(400).send("Debes enviar desde y hasta en formato YYYY-MM-DD");
 
-        const desdeDate = new Date(desde);
         const hastaDate = new Date(hasta);
-
-        const meses = [];
-        let current = new Date(desdeDate.getFullYear(), desdeDate.getMonth(), 1);
-        const end = new Date(hastaDate.getFullYear(), hastaDate.getMonth(), 1);
-        while(current <= end){
-            const mesStr = `${current.getFullYear()}-${String(current.getMonth()+1).padStart(2,'0')}`;
-            meses.push({ mes: mesStr, impuestos: 0 });
-            current.setMonth(current.getMonth()+1);
-        }
+        const meses = generarArrayMeses(desde, hasta, { impuestos: 0 });
 
         const ingresosPBruto = await dbAll(db, `
             SELECT bruto, monto, fecha 
@@ -272,11 +155,7 @@ router.get('/impuestos-mes', async (req, res) => {
             WHERE fecha BETWEEN ? AND ? AND bruto IS NOT NULL AND bruto != monto
         `, [desde, hasta]);
         
-        ingresosPBruto.forEach(i => {
-            const mes = i.fecha.slice(0, 7);
-            const m = meses.find(x => x.mes === mes);
-            if(m) m.impuestos += i.bruto - i.monto;
-        });
+        agregarImpuestosPuntualesPorMes(ingresosPBruto, meses, 'impuestos');
 
         const ingresosMBruto = await dbAll(db, `
             SELECT bruto, monto, desde, hasta 
@@ -284,17 +163,7 @@ router.get('/impuestos-mes', async (req, res) => {
             WHERE bruto IS NOT NULL AND bruto != monto
         `);
         
-        ingresosMBruto.forEach(i => {
-            meses.forEach(m => {
-                const mes28 = new Date(m.mes + "-28");
-                const inicio28 = new Date(i.desde + "-28");
-                const fin28 = i.hasta ? new Date(i.hasta + "-28") : new Date(9999, 11, 31);
-                
-                if(mes28 >= inicio28 && mes28 <= fin28 && mes28 <= hastaDate) {
-                    m.impuestos += i.bruto - i.monto;
-                }
-            });
-        });
+        agregarImpuestosMensualesPorMes(ingresosMBruto, meses, hastaDate, 'impuestos');
 
         res.json(meses);
     } catch(err) {
@@ -303,146 +172,96 @@ router.get('/impuestos-mes', async (req, res) => {
 });
 
 /**
- * GET /ahorros-mes - Obtener ahorros agrupados por mes
+ * GET /impuestos-mes-real - Impuestos reales (no aplica, retorna cero)
+ */
+router.get('/impuestos-mes-real', async (req, res) => {
+    try {
+        const { desde, hasta } = req.query;
+        if (!desde || !hasta) return res.status(400).send("Debes enviar desde y hasta en formato YYYY-MM-DD");
+
+        const meses = generarArrayMeses(desde, hasta, { impuestos: 0 });
+        res.json(meses);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * GET /ahorros-mes - devuelve  ingresos netos: , 
+            cuentas_remuneradas generado intereses: , 
+            gastos: tabla gastos mensuales + puntuales, 
+            impuestos_ingresos: calculados desde ingresos (bruto - monto), 
+            impuestos_otros: tabla impuestos puntuales + mensuales, 
+            ahorros:  (ingresos + cuentas_remuneradas) - gastos - impuestos_otros
  */
 router.get('/ahorros-mes', async (req, res) => {
     try {
         const { desde, hasta, categoria_id } = req.query;
         if (!desde || !hasta) return res.status(400).send("Debes enviar desde y hasta en formato YYYY-MM-DD");
 
-        const desdeDate = new Date(desde);
         const hastaDate = new Date(hasta);
+        const meses = generarArrayMeses(desde, hasta, { 
+            ingresos: 0, 
+            cuentas_remuneradas: 0, 
+            gastos: 0, 
+            impuestos_ingresos: 0, 
+            impuestos_otros: 0, 
+            ahorros: 0 
+        });
 
-        const meses = [];
-        let current = new Date(desdeDate.getFullYear(), desdeDate.getMonth(), 1);
-        const end = new Date(hastaDate.getFullYear(), hastaDate.getMonth(), 1);
-        while(current <= end){
-            const mesStr = `${current.getFullYear()}-${String(current.getMonth()+1).padStart(2,'0')}`;
-            meses.push({ mes: mesStr, ingresos: 0, cuentas_remuneradas: 0, gastos: 0, impuestos_ingresos: 0, impuestos_otros: 0, ahorros: 0 });
-            current.setMonth(current.getMonth()+1);
-        }
-
-        // Ingresos puntuales
+        // Ingresos
         const ingresosP = await ingresosPuntualesService.getByMonth(desde, hasta, categoria_id);
-        ingresosP.forEach(i => {
-            const mes = i.fecha.slice(0,7);
-            const m = meses.find(x => x.mes === mes);
-            if(m) m.ingresos += i.monto;
-        });
+        agregarPuntualesPorMes(ingresosP, meses, 'ingresos');
 
-        // Ingresos mensuales
         const ingresosM = await ingresosMensualesService.getAllForCalculations(categoria_id);
-        ingresosM.forEach(i => {
-            const start = new Date(i.desde + "-28");
-            const finish = i.hasta ? new Date(i.hasta + "-28") : new Date(9999,11,31);
-            const endRef = hastaDate < finish ? hastaDate : finish;
-
-            meses.forEach(m => {
-                const mes28 = new Date(m.mes + "-28");
-                if(mes28 >= start && mes28 <= endRef) m.ingresos += i.monto;
-            });
-        });
+        agregarMensualesPorMes(ingresosM, meses, hastaDate, 'ingresos');
 
         // Cuenta remunerada
         const cuentasRemuneradas = await dbAll(db, "SELECT monto, aportacion_mensual, interes, desde, hasta FROM cuenta_remunerada");
         cuentasRemuneradas.forEach(cr => {
-            const start = new Date(cr.desde + "-28");
-            const finish = cr.hasta ? new Date(cr.hasta + "-28") : new Date(9999,11,31);
-            const endRef = hastaDate < finish ? hastaDate : finish;
-
             const interesesMensuales = calcularInteresesMensuales(cr.monto, cr.aportacion_mensual || 0, cr.interes || 0, cr.desde, cr.hasta);
-
             meses.forEach(m => {
-                const mes28 = new Date(m.mes + "-28");
-                if(mes28 >= start && mes28 <= endRef) {
+                if (esMensualActivo(m.mes, hastaDate, cr.desde, cr.hasta)) {
                     m.cuentas_remuneradas += interesesMensuales[m.mes] || 0;
                 }
             });
         });
 
-        // Gastos puntuales
+        // Gastos
         const gastosP = await gastosPuntualesService.getByMonth(desde, hasta, categoria_id);
-        gastosP.forEach(g => {
-            const mes = g.fecha.slice(0,7);
-            const m = meses.find(x => x.mes === mes);
-            if(m) m.gastos += g.monto;
-        });
+        agregarPuntualesPorMes(gastosP, meses, 'gastos');
 
-        // Gastos mensuales
         const gastosM = await gastosMensualesService.getAllForCalculations(categoria_id);
-        gastosM.forEach(g => {
-            const start = new Date(g.desde + "-28");
-            const finish = g.hasta ? new Date(g.hasta + "-28") : new Date(9999,11,31);
-            const endRef = hastaDate < finish ? hastaDate : finish;
+        agregarMensualesPorMes(gastosM, meses, hastaDate, 'gastos');
 
-            meses.forEach(m => {
-                const mes28 = new Date(m.mes + "-28");
-                if(mes28 >= start && mes28 <= endRef) m.gastos += g.monto;
-            });
-        });
-
-        // Impuestos desde ingresos (bruto - monto) - INGRESOS PUNTUALES
+        // Impuestos desde ingresos (bruto - monto)
         const ingresosPBruto = await dbAll(db, `
             SELECT bruto, monto, fecha 
             FROM ingresos_puntuales 
             WHERE fecha BETWEEN ? AND ? AND bruto IS NOT NULL AND bruto != monto
         `, [desde, hasta]);
-        
-        ingresosPBruto.forEach(i => {
-            const mes = i.fecha.slice(0, 7);
-            const m = meses.find(x => x.mes === mes);
-            if(m) m.impuestos_ingresos += i.bruto - i.monto;
-        });
+        agregarImpuestosPuntualesPorMes(ingresosPBruto, meses, 'impuestos_ingresos');
 
-        // Impuestos desde ingresos (bruto - monto) - INGRESOS MENSUALES
         const ingresosMBruto = await dbAll(db, `
             SELECT bruto, monto, desde, hasta 
             FROM ingresos_mensuales 
             WHERE bruto IS NOT NULL AND bruto != monto
         `);
-        
-        ingresosMBruto.forEach(i => {
-            meses.forEach(m => {
-                const mes28 = new Date(m.mes + "-28");
-                const inicio28 = new Date(i.desde + "-28");
-                const fin28 = i.hasta ? new Date(i.hasta + "-28") : new Date(9999, 11, 31);
-                
-                if(mes28 >= inicio28 && mes28 <= fin28 && mes28 <= hastaDate) {
-                    m.impuestos_ingresos += i.bruto - i.monto;
-                }
-            });
-        });
+        agregarImpuestosMensualesPorMes(ingresosMBruto, meses, hastaDate, 'impuestos_ingresos');
 
-        // Impuestos OTROS - PUNTUALES (tabla impuestos_puntuales)
+        // Impuestos otros (tabla impuestos)
         const impuestosP = await dbAll(db, `
             SELECT monto, fecha
             FROM impuestos_puntuales
             WHERE fecha BETWEEN ? AND ?
         `, [desde, hasta]);
-        
-        impuestosP.forEach(i => {
-            const mes = i.fecha.slice(0, 7);
-            const m = meses.find(x => x.mes === mes);
-            if(m) m.impuestos_otros += i.monto;
-        });
+        agregarPuntualesPorMes(impuestosP, meses, 'impuestos_otros');
 
-        // Impuestos OTROS - MENSUALES (tabla impuestos_mensuales)
         const impuestosM = await dbAll(db, `
             SELECT monto, desde, hasta
             FROM impuestos_mensuales
         `);
-        
-        impuestosM.forEach(i => {
-            meses.forEach(m => {
-                const mes28 = new Date(m.mes + "-28");
-                const inicio28 = new Date(i.desde + "-28");
-                const fin28 = i.hasta ? new Date(i.hasta + "-28") : new Date(9999, 11, 31);
-                
-                if(mes28 >= inicio28 && mes28 <= fin28 && mes28 <= hastaDate) {
-                    m.impuestos_otros += i.monto;
-                }
-            });
-        });
+        agregarMensualesPorMes(impuestosM, meses, hastaDate, 'impuestos_otros');
 
         // Calcular ahorros
         meses.forEach(m => m.ahorros = (m.ingresos + m.cuentas_remuneradas) - m.gastos - m.impuestos_otros);
@@ -451,6 +270,40 @@ router.get('/ahorros-mes', async (req, res) => {
 
     } catch(err) {
         console.error('❌ Error en /ahorros-mes:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * GET /ahorros-mes-real - Ahorros usando ingresos/gastos reales
+ */
+router.get('/ahorros-mes-real', async (req, res) => {
+    try {
+        const { desde, hasta, categoria_id } = req.query;
+        if (!desde || !hasta) return res.status(400).send("Debes enviar desde y hasta en formato YYYY-MM-DD");
+
+        const meses = generarArrayMeses(desde, hasta, {
+            ingresos: 0,
+            cuentas_remuneradas: 0,
+            gastos: 0,
+            impuestos_ingresos: 0,
+            impuestos_otros: 0,
+            ahorros: 0
+        });
+
+        const ingresosP = await ingresosRealesService.getByMonth(desde, hasta, categoria_id);
+        agregarPuntualesPorMes(ingresosP, meses, 'ingresos');
+
+        const gastosP = await gastosRealesService.getByMonth(desde, hasta, categoria_id);
+        agregarPuntualesPorMes(gastosP, meses, 'gastos');
+
+        meses.forEach(m => {
+            m.ahorros = (m.ingresos + m.cuentas_remuneradas) - m.gastos - m.impuestos_otros;
+        });
+
+        res.json(meses);
+    } catch (err) {
+        console.error('❌ Error en /ahorros-mes-real:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -526,28 +379,56 @@ router.get('/categorias-periodo', async (req, res) => {
 });
 
 /**
- * GET /gastos-categoria-mes - Obtener gastos por categoría y mes
+ * GET /categorias-periodo-real - Obtener gastos e ingresos reales por categoria
+ */
+router.get('/categorias-periodo-real', async (req, res) => {
+    try {
+        const { desde, hasta } = req.query;
+        if (!desde || !hasta) return res.status(400).send("Debes enviar desde y hasta en formato YYYY-MM-DD");
+
+        const gastos = await dbAll(db, `
+            SELECT c.nombre AS categoria, SUM(gr.monto) AS total
+            FROM gastos_reales gr
+            JOIN categorias c ON gr.categoria_id = c.id
+            WHERE gr.fecha BETWEEN ? AND ?
+            GROUP BY c.nombre
+        `, [desde, hasta]);
+
+        const ingresos = await dbAll(db, `
+            SELECT c.nombre AS categoria, SUM(ir.monto) AS total
+            FROM ingresos_reales ir
+            JOIN categorias c ON ir.categoria_id = c.id
+            WHERE ir.fecha BETWEEN ? AND ?
+            GROUP BY c.nombre
+        `, [desde, hasta]);
+
+        const gastosCat = {};
+        const ingresosCat = {};
+        gastos.forEach(g => gastosCat[g.categoria] = g.total);
+        ingresos.forEach(i => ingresosCat[i.categoria] = i.total);
+
+        res.json({ gastos: gastosCat, ingresos: ingresosCat });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * GET /gastos-categoria-mes - Obtener gastos por categoría y mes (se añade impuestos tabla standalone)
  */
 router.get('/gastos-categoria-mes', async (req, res) => {
     try {
         const { desde, hasta } = req.query;
         if (!desde || !hasta) return res.status(400).send("Debes enviar desde y hasta en formato YYYY-MM-DD");
 
-        const desdeDate = new Date(desde);
         const hastaDate = new Date(hasta);
-
-        const meses = [];
-        let current = new Date(desdeDate.getFullYear(), desdeDate.getMonth(), 1);
-        const end = new Date(hastaDate.getFullYear(), hastaDate.getMonth(), 1);
-        while(current <= end){
-            const mesStr = `${current.getFullYear()}-${String(current.getMonth()+1).padStart(2,'0')}`;
-            meses.push(mesStr);
-            current.setMonth(current.getMonth() + 1);
-        }
-
+        const meses = generarArrayMeses(desde, hasta);
+        
+        // Crear objeto para datos de categorías por mes
         const dataMesCat = {};
-        meses.forEach(m => dataMesCat[m] = {});
+        meses.forEach(m => dataMesCat[m.mes] = {});
 
+        // Gastos puntuales
         const gastosP = await dbAll(db, `
             SELECT g.monto, c.nombre AS categoria, g.fecha
             FROM gastos_puntuales g
@@ -559,6 +440,7 @@ router.get('/gastos-categoria-mes', async (req, res) => {
             if(dataMesCat[mes]) dataMesCat[mes][g.categoria] = (dataMesCat[mes][g.categoria] || 0) + g.monto;
         });
 
+        // Gastos mensuales
         const gastosM = await dbAll(db, `
             SELECT g.monto, g.desde, g.hasta, c.nombre AS categoria
             FROM gastos_mensuales g
@@ -566,16 +448,13 @@ router.get('/gastos-categoria-mes', async (req, res) => {
         `);
         gastosM.forEach(g => {
             meses.forEach(m => {
-                const mes28 = new Date(m + "-28");
-                const gDesde = new Date(g.desde + "-28");
-                const gHasta = g.hasta ? new Date(g.hasta + "-28") : new Date(9999,11,31);
-                if(mes28 >= gDesde && mes28 <= gHasta && mes28 <= hastaDate){
-                    dataMesCat[m][g.categoria] = (dataMesCat[m][g.categoria] || 0) + g.monto;
+                if(esMensualActivo(m.mes, hastaDate, g.desde, g.hasta)){
+                    dataMesCat[m.mes][g.categoria] = (dataMesCat[m.mes][g.categoria] || 0) + g.monto;
                 }
             });
         });
 
-        // Impuestos como categoría "taxes"
+        // Impuestos puntuales como categoría "taxes"
         const impuestosP = await dbAll(db, `
             SELECT i.monto, i.fecha
             FROM impuestos_puntuales i
@@ -586,17 +465,15 @@ router.get('/gastos-categoria-mes', async (req, res) => {
             if(dataMesCat[mes]) dataMesCat[mes]['taxes'] = (dataMesCat[mes]['taxes'] || 0) + i.monto;
         });
 
+        // Impuestos mensuales
         const impuestosM = await dbAll(db, `
             SELECT i.monto, i.desde, i.hasta
             FROM impuestos_mensuales i
         `);
         impuestosM.forEach(i => {
             meses.forEach(m => {
-                const mes28 = new Date(m + "-28");
-                const iDesde = new Date(i.desde + "-28");
-                const iHasta = i.hasta ? new Date(i.hasta + "-28") : new Date(9999,11,31);
-                if(mes28 >= iDesde && mes28 <= iHasta && mes28 <= hastaDate){
-                    dataMesCat[m]['taxes'] = (dataMesCat[m]['taxes'] || 0) + i.monto;
+                if(esMensualActivo(m.mes, hastaDate, i.desde, i.hasta)){
+                    dataMesCat[m.mes]['taxes'] = (dataMesCat[m.mes]['taxes'] || 0) + i.monto;
                 }
             });
         });
@@ -604,6 +481,38 @@ router.get('/gastos-categoria-mes', async (req, res) => {
         res.json(dataMesCat);
 
     } catch(err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * GET /gastos-categoria-mes-real - Gastos reales por categoria y mes
+ */
+router.get('/gastos-categoria-mes-real', async (req, res) => {
+    try {
+        const { desde, hasta } = req.query;
+        if (!desde || !hasta) return res.status(400).send("Debes enviar desde y hasta en formato YYYY-MM-DD");
+
+        const meses = generarArrayMeses(desde, hasta);
+        const dataMesCat = {};
+        meses.forEach(m => dataMesCat[m.mes] = {});
+
+        const gastosP = await dbAll(db, `
+            SELECT gr.monto, c.nombre AS categoria, gr.fecha
+            FROM gastos_reales gr
+            JOIN categorias c ON gr.categoria_id = c.id
+            WHERE gr.fecha BETWEEN ? AND ?
+        `, [desde, hasta]);
+
+        gastosP.forEach(g => {
+            const mes = g.fecha.slice(0, 7);
+            if (dataMesCat[mes]) {
+                dataMesCat[mes][g.categoria] = (dataMesCat[mes][g.categoria] || 0) + g.monto;
+            }
+        });
+
+        res.json(dataMesCat);
+    } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });

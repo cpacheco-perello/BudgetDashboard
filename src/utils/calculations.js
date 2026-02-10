@@ -110,10 +110,141 @@ function generarDescripcionRandom() {
     return `Cuenta-${ids}-${timestamp}`;
 }
 
+/**
+ * Genera un array de meses entre dos fechas
+ * @param {Date|string} desde - Fecha inicial
+ * @param {Date|string} hasta - Fecha final
+ * @param {Object} initialValue - Valor inicial para cada mes (default: { total: 0 })
+ * @returns {Array} Array de objetos con { mes: 'YYYY-MM', ...initialValue }
+ */
+function generarArrayMeses(desde, hasta, initialValue = { total: 0 }) {
+    const desdeDate = typeof desde === 'string' ? new Date(desde) : desde;
+    const hastaDate = typeof hasta === 'string' ? new Date(hasta) : hasta;
+    
+    const meses = [];
+    let current = new Date(desdeDate.getFullYear(), desdeDate.getMonth(), 1);
+    const end = new Date(hastaDate.getFullYear(), hastaDate.getMonth(), 1);
+    
+    while (current <= end) {
+        const mesStr = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+        meses.push({ mes: mesStr, ...initialValue });
+        current.setMonth(current.getMonth() + 1);
+    }
+    
+    return meses;
+}
+
+/**
+ * Calcula si un registro mensual está activo en un mes específico
+ * @param {string} mes - Mes en formato YYYY-MM
+ * @param {Date} hastaDate - Fecha límite del período
+ * @param {string} registroDesde - Inicio del registro mensual (YYYY-MM)
+ * @param {string} registroHasta - Fin del registro mensual (YYYY-MM) o null
+ * @returns {boolean}
+ */
+function esMensualActivo(mes, hastaDate, registroDesde, registroHasta) {
+    const mes28 = new Date(mes + "-28");
+    const inicio28 = new Date(registroDesde + "-28");
+    const fin28 = registroHasta ? new Date(registroHasta + "-28") : new Date(9999, 11, 31);
+    
+    return mes28 >= inicio28 && mes28 <= fin28 && mes28 <= hastaDate;
+}
+
+/**
+ * Calcula impuestos desde el campo bruto (bruto - monto)
+ * @param {Array} registros - Array de registros con campos bruto y monto
+ * @returns {number} Total de impuestos
+ */
+function calcularImpuestosDesdeRruto(registros) {
+    return registros.reduce((total, r) => {
+        if (r.bruto && r.bruto !== r.monto) {
+            return total + (r.bruto - r.monto);
+        }
+        return total;
+    }, 0);
+}
+
+/**
+ * Calcula impuestos de ingresos puntuales por mes
+ * @param {Array} ingresos - Ingresos puntuales con bruto
+ * @param {Object} mesesObj - Objeto donde agregar los impuestos por mes
+ * @param {string} campo - Campo donde guardar el resultado (default: 'impuestos')
+ */
+function agregarImpuestosPuntualesPorMes(ingresos, mesesObj, campo = 'impuestos') {
+    ingresos.forEach(i => {
+        if (i.bruto && i.bruto !== i.monto) {
+            const mes = i.fecha.slice(0, 7);
+            const mesData = mesesObj.find(m => m.mes === mes);
+            if (mesData) {
+                mesData[campo] = (mesData[campo] || 0) + (i.bruto - i.monto);
+            }
+        }
+    });
+}
+
+/**
+ * Calcula impuestos de ingresos mensuales por mes
+ * @param {Array} ingresos - Ingresos mensuales con bruto
+ * @param {Array} meses - Array de meses
+ * @param {Date} hastaDate - Fecha límite
+ * @param {string} campo - Campo donde guardar el resultado (default: 'impuestos')
+ */
+function agregarImpuestosMensualesPorMes(ingresos, meses, hastaDate, campo = 'impuestos') {
+    ingresos.forEach(i => {
+        if (i.bruto && i.bruto !== i.monto) {
+            meses.forEach(m => {
+                if (esMensualActivo(m.mes, hastaDate, i.desde, i.hasta)) {
+                    m[campo] = (m[campo] || 0) + (i.bruto - i.monto);
+                }
+            });
+        }
+    });
+}
+
+/**
+ * Agrega transacciones puntuales a un array de meses
+ * @param {Array} transacciones - Array de transacciones con fecha y monto
+ * @param {Array} meses - Array de meses donde agregar
+ * @param {string} campo - Campo donde sumar (default: 'total')
+ */
+function agregarPuntualesPorMes(transacciones, meses, campo = 'total') {
+    transacciones.forEach(t => {
+        const mes = t.fecha.slice(0, 7);
+        const mesData = meses.find(m => m.mes === mes);
+        if (mesData) {
+            mesData[campo] = (mesData[campo] || 0) + t.monto;
+        }
+    });
+}
+
+/**
+ * Agrega transacciones mensuales a un array de meses
+ * @param {Array} transacciones - Array de transacciones con desde, hasta y monto
+ * @param {Array} meses - Array de meses donde agregar
+ * @param {Date} hastaDate - Fecha límite del período
+ * @param {string} campo - Campo donde sumar (default: 'total')
+ */
+function agregarMensualesPorMes(transacciones, meses, hastaDate, campo = 'total') {
+    transacciones.forEach(t => {
+        meses.forEach(m => {
+            if (esMensualActivo(m.mes, hastaDate, t.desde, t.hasta)) {
+                m[campo] = (m[campo] || 0) + t.monto;
+            }
+        });
+    });
+}
+
 module.exports = {
     calcularInteresGenerado,
     calcularInteresesMensuales,
     restarFecha,
     contarMesesDesde28,
-    generarDescripcionRandom
+    generarDescripcionRandom,
+    generarArrayMeses,
+    esMensualActivo,
+    calcularImpuestosDesdeRruto,
+    agregarImpuestosPuntualesPorMes,
+    agregarImpuestosMensualesPorMes,
+    agregarPuntualesPorMes,
+    agregarMensualesPorMes
 };

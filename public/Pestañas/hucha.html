@@ -1,26 +1,26 @@
 <section id="hucha" class="tab" style="display:block;">
-    <h2 data-i18n="nav.hucha">Hucha Real</h2>
+  <h2 data-i18n="nav.hucha">Hucha Real</h2>
 
-    <div style="margin-bottom:15px;"></div>
+  <div class="mb-15"></div>
 
-    <table id="tablaHucha">
-        <thead>
-            <tr>
-                <th data-i18n="hucha.concepto">Concepto</th>
-                <th data-i18n="hucha.cantidad">Cantidad</th>
-                <th style="width:120px;" data-i18n="tablas.acciones">Acciones</th>
-            </tr>
-            <tr class="insert-row">
-                <td><input type="text" id="conceptoHucha" data-i18n-placeholder="hucha.placeholderConcepto"></td>
-                <td>
-                    <div class="input-euro" style="display:flex;align-items:center;gap:8px;">
-                        <span>€</span>
-                        <input type="number" id="cantidadHucha" step="0.01" data-i18n-placeholder="formularios.placeholderMonto" style="width:100px;">
-                    </div>
-                </td>
-                <td><button id="btnAgregarHucha"><i class="fas fa-plus"></i></button></td>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+  <table id="tablaHucha">
+    <thead>
+      <tr>
+        <th data-i18n="hucha.concepto">Concepto</th>
+        <th data-i18n="hucha.cantidad">Cantidad</th>
+        <th class="w-120" data-i18n="tablas.acciones">Acciones</th>
+      </tr>
+      <tr class="insert-row">
+        <td><input type="text" id="conceptoHucha" data-i18n-placeholder="hucha.placeholderConcepto"></td>
+        <td>
+          <div class="input-euro flex-gap-8">
+            <span>€</span>
+            <input type="number" id="cantidadHucha" step="0.01" data-i18n-placeholder="formularios.placeholderMonto" style="width:100px;">
+          </div>
+        </td>
+        <td><button id="btnAgregarHucha"><i class="fas fa-plus"></i></button></td>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 </section>

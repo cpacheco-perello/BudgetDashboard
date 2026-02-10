@@ -1,7 +1,7 @@
 class GestorIdiomas {
     constructor() {
         this.idiomaActual = localStorage.getItem('idioma') || 'es';
-        this.idiomas = ['es', 'en', 'pt', 'fr', 'eu'];
+        this.idiomas = ['es', 'en', 'pt', 'fr', 'eu', 'ca'];
         this.inicializar();
     }
 

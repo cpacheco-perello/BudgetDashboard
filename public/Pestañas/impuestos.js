@@ -105,8 +105,8 @@ async function inicializarTaxes() {
     
     if (toggleBtns.length) {
         const updateAll = () => {
-            const textoMostrar = impuestosManager.t('gastos.mostrarAntiguos', 'Mostrar antiguos');
-            const textoOcultar = impuestosManager.t('gastos.ocultarAntiguos', 'Ocultar antiguos');
+            const textoMostrar = impuestosManager.t('taxes.mostrarAntiguos', 'Mostrar antiguos');
+            const textoOcultar = impuestosManager.t('taxes.ocultarAntiguos', 'Ocultar antiguos');
             toggleBtns.forEach(b => b.textContent = window.showOldImpuestos ? textoOcultar : textoMostrar);
         };
         toggleBtns.forEach(b => b.addEventListener('click', () => {
@@ -144,8 +144,8 @@ async function inicializarTaxes() {
     // ===== LISTENER PARA CAMBIOS DE IDIOMA =====
     document.addEventListener('idiomaActualizado', () => {
         if (toggleBtns.length) {
-            const textoMostrar = impuestosManager.t('gastos.mostrarAntiguos', 'Mostrar antiguos');
-            const textoOcultar = impuestosManager.t('gastos.ocultarAntiguos', 'Ocultar antiguos');
+            const textoMostrar = impuestosManager.t('taxes.mostrarAntiguos', 'Mostrar antiguos');
+            const textoOcultar = impuestosManager.t('taxes.ocultarAntiguos', 'Ocultar antiguos');
             toggleBtns.forEach(b => b.textContent = window.showOldImpuestos ? textoOcultar : textoMostrar);
         }
     });

@@ -1,0 +1,114 @@
+const fs = require('fs');
+const path = require('path');
+
+const USERS_ROOT = path.join(process.cwd(), 'usuarios');
+const CURRENT_USER_FILE = path.join(USERS_ROOT, '.current_user.json');
+const PROFILE_FILE_NAME = 'profile.json';
+
+function ensureDir(dirPath) {
+    if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
+    }
+}
+
+function ensureUsersRoot() {
+    ensureDir(USERS_ROOT);
+}
+
+function normalizeUserName(name) {
+    if (typeof name !== 'string') {
+        throw new Error('Nombre de usuario requerido');
+    }
+    const trimmed = name.trim();
+    if (!trimmed) {
+        throw new Error('Nombre de usuario requerido');
+    }
+    if (/[<>:"/\\|?*\x00-\x1F]/.test(trimmed)) {
+        throw new Error('Nombre de usuario invalido');
+    }
+    if (trimmed.includes('..')) {
+        throw new Error('Nombre de usuario invalido');
+    }
+    return trimmed;
+}
+
+function listUsers() {
+    ensureUsersRoot();
+    return fs.readdirSync(USERS_ROOT, { withFileTypes: true })
+        .filter(entry => entry.isDirectory())
+        .map(entry => entry.name)
+        .filter(name => !name.startsWith('.'))
+        .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+}
+
+function getUserPaths(userName) {
+    const safeName = normalizeUserName(userName);
+    const userRoot = path.join(USERS_ROOT, safeName);
+    return {
+        userRoot,
+        finanzasDir: path.join(userRoot, 'finanzas'),
+        dbPath: path.join(userRoot, 'finanzas', 'finanzas.db'),
+        uploadsDir: path.join(userRoot, 'uploads', 'importaciones'),
+        profilePath: path.join(userRoot, PROFILE_FILE_NAME)
+    };
+}
+
+function ensureUserFolders(userName) {
+    const paths = getUserPaths(userName);
+    ensureDir(paths.userRoot);
+    ensureDir(paths.finanzasDir);
+    ensureDir(paths.uploadsDir);
+    return paths;
+}
+
+function readLastUser() {
+    try {
+        if (!fs.existsSync(CURRENT_USER_FILE)) return null;
+        const data = JSON.parse(fs.readFileSync(CURRENT_USER_FILE, 'utf8'));
+        return data && typeof data.name === 'string' ? data.name : null;
+    } catch (err) {
+        return null;
+    }
+}
+
+function saveLastUser(name) {
+    ensureUsersRoot();
+    fs.writeFileSync(CURRENT_USER_FILE, JSON.stringify({ name }, null, 2), 'utf8');
+}
+
+function readUserProfile(name) {
+    const paths = getUserPaths(name);
+    try {
+        if (!fs.existsSync(paths.profilePath)) return {};
+        const data = JSON.parse(fs.readFileSync(paths.profilePath, 'utf8'));
+        return data && typeof data === 'object' ? data : {};
+    } catch (err) {
+        return {};
+    }
+}
+
+function saveUserProfile(name, profile) {
+    const paths = getUserPaths(name);
+    ensureDir(paths.userRoot);
+    fs.writeFileSync(paths.profilePath, JSON.stringify(profile || {}, null, 2), 'utf8');
+    return profile || {};
+}
+
+function setUserIcon(name, icon) {
+    const profile = readUserProfile(name);
+    profile.icon = icon;
+    return saveUserProfile(name, profile);
+}
+
+module.exports = {
+    USERS_ROOT,
+    normalizeUserName,
+    listUsers,
+    getUserPaths,
+    ensureUserFolders,
+    readLastUser,
+    saveLastUser,
+    readUserProfile,
+    saveUserProfile,
+    setUserIcon
+};

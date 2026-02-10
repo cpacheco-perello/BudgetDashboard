@@ -1,37 +1,36 @@
 const { app: electronApp, BrowserWindow } = require('electron');
-const server = require('./src/app'); // Ruta actualizada al app refactorizado
-const config = require('./src/config/config');
+const path = require('path');
+const { registerIpcHandlers } = require('./src/ipc/ipcHandlers');
 
 let mainWindow;
 
 async function startApp() {
     try {
-        const PORT = config.PORT;
+        console.log('🚀 Iniciando aplicación...');
 
-        // Iniciar backend
-        const srv = server.listen(PORT, () => {
-            console.log(`✅ Backend escuchando en http://localhost:${PORT}`);
+        // Registrar handlers IPC
+        registerIpcHandlers();
 
-            // Crear ventana principal solo cuando el backend esté listo
-            mainWindow = new BrowserWindow({
-                width: 1200,
-                height: 800,
-                webPreferences: {
-                    nodeIntegration: false,
-                    contextIsolation: true
-                }
-            });
-
-            mainWindow.loadURL(`http://localhost:${PORT}`);
-
-            mainWindow.on('closed', () => {
-                mainWindow = null;
-            });
+        // Crear ventana principal
+        mainWindow = new BrowserWindow({
+            width: 1200,
+            height: 800,
+            webPreferences: {
+                nodeIntegration: false,
+                contextIsolation: true,
+                preload: path.join(__dirname, 'preload.js'),
+                devTools: false
+            }
         });
 
-        srv.on('error', (err) => {
-            console.error('❌ No se pudo iniciar el servidor. Tal vez el puerto está ocupado.', err);
+        // Cargar el archivo HTML directamente
+        mainWindow.loadFile(path.join(__dirname, 'public', 'index.html'));
+
+        mainWindow.on('closed', () => {
+            mainWindow = null;
         });
+
+        console.log('✅ Aplicación iniciada correctamente');
 
     } catch (err) {
         console.error('❌ Error iniciando la app:', err);

@@ -1,0 +1,229 @@
+<div id="importacion-bancaria">
+  <div class="importacion-container">
+    <!-- SECCIÓN 0: Archivos Guardados -->
+    <div id="archivosSection" class="card">
+      <h3 data-i18n="importacion.archivosGuardados">Archivos Guardados</h3>
+      
+      <div id="listadoArchivos" class="archivos-list max-height-300 overflow-auto">
+        <p class="text-center color-secondary" data-i18n="importacion.cargandoArchivos">Cargando archivos guardados...</p>
+      </div>
+
+      <div class="mt-15 text-center">
+        <button id="btnRefrescarArchivos" class="btn-secondary mr-10" data-i18n="importacion.btnActualizar">
+          <i class="fas fa-sync-alt"></i> Actualizar
+        </button>
+        <button id="btnNuevoArchivo" class="btn-primary" data-i18n="importacion.btnNuevoArchivo">
+          <i class="fas fa-plus"></i> Nuevo Archivo
+        </button>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 1: Carga de archivo -->
+    <div id="uploadSection" class="card card-upload display-none">
+      <h3 data-i18n="importacion.titulo">Importar Movimientos Bancarios</h3>
+      <p data-i18n="importacion.descripcion">Sube un archivo Excel con tus movimientos bancarios</p>
+      
+      <div class="upload-area" id="uploadArea">
+        <i class="fas fa-cloud-upload-alt"></i>
+        <p data-i18n="importacion.arrastrarArchivo">Arrastra aquí tu archivo Excel o haz clic para seleccionar</p>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" class="display-none">
+      </div>
+
+      <div id="fileProgress" class="display-none mt-15">
+        <div class="progress-bar">
+          <div id="progressFill" class="progress-fill"></div>
+        </div>
+        <p id="progressText" class="text-center font-size-12 color-secondary"></p>
+      </div>
+
+      <div class="mt-20 text-center">
+        <button id="btnVolver" class="btn-secondary" data-i18n="importacion.btnVolver">
+          <i class="fas fa-arrow-left"></i> Volver
+        </button>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 2: Detección y mapeo de columnas -->
+    <div id="mapeoSection" class="card display-none">
+      <h3 data-i18n="importacion.mapeoColumnas">Mapeo de Columnas</h3>
+      <p data-i18n="importacion.detectadoCampos">Se detectaron los siguientes campos. Por favor, confirma cuál es cada uno:</p>
+      
+      <div class="mapeo-container">
+        <div class="mapeo-field">
+          <label data-i18n="importacion.campoFecha">Columna de Fecha:</label>
+          <select id="selectFecha" class="mapeo-select">
+            <option value="">-- Selecciona --</option>
+          </select>
+          <input type="text" id="formatoFecha" placeholder="ej: DD/MM/YYYY" class="input-formato mt-5">
+        </div>
+
+        <div class="mapeo-field">
+          <label data-i18n="importacion.campoConcepto">Columna de Concepto/Descripción:</label>
+          <select id="selectConcepto" class="mapeo-select">
+            <option value="">-- Selecciona --</option>
+          </select>
+        </div>
+
+        <div class="mapeo-field">
+          <label data-i18n="importacion.campoImporte">Columna de Importe:</label>
+          <select id="selectImporte" class="mapeo-select">
+            <option value="">-- Selecciona --</option>
+          </select>
+        </div>
+
+        <div class="mapeo-field">
+          <label data-i18n="importacion.campoTipo">Tipo de Transacción (Opcional):</label>
+          <select id="selectTipo" class="mapeo-select">
+            <option value="">-- Ninguno (se auto-detectará) --</option>
+          </select>
+          <p class="font-size-11 color-secondary" data-i18n="importacion.ayudaTipo">Los positivos serán ingresos, negativos gastos</p>
+        </div>
+
+        <div class="mapeo-field">
+          <label data-i18n="importacion.campoSaldo">Columna de Saldo (Opcional):</label>
+          <select id="selectSaldo" class="mapeo-select">
+            <option value="">-- Ninguno (se auto-detectará) --</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- PREVIEW DE DATOS -->
+      <div id="previewSection" class="mt-20">
+        <h4 data-i18n="importacion.vista_previa">Vista Previa de Datos</h4>
+        <div class="table-wrapper">
+          <table id="previewTable" class="preview-table">
+            <thead>
+              <tr id="previewHeader"></tr>
+            </thead>
+            <tbody id="previewBody"></tbody>
+          </table>
+        </div>
+        <p class="font-size-11 color-secondary mt-10" id="previewInfo"></p>
+      </div>
+
+      <div class="mapeo-actions mt-20">
+        <button id="btnMapear" class="btn-primary" data-i18n="importacion.confirmarMapeo">Confirmar Mapeo</button>
+        <button id="btnCancelarMapeo" class="btn-secondary" data-i18n="importacion.cancelar">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 2.5: Selección de Conceptos -->
+    <div id="seleccionConceptosSection" class="card display-none">
+      <h3 data-i18n="importacion.seleccionConceptos">Seleccionar Conceptos</h3>
+      <p data-i18n="importacion.descripcionSeleccion">Selecciona los conceptos que deseas incluir en el análisis</p>
+      
+      <div class="conceptos-header mt-15 mb-10">
+        <button id="btnSeleccionarTodos" class="btn-secondary btn-small mr-10">
+          <i class="fas fa-check-square"></i> Seleccionar Todos
+        </button>
+        <button id="btnDeseleccionarTodos" class="btn-secondary btn-small">
+          <i class="fas fa-square"></i> Deseleccionar Todos
+        </button>
+      </div>
+
+      <div id="listaConceptos" class="conceptos-list max-height-400 overflow-auto">
+        <!-- Se llenará dinámicamente -->
+      </div>
+
+      <div class="conceptos-actions mt-20">
+        <button id="btnConfirmarConceptos" class="btn-primary" data-i18n="importacion.continuar">Continuar al Análisis</button>
+        <button id="btnVolverMapeo" class="btn-secondary" data-i18n="importacion.volver">Volver al Mapeo</button>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 2.7: Selección de Categorías -->
+    <div id="seleccionCategoriasSection" class="card display-none">
+      <h3 data-i18n="importacion.seleccionCategorias">Seleccionar Categorías</h3>
+      <p data-i18n="importacion.descripcionCategorias">Asigna categoría a cada concepto/movimiento</p>
+      
+      <div class="categorias-table mt-20">
+        <div class="table-wrapper">
+          <table id="tablaCategorias" class="preview-table">
+            <thead>
+              <tr>
+                <th data-i18n="importacion.tipo">Tipo</th>
+                <th data-i18n="importacion.concepto">Concepto</th>
+                <th data-i18n="importacion.cantidad">Cantidad</th>
+                <th data-i18n="importacion.categoria">Categoría</th>
+              </tr>
+            </thead>
+            <tbody id="tablaCategoriasBodies">
+              <!-- Se llenará dinámicamente -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="categorias-actions mt-20">
+        <button id="btnConfirmarCategorias" class="btn-primary" data-i18n="importacion.continuar">Continuar</button>
+        <button id="btnVolverAnalisis" class="btn-secondary" data-i18n="importacion.volver">Volver al Análisis</button>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 3: Análisis y Gráficos -->
+    <div id="analisisSection" class="card display-none">
+      <h3 data-i18n="importacion.analisisMovimientos">Análisis de Movimientos</h3>
+      
+      <div class="analisis-controls">
+        <div class="control-group">
+          <label data-i18n="importacion.filtrarDesde">Desde:</label>
+          <input type="date" id="analisisDesde" class="input-control">
+        </div>
+        <div class="control-group">
+          <label data-i18n="importacion.filtrarHasta">Hasta:</label>
+          <input type="date" id="analisisHasta" class="input-control">
+        </div>
+        <button id="btnActualizarAnalisis" class="btn-secondary" data-i18n="importacion.actualizar">Actualizar</button>
+      </div>
+
+      <!-- GRÁFICOS -->
+      <div class="graficos-container">
+        <div class="chart-box">
+          <h4 data-i18n="importacion.movimientosPorCategoria">Movimientos por Categoría</h4>
+          <canvas id="chartCategoria"></canvas>
+        </div>
+        <div >
+          <h4 data-i18n="importacion.ingresoVsGasto">Ingresos vs Gastos</h4>
+          <div class="table-area">
+            <div class="table-toggle" id="tablaConceptosToggle">
+              <button class="btn-secondary btn-small btn-toggle active" type="button" data-filter="gasto">Gastos</button>
+              <button class="btn-secondary btn-small btn-toggle" type="button" data-filter="ingreso">Ingresos</button>
+            </div>
+            <div class="table-wrapper scroll-table">
+              <table class="preview-table">
+                <thead>
+                  <tr>
+                    <th>Concepto</th>
+                    <th>Importe</th>
+                    <th>Movimientos</th>
+                  </tr>
+                </thead>
+                <tbody id="tablaConceptosBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="chart-box">
+          <h4 data-i18n="importacion.evolucionSaldo">Evolución del Saldo</h4>
+          <canvas id="chartEvolucionSaldo"></canvas>
+        </div>
+        <div class="chart-box">
+          <h4 data-i18n="importacion.movimientosPorMes">Movimientos por Mes</h4>
+          <canvas id="chartMovimientosPorMes"></canvas>
+        </div>
+      </div>
+
+      <div class="analisis-actions mt-20">
+        <button id="btnExportarAnalisis" class="btn-secondary" data-i18n="importacion.exportarDatos">
+          <i class="fas fa-download"></i> Exportar Datos
+        </button>
+        <button id="btnGuardarEnBD" class="btn-primary" data-i18n="importacion.guardarEnBD">
+          <i class="fas fa-database"></i> Guardar en BD
+        </button>
+        <button id="btnNuevaImportacion" class="btn-primary" data-i18n="importacion.nueva">
+          <i class="fas fa-plus"></i> Nueva Importación
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

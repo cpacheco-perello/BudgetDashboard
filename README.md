@@ -1,110 +1,47 @@
 # Economic Dashboard
 
-A lightweight **personal finance dashboard** to track your **income, expenses, and savings**. Visualize your financial data with **charts for monthly totals, category breakdowns, and trends**. Designed for simplicity and clarity, ideal for personal budgeting and financial planning.
+A lightweight personal finance dashboard to track income, expenses, savings, and assets. The app runs locally with Electron and stores data in a SQLite database per user. It focuses on clear charts, practical budgeting workflows, and quick data entry.
 
----
+## Features
 
-## ✨ Features
+- Track income, expenses, savings, taxes, and cash buckets ("Hucha")
+- Monthly summaries, category breakdowns, and trend charts
+- Date range filters and category filtering
+- Multilingual UI (ES, EN, PT, FR, EU, CA)
+- 18+ theme options
+- Asset tracking with live prices from Yahoo Finance
+- Interest-bearing accounts with automatic interest calculations
+- Bank import from CSV/XLS/XLSX
 
-- Track **income, expenses, and savings** over time  
-- Visualize data by categories with **doughnut and stacked bar charts**  
-- Calculate **monthly averages and variances**  
-- Filter by **date range and category**  
-- **Multilingual support** (ES, EN, PT, FR, EU)
-- **18+ theme options** for customization
-- **Asset management** with real-time stock prices via Yahoo Finance
-- **Interest-bearing accounts** with automatic calculations
-- **Modular architecture** for easy maintenance
+## Usage (Quick Guide)
 
----
+1. Launch the app and create or select a user.
+2. Create categories for expenses, income, and taxes.
+3. Add one-time or monthly transactions.
+4. Use the Dashboard tab to view summaries and trends.
+5. Import bank files from the Import tab if needed.
+6. Track assets and interest-bearing accounts for a complete view.
 
-## 🚀 Quick Start
+## Data Storage
 
-### Installation
+- All data is stored locally, per user, under the usuarios/ folder.
+- Each user has their own SQLite database and upload folder.
+- No cloud sync is included by default.
 
-```bash
-# Install dependencies
-npm install
+## Bank Import
 
-# Start the application
-npm start
-```
+- Supported formats: CSV, XLS, XLSX.
+- Files are saved per user and can be reviewed before importing.
 
-### Configuration
+## Assets and Prices
 
-1. Copy `.env.example` to `.env`
-2. Adjust settings if needed (defaults work out of the box)
-
-```bash
-cp .env.example .env
-```
-
----
-
-## 📁 Project Structure
-
-The project has been refactored into a **modular architecture**:
-
-- **`src/config/`** - Configuration and database setup
-- **`src/routes/`** - API routes organized by domain
-- **`src/services/`** - Reusable business logic
-- **`src/migrations/`** - Versioned database migrations
-- **`src/middleware/`** - Security, CORS, error handling
-- **`src/utils/`** - Helpers and utilities
-
-📖 See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed documentation.
-
----
-
-## 🗄️ Database Migrations
-
-Migrations run **automatically** on startup:
-
-```
-✅ Creating migration 001_initial_tables
-✅ Creating migration 002_add_indexes
-✅ All migrations completed successfully
-```
-
-To add a new migration, create `src/migrations/00X_name.js`:
-
-```javascript
-async function up(db, dbRun) {
-    await dbRun(db, `CREATE TABLE ...`);
-}
-
-async function down(db, dbRun) {
-    await dbRun(db, `DROP TABLE ...`);
-}
-
-module.exports = { up, down };
-```
-
----
+- Asset prices are fetched from Yahoo Finance.
+- Prices are converted to EUR using an exchange rate API when needed.
 
 ## Screenshots
 
-### Monthly Overview
-![Preview 1](Imatges/Preview1.png)
+![Preview 1](Imatges/Preview0.png)
 
-### Category Breakdown
+
 ![Preview 2](Imatges/Preview2.png)
-
----
-
-## 🏗️ Recent Improvements
-
-- ✅ **Modular architecture** - Reduced from 1742 lines to 20+ organized files
-- ✅ **Versioned migrations** - Automatic database schema management
-- ✅ **Eliminated code duplication** - Generic services for CRUD operations
-- ✅ **Performance indexes** - 40% faster queries
-- ✅ **Centralized configuration** - Environment variables support
-
----
-
-## 📝 License
-
-This project is for personal use.
-
----
 

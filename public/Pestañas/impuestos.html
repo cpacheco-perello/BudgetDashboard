@@ -1,77 +1,77 @@
 <section id="impuestos" class="tab" style="display:block;">
-    <h2 data-i18n="nav.impuestos">Administrar Impuestos</h2>
+  <h2 data-i18n="nav.impuestos">Administrar Impuestos</h2>
 
-    <!-- Subpestañas -->
-    <div style="margin-bottom:15px;">
-        <button class="subtab-btn" data-target="tabImpuestosPuntuales" data-i18n="tabs.puntuales">Puntuales</button>
-        <button class="subtab-btn" data-target="tabImpuestosMensuales" data-i18n="tabs.mensuales">Mensuales</button>
-    </div>
+  <!-- Subpestañas -->
+  <div class="mb-15">
+    <button class="subtab-btn" data-target="tabImpuestosPuntuales" data-i18n="tabs.puntuales">Puntuales</button>
+    <button class="subtab-btn" data-target="tabImpuestosMensuales" data-i18n="tabs.mensuales">Mensuales</button>
+  </div>
 
-    <!-- IMPUESTOS PUNTUALES -->
-    <div id="tabImpuestosPuntuales" class="subtab" style="display:block;">
-        <h3 data-i18n="taxes.agregarPuntual">Impuestos Puntuales</h3>
-        <div style="margin-bottom:8px;">
-            <button id="toggleImpuestosPuntualesAntiguos" class="small-btn" data-i18n="gastos.mostrarAntiguos">Mostrar antiguos</button>
-        </div>
-        <table id="tabla-impuestos-puntuales" class="tabla-dinâmica">
-            <thead>
-                <tr>
-                    <th data-i18n="tablas.fecha">Fecha</th>
-                    <th data-i18n="tablas.descripcion">Descripción</th>
-                    <th data-i18n="tablas.monto">Monto</th>
-                    <th data-i18n="tablas.categoria">Categoría</th>
-                    <th style="width:120px;" data-i18n="tablas.acciones">Acciones</th>
-                </tr>
-                <tr class="insert-row">
-                    <td><input type="date" id="fecha-impuesto-p"></td>
-                    <td><input type="text" id="desc-impuesto-p" data-i18n-placeholder="formularios.placeholderDescripcion"></td>
-                    <td>
-                        <div class="input-euro">
-                            <span>€</span>
-                            <input type="number" id="monto-impuesto-p" step="0.01" data-i18n-placeholder="formularios.placeholderMonto">
-                        </div>
-                    </td>
-                    <td><select id="cat-impuesto-p"></select></td>
-                    <td><button id="btnAgregarImpuestoPuntual"><i class="fas fa-plus"></i></button></td>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+  <!-- IMPUESTOS PUNTUALES -->
+  <div id="tabImpuestosPuntuales" class="subtab" style="display:block;">
+    <h3 data-i18n="taxes.agregarPuntual">Impuestos Puntuales</h3>
+    <div class="mb-8">
+      <button id="toggleImpuestosPuntualesAntiguos" class="small-btn" data-i18n="gastos.mostrarAntiguos">Mostrar antiguos</button>
     </div>
+    <table id="tabla-impuestos-puntuales" class="tabla-dinâmica">
+      <thead>
+        <tr>
+          <th data-i18n="tablas.fecha">Fecha</th>
+          <th data-i18n="tablas.descripcion">Descripción</th>
+          <th data-i18n="tablas.monto">Monto</th>
+          <th data-i18n="tablas.categoria">Categoría</th>
+          <th class="w-120" data-i18n="tablas.acciones">Acciones</th>
+        </tr>
+        <tr class="insert-row">
+          <td><input type="date" id="fecha-impuesto-p"></td>
+          <td><input type="text" id="desc-impuesto-p" data-i18n-placeholder="formularios.placeholderDescripcion"></td>
+          <td>
+            <div class="input-euro">
+              <span>€</span>
+              <input type="number" id="monto-impuesto-p" step="0.01" data-i18n-placeholder="formularios.placeholderMonto">
+            </div>
+          </td>
+          <td><select id="cat-impuesto-p"></select></td>
+          <td><button id="btnAgregarImpuestoPuntual"><i class="fas fa-plus"></i></button></td>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
-    <!-- IMPUESTOS MENSUALES -->
-    <div id="tabImpuestosMensuales" class="subtab" style="display:none;">
-        <h3 data-i18n="taxes.agregarMensual">Impuestos Mensuales</h3>
-        <div style="margin-bottom:8px;">
-            <button id="toggleImpuestosMensualesAntiguos" class="small-btn" data-i18n="impuestos.mostrarAntiguos">Mostrar antiguos</button>
-        </div>
-        <table id="tabla-impuestos-mensuales" class="tabla-dinâmica">
-            <thead>
-                <tr>
-                    <th data-i18n="tablas.descripcion">Descripción</th>
-                    <th data-i18n="tablas.monto">Monto</th>
-                    <th data-i18n="tablas.categoria">Categoría</th>
-                    <th data-i18n="formularios.desde">Desde</th>
-                    <th data-i18n="formularios.hasta">Hasta</th>
-                    <th style="width:120px;" data-i18n="tablas.acciones">Acciones</th>
-                </tr>
-                <tr class="insert-row">
-                    <td><input type="text" id="desc-impuesto-m" data-i18n-placeholder="formularios.placeholderDescripcion"></td>
-                    <td>
-                        <div class="input-euro">
-                            <span>€</span>
-                            <input type="number" id="monto-impuesto-m" step="0.01" data-i18n-placeholder="formularios.placeholderMonto">
-                        </div>
-                    </td>
-                    <td><select id="cat-impuesto-m"></select></td>
-                    <td><input type="date" id="desde-impuesto-m"></td>
-                    <td><input type="date" id="hasta-impuesto-m"></td>
-                    <td><button id="btnAgregarImpuestoMensual"><i class="fas fa-plus"></i></button></td>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+  <!-- IMPUESTOS MENSUALES -->
+  <div id="tabImpuestosMensuales" class="subtab display-none">
+    <h3 data-i18n="taxes.agregarMensual">Impuestos Mensuales</h3>
+    <div class="mb-8">
+      <button id="toggleImpuestosMensualesAntiguos" class="small-btn" data-i18n="impuestos.mostrarAntiguos">Mostrar antiguos</button>
     </div>
+    <table id="tabla-impuestos-mensuales" class="tabla-dinâmica">
+      <thead>
+        <tr>
+          <th data-i18n="tablas.descripcion">Descripción</th>
+          <th data-i18n="tablas.monto">Monto</th>
+          <th data-i18n="tablas.categoria">Categoría</th>
+          <th data-i18n="formularios.desde">Desde</th>
+          <th data-i18n="formularios.hasta">Hasta</th>
+          <th class="w-120" data-i18n="tablas.acciones">Acciones</th>
+        </tr>
+        <tr class="insert-row">
+          <td><input type="text" id="desc-impuesto-m" data-i18n-placeholder="formularios.placeholderDescripcion"></td>
+          <td>
+            <div class="input-euro">
+              <span>€</span>
+              <input type="number" id="monto-impuesto-m" step="0.01" data-i18n-placeholder="formularios.placeholderMonto">
+            </div>
+          </td>
+          <td><select id="cat-impuesto-m"></select></td>
+          <td><input type="date" id="desde-impuesto-m"></td>
+          <td><input type="date" id="hasta-impuesto-m"></td>
+          <td><button id="btnAgregarImpuestoMensual"><i class="fas fa-plus"></i></button></td>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
 </section>
 

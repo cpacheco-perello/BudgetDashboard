@@ -11,6 +11,7 @@ class BaseService {
         this.tableName = tableName;
         this.dateField = dateField; // 'fecha' for puntual, 'desde' for mensual
         this.hasIncome = tableName.includes('ingresos');
+        this.hasBruto = this.hasIncome && this.tableName !== 'ingresos_reales';
     }
 
     /**
@@ -21,7 +22,7 @@ class BaseService {
     async getAll(limit = 500) {
         const dateSelect = this.dateField ? `e.${this.dateField},` : '';
         const hastaField = this.tableName.includes('mensuales') ? 'e.hasta,' : '';
-        const bruteField = this.hasIncome ? 'e.bruto,' : '';
+        const bruteField = this.hasBruto ? 'e.bruto,' : '';
         
         return await dbAll(db, `
             SELECT 
@@ -44,7 +45,7 @@ class BaseService {
      * @param {Object} data - Record data
      */
     async add(data) {
-        const { descripcion, monto, bruto, categoria_id, fecha, desde, hasta } = data;
+        const { descripcion, monto, bruto, categoria_id, fecha, desde, hasta, archivo_origen } = data;
         
         // Build INSERT based on table structure
         const columns = ['descripcion', 'monto', 'categoria_id'];
@@ -69,10 +70,16 @@ class BaseService {
             values.push(hasta);
         }
 
-        if (this.hasIncome && bruto !== undefined) {
+        if (this.hasBruto && bruto !== undefined) {
             columns.push('bruto');
             placeholders.push('?');
             values.push(bruto || null);
+        }
+
+        if (archivo_origen !== undefined) {
+            columns.push('archivo_origen');
+            placeholders.push('?');
+            values.push(archivo_origen);
         }
 
         const sql = `INSERT INTO ${this.tableName} (${columns.join(', ')}) VALUES (${placeholders.join(', ')})`;
@@ -126,7 +133,7 @@ class BaseService {
             updates.push('hasta = ?');
             values.push(hasta);
         }
-        if (this.hasIncome && bruto !== undefined) {
+        if (this.hasBruto && bruto !== undefined) {
             updates.push('bruto = ?');
             values.push(bruto || null);
         }

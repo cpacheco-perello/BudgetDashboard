@@ -87,6 +87,41 @@ function createEntityRoutes(entityName, puntualService, mensualService) {
         }
     });
 
+    /**
+     * Import multiple puntual entities (for bank import)
+     */
+    router.post(`/import/${entityName}_puntual`, async (req, res) => {
+        try {
+            const { datos } = req.body;
+            if (!Array.isArray(datos) || datos.length === 0) {
+                return res.status(400).json({ error: 'No hay datos para importar' });
+            }
+
+            const resultados = [];
+            for (const item of datos) {
+                try {
+                    await puntualService.add(item);
+                    resultados.push({ ...item, ok: true });
+                } catch (err) {
+                    resultados.push({ ...item, ok: false, error: err.message });
+                }
+            }
+
+            const exitosos = resultados.filter(r => r.ok).length;
+            const fallidos = resultados.filter(r => !r.ok).length;
+
+            res.json({
+                success: true,
+                total: datos.length,
+                exitosos,
+                fallidos,
+                detalles: resultados
+            });
+        } catch (err) {
+            res.status(500).json({ error: err.message || 'Error en la importación' });
+        }
+    });
+
     return router;
 }
 

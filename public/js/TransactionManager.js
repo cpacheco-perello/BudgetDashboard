@@ -7,6 +7,7 @@ class TransactionManager {
         this.entityName = config.entityName; // 'gastos', 'ingresos', 'impuestos'
         this.entityNameSingular = config.entityNameSingular || config.entityName; // 'gasto', 'ingreso', 'impuesto' para endpoints
         this.endpoints = config.endpoints; // { puntuales, mensuales, delete, categorias }
+        this.updateEndpoints = config.updateEndpoints || null; // { puntual, mensual, cuentaRemunerada }
         this.tables = config.tables; // { puntuales, mensuales } - selectores de tbody
         this.selects = config.selects; // { puntuales, mensuales } - selectores de categoria
         this.showOldFlag = config.showOldFlag || 'showOldItems'; // flag para filtrar antiguos
@@ -368,11 +369,11 @@ class TransactionManager {
 
     // ===== ACTUALIZAR =====
     async updateItem(id, data, type) {
-        const endpoint = type === 'puntual' 
+        const endpoint = this.updateEndpoints?.[type] || (type === 'puntual' 
             ? `/update/${this.entityNameSingular}_puntual`
             : type === 'mensual'
             ? `/update/${this.entityNameSingular}_mensual`
-            : `/update/cuenta_remunerada`;
+            : `/update/cuenta_remunerada`);
 
         await fetch(endpoint, {
             method: 'POST',

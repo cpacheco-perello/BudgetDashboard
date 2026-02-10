@@ -31,13 +31,37 @@ function cargarIngresosForm() {
         customColumns: {
             puntual: ['fecha', 'descripcion', 'monto', 'bruto', 'categoria'],
             mensual: ['desde', 'hasta', 'descripcion', 'monto', 'bruto', 'categoria'],
-            cuentaRemunerada: ['desde', 'hasta', 'monto', 'aportacion_mensual', 'interes', 'interes_generado', 'categoria']
+            cuentaRemunerada: ['desde', 'hasta', 'descripcion', 'monto', 'aportacion_mensual', 'interes', 'interes_generado', 'categoria']
         },
         showOldFlag: 'showOldIngresos'
     });
 
+    // Inicializar TransactionManager para ingresos reales
+    const ingresosRealesManager = new TransactionManager({
+        entityName: 'ingresos_reales',
+        entityNameSingular: 'ingreso_real',
+        categoryType: 'ingresos',
+        endpoints: {
+            puntuales: 'ingresos_reales',
+            delete: {
+                puntual: '/delete/ingreso_real'
+            }
+        },
+        updateEndpoints: {
+            puntual: '/update/ingreso_real'
+        },
+        tables: {
+            puntuales: '#tablaIngresosReales tbody'
+        },
+        selects: {
+            puntuales: '#categoriaIngresoReal'
+        },
+        showOldFlag: 'showOldIngresosReales'
+    });
+
     // Inicializar manager
     ingresosManager.init();
+    ingresosRealesManager.init();
 
     // ===== AGREGAR INGRESO PUNTUAL =====
     document.getElementById('btnAgregarIngresoPuntual').onclick = async () => {
@@ -64,6 +88,32 @@ function cargarIngresosForm() {
         document.getElementById('brutoIngresoPuntual').value = '';
         
         ingresosManager.loadData();
+        if (typeof cargarResumenPeriodos === 'function') cargarResumenPeriodos();
+    };
+
+    // ===== AGREGAR INGRESO REAL =====
+    document.getElementById('btnAgregarIngresoReal').onclick = async () => {
+        const fecha = document.getElementById('fechaIngresoReal').value;
+        const descripcion = document.getElementById('descIngresoReal').value;
+        const monto = parseFloat(document.getElementById('montoIngresoReal').value);
+        const categoria_id = document.getElementById('categoriaIngresoReal').value;
+
+        if (!fecha) return showAlert(ingresosManager.t('ingresos.seleccionaFecha', 'Selecciona una fecha'));
+        if (!descripcion) return showAlert(ingresosManager.t('ingresos.ingresaDescripcion', 'Ingresa una descripción'));
+        if (isNaN(monto) || monto <= 0) return showAlert(ingresosManager.t('ingresos.montoInvalido', 'Monto inválido'));
+        if (!categoria_id) return showAlert(ingresosManager.t('ingresos.seleccionaCategoria', 'Selecciona una categoría'));
+
+        await fetch('/add/ingreso_real', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fecha, descripcion, monto, categoria_id, archivo_origen: 'manual' })
+        });
+
+        document.getElementById('fechaIngresoReal').value = '';
+        document.getElementById('descIngresoReal').value = '';
+        document.getElementById('montoIngresoReal').value = '';
+
+        ingresosRealesManager.loadData();
         if (typeof cargarResumenPeriodos === 'function') cargarResumenPeriodos();
     };
 
@@ -109,6 +159,7 @@ function cargarIngresosForm() {
         btnAgregarCR.onclick = async () => {
             const desde = document.getElementById('desdeCuentaRemunerada').value;
             const hasta = document.getElementById('hastaCuentaRemunerada').value;
+            const descripcion = document.getElementById('descCuentaRemunerada').value;
             const monto = parseFloat(document.getElementById('montoCuentaRemunerada').value);
             const aportacion_mensual = parseFloat(document.getElementById('aportacionMensualCR').value) || null;
             const interes = parseFloat(document.getElementById('interesCuentaRemunerada').value) || null;
@@ -128,11 +179,12 @@ function cargarIngresosForm() {
             await fetch('/add/cuenta_remunerada', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ desde, hasta, monto, aportacion_mensual, interes, categoria_id })
+                body: JSON.stringify({ desde, hasta, descripcion, monto, aportacion_mensual, interes, categoria_id })
             });
 
             document.getElementById('desdeCuentaRemunerada').value = '';
             document.getElementById('hastaCuentaRemunerada').value = '';
+            document.getElementById('descCuentaRemunerada').value = '';
             document.getElementById('montoCuentaRemunerada').value = '';
             document.getElementById('aportacionMensualCR').value = '';
             document.getElementById('interesCuentaRemunerada').value = '';
@@ -171,6 +223,9 @@ function cargarIngresosForm() {
                     <td class="diff-percent">—</td>
                     <td class="diff-amount">—</td>
                     <td>
+                        <button class="historyAssetBtn btn-info" data-ticker="${asset.ticker}" title="${ingresosManager.t('ingresos.verHistorico', 'Ver histórico')}" style="margin-right:8px;">
+                            <i class="fas fa-question-circle"></i>
+                        </button>
                         <button class="editAssetBtn btn-editar" title="${ingresosManager.t('formularios.editar')}" style="margin-right:8px;">
                             <i class="fas fa-edit"></i>
                         </button>
@@ -186,10 +241,8 @@ function cargarIngresosForm() {
                 
                 // Obtener precio actual
                 try {
-                    const priceRes = await fetch(`/asset-price/${asset.ticker}`);
-                    if (priceRes.ok) {
-                        const priceData = await priceRes.json();
-                        const currentPrice = priceData.currentPrice;
+                    const currentPrice = await window.getAssetPrice(asset.ticker);
+                    if (currentPrice) {
                         const currentValue = asset.shares * currentPrice;
                         const diffAmount = currentValue - totalInvestment;
                         const diffPercent = totalInvestment > 0 ? (diffAmount / totalInvestment) * 100 : 0;
@@ -224,6 +277,16 @@ function cargarIngresosForm() {
                 };
             });
             
+            // Ver histórico del asset
+            document.querySelectorAll('.historyAssetBtn').forEach(b => {
+                b.onclick = () => {
+                    const ticker = b.dataset.ticker;
+                    const tr = b.closest('tr');
+                    const company = tr.querySelector('[data-field="company"]').textContent;
+                    openHistoryModal(ticker, company);
+                };
+            });
+            
             // Vender assets
             document.querySelectorAll('.sellAsset').forEach(b => {
                 b.onclick = async () => {
@@ -233,9 +296,7 @@ function cargarIngresosForm() {
                     
                     let currentPrice = 0;
                     try {
-                        const priceRes = await fetch(`/asset-price/${asset.ticker}`);
-                        const priceData = await priceRes.json();
-                        currentPrice = priceData.currentPrice || asset.purchase_price;
+                        currentPrice = await window.getAssetPrice(asset.ticker) || asset.purchase_price;
                     } catch (e) {
                         currentPrice = asset.purchase_price;
                     }
@@ -444,11 +505,16 @@ function cargarIngresosForm() {
 
     // ===== TOGGLE MOSTRAR ANTIGUOS =====
     window.showOldIngresos = false;
+    window.showOldIngresosReales = false;
     
     const toggleBtns = [
         document.getElementById('toggleIngresosAntiguos'),
         document.getElementById('toggleIngresosMensualesAntiguos'),
         document.getElementById('toggleCuentaRemuneradaAntiguos')
+    ].filter(Boolean);
+
+    const toggleBtnsReales = [
+        document.getElementById('toggleIngresosRealesAntiguos')
     ].filter(Boolean);
     
     if (toggleBtns.length) {
@@ -465,6 +531,20 @@ function cargarIngresosForm() {
         }));
         
         updateAll();
+    }
+
+    if (toggleBtnsReales.length) {
+        const updateAllReales = () => {
+            const textoMostrar = ingresosRealesManager.t('ingresos.mostrarAntiguos', 'Mostrar antiguos');
+            const textoOcultar = ingresosRealesManager.t('ingresos.ocultarAntiguos', 'Ocultar antiguos');
+            toggleBtnsReales.forEach(b => b.textContent = window.showOldIngresosReales ? textoOcultar : textoMostrar);
+        };
+        toggleBtnsReales.forEach(b => b.addEventListener('click', () => {
+            window.showOldIngresosReales = !window.showOldIngresosReales;
+            updateAllReales();
+            ingresosRealesManager.loadData();
+        }));
+        updateAllReales();
     }
 
     // ===== SUBPESTAÑAS =====
@@ -499,8 +579,255 @@ function cargarIngresosForm() {
             const textoOcultar = ingresosManager.t('ingresos.ocultarAntiguos', 'Ocultar antiguos');
             toggleBtns.forEach(b => b.textContent = window.showOldIngresos ? textoOcultar : textoMostrar);
         }
+        if (toggleBtnsReales.length) {
+            const textoMostrar = ingresosRealesManager.t('ingresos.mostrarAntiguos', 'Mostrar antiguos');
+            const textoOcultar = ingresosRealesManager.t('ingresos.ocultarAntiguos', 'Ocultar antiguos');
+            toggleBtnsReales.forEach(b => b.textContent = window.showOldIngresosReales ? textoOcultar : textoMostrar);
+        }
     });
 
     // Cargar Assets
     cargarAssets();
+}
+
+// ===== MODAL DE HISTÓRICO DE ASSET =====
+let assetHistoryChart = null;
+
+/**
+ * Abre el modal con el gráfico histórico del ticker
+ */
+async function openHistoryModal(ticker, company) {
+    const modal = document.getElementById('assetHistoryModal');
+    const chartCanvas = document.getElementById('assetHistoryChart');
+    const loadingDiv = document.getElementById('historyChartLoading');
+    const tickerNameSpan = document.getElementById('historyTickerName');
+    
+    // Mostrar modal
+    modal.style.display = 'flex';
+    tickerNameSpan.textContent = `${ticker} - ${company}`;
+    
+    // Cerrar modal
+    document.getElementById('closeHistoryBtn').onclick = () => {
+        modal.style.display = 'none';
+        if (assetHistoryChart) {
+            assetHistoryChart.destroy();
+            assetHistoryChart = null;
+        }
+    };
+    
+    // Click fuera del modal para cerrar
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+            if (assetHistoryChart) {
+                assetHistoryChart.destroy();
+                assetHistoryChart = null;
+            }
+        }
+    };
+    
+    // Configurar botones de período
+    const periodBtns = modal.querySelectorAll('.period-btn');
+    periodBtns.forEach(btn => {
+        btn.onclick = async () => {
+            periodBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            await loadHistoricalChart(ticker, btn.dataset.period);
+        };
+    });
+    
+    // Resetear botones y activar el primero (1 mes)
+    periodBtns.forEach(b => b.classList.remove('active'));
+    if (periodBtns.length > 0) {
+        periodBtns[0].classList.add('active');
+    }
+    
+    // Cargar datos por defecto (1 mes)
+    await loadHistoricalChart(ticker, '1mo');
+}
+
+/**
+ * Carga y renderiza el gráfico histórico
+ */
+async function loadHistoricalChart(ticker, period = '1mo') {
+    const chartCanvas = document.getElementById('assetHistoryChart');
+    const loadingDiv = document.getElementById('historyChartLoading');
+    const modal = document.getElementById('assetHistoryModal');
+    
+    try {
+        // Actualizar el botón activo
+        const periodBtns = modal.querySelectorAll('.period-btn');
+        periodBtns.forEach(btn => {
+            if (btn.dataset.period === period) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        
+        // Mostrar indicador de carga
+        chartCanvas.style.display = 'none';
+        loadingDiv.style.display = 'block';
+        
+        // Destruir TODOS los gráficos asociados al canvas
+        if (assetHistoryChart) {
+            try {
+                assetHistoryChart.destroy();
+            } catch (e) {
+                console.warn('Error destruyendo gráfico global:', e);
+            }
+            assetHistoryChart = null;
+        }
+        
+        // Método 1: Usar Chart.getChart por ID
+        try {
+            const existingChart = Chart.getChart('assetHistoryChart');
+            if (existingChart) {
+                existingChart.destroy();
+            }
+        } catch (e) {
+            console.warn('Error con Chart.getChart:', e);
+        }
+        
+        // Método 2: Usar Chart.getChart por elemento canvas
+        try {
+            const existingChart2 = Chart.getChart(chartCanvas);
+            if (existingChart2) {
+                existingChart2.destroy();
+            }
+        } catch (e) {
+            console.warn('Error con Chart.getChart(canvas):', e);
+        }
+        
+        // Método 3: Forzar limpieza recreando el canvas
+        const parent = chartCanvas.parentNode;
+        const newCanvas = chartCanvas.cloneNode(true);
+        parent.replaceChild(newCanvas, chartCanvas);
+        const finalCanvas = document.getElementById('assetHistoryChart');
+        
+        // Obtener datos históricos
+        const response = await fetch(`/asset-history/${ticker}?period=${period}`);
+        if (!response.ok) {
+            throw new Error('No se pudieron obtener los datos');
+        }
+        
+        const result = await response.json();
+        const data = result.data;
+        
+        if (!data || data.length === 0) {
+            throw new Error('No hay datos disponibles para este período');
+        }
+        
+        // Preparar datos para el gráfico
+        const labels = data.map(item => item.date);
+        const prices = data.map(item => item.price);
+        
+        // Calcular estadísticas
+        const firstPrice = prices[0];
+        const lastPrice = prices[prices.length - 1];
+        const minPrice = Math.min(...prices);
+        const maxPrice = Math.max(...prices);
+        const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
+        const priceRange = maxPrice - minPrice;
+        
+        // Detectar si los datos son muy planos (variación < 0.5%)
+        const variation = (priceRange / avgPrice) * 100;
+        const isFlat = variation < 0.5;
+        
+        // Color basado en la tendencia
+        const color = lastPrice >= firstPrice ? '#22c55e' : '#ef4444';
+        
+        // Ocultar loading y mostrar canvas
+        loadingDiv.style.display = 'none';
+        finalCanvas.style.display = 'block';
+        
+        // Configurar escala Y - ajustar para datos planos
+        let yAxisConfig = {
+            display: true,
+            title: {
+                display: true,
+                text: 'Precio (€)'
+            },
+            ticks: {
+                callback: function(value) {
+                    return '€' + value.toFixed(2);
+                }
+            }
+        };
+        
+        // Si los datos son muy planos, ajustar la escala para mejor visualización
+        if (isFlat && priceRange > 0) {
+            const padding = priceRange * 2; // Añadir padding
+            yAxisConfig.min = minPrice - padding;
+            yAxisConfig.max = maxPrice + padding;
+        }
+        
+        // Crear gráfico en el nuevo canvas
+        const ctx = finalCanvas.getContext('2d');
+        assetHistoryChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: `Precio (€) ${isFlat ? '⚠️' : ''}`,
+                    data: prices,
+                    borderColor: color,
+                    backgroundColor: color + '20',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.1,
+                    pointRadius: data.length > 100 ? 0 : 2,
+                    pointHoverRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                return `Precio: €${context.parsed.y.toFixed(2)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Fecha'
+                        },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45,
+                            maxTicksLimit: 12
+                        }
+                    },
+                    y: yAxisConfig
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error cargando gráfico histórico:', error);
+        loadingDiv.innerHTML = `
+            <i class="fas fa-exclamation-circle" style="font-size: 24px; color: #ef4444;"></i>
+            <p style="margin-top: 10px; color: #ef4444;">Error al cargar los datos: ${error.message}</p>
+        `;
+        loadingDiv.style.display = 'block';
+        chartCanvas.style.display = 'none';
+    }
 }

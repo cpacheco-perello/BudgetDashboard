@@ -9,15 +9,15 @@ const router = express.Router();
  * POST /add/cuenta_remunerada - Agregar cuenta remunerada
  */
 router.post('/add/cuenta_remunerada', async (req, res) => {
-    const { monto, aportacion_mensual, interes, categoria_id, desde, hasta } = req.body;
+    const { descripcion, monto, aportacion_mensual, interes, categoria_id, desde, hasta } = req.body;
     try {
         const interesGenerado = calcularInteresGenerado(monto, aportacion_mensual || 0, interes || 0, desde, hasta);
-        const descripcion = generarDescripcionRandom();
+        const descripcionFinal = (descripcion || '').trim() || generarDescripcionRandom();
         
         await dbRun(db, `
             INSERT INTO cuenta_remunerada (descripcion, monto, aportacion_mensual, interes, interes_generado, categoria_id, desde, hasta)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `, [descripcion, monto, aportacion_mensual || null, interes || null, interesGenerado, categoria_id, desde, hasta]);
+        `, [descripcionFinal, monto, aportacion_mensual || null, interes || null, interesGenerado, categoria_id, desde, hasta]);
           
         res.sendStatus(200);
     } catch (err) {
@@ -41,19 +41,28 @@ router.post('/delete/cuenta_remunerada', async (req, res) => {
  * POST /update/cuenta_remunerada - Actualizar cuenta remunerada
  */
 router.post('/update/cuenta_remunerada', async (req, res) => {
-    const { id, desde, hasta, monto, aportacion_mensual, interes, categoria } = req.body;
+    const { id, desde, hasta, monto, aportacion_mensual, interes, categoria, categoria_id, descripcion } = req.body;
     try {
-        const cat = await dbGet(db, "SELECT id FROM categorias WHERE nombre = ? AND tipo = 'ingreso'", [categoria]);
-        if (!cat) return res.status(400).json({ error: "Categoría no encontrada" });
+        let catId = categoria_id;
+        if (!catId && categoria) {
+            const cat = await dbGet(db, "SELECT id FROM categorias WHERE nombre = ? AND tipo = 'ingreso'", [categoria]);
+            if (!cat) return res.status(400).json({ error: "Categoría no encontrada" });
+            catId = cat.id;
+        }
+        if (!catId) return res.status(400).json({ error: "Categoría es requerida" });
         
-        const descripcion = generarDescripcionRandom();
+        let descripcionFinal = (descripcion || '').trim();
+        if (!descripcionFinal) {
+            const existing = await dbGet(db, "SELECT descripcion FROM cuenta_remunerada WHERE id = ?", [id]);
+            descripcionFinal = existing?.descripcion || generarDescripcionRandom();
+        }
         const interesGenerado = calcularInteresGenerado(monto, aportacion_mensual, interes, desde, hasta);
         
         await dbRun(db, `
             UPDATE cuenta_remunerada 
             SET descripcion = ?, desde = ?, hasta = ?, monto = ?, aportacion_mensual = ?, interes = ?, interes_generado = ?, categoria_id = ?
             WHERE id = ?
-        `, [descripcion, desde, hasta, monto, aportacion_mensual || null, interes || null, interesGenerado, cat.id, id]);
+        `, [descripcionFinal, desde, hasta, monto, aportacion_mensual || null, interes || null, interesGenerado, catId, id]);
         
         res.json({ success: true });
     } catch (err) {

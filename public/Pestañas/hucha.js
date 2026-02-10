@@ -37,10 +37,61 @@ async function cargarHucha() {
             }
             return fallback || key;
         },
+
+        isCuentaRemuneradaActiva(cr, mesActual) {
+            if (!cr || !cr.desde || !cr.hasta) return false;
+            return cr.desde <= mesActual && mesActual <= cr.hasta;
+        },
+
+        calcularSaldoCuentaRemunerada(cr, mesActual) {
+            const monto = parseFloat(cr.monto) || 0;
+            const aportacion = parseFloat(cr.aportacion_mensual) || 0;
+            const interes = parseFloat(cr.interes) || 0;
+            if (!cr.desde || !mesActual) return monto;
+
+            const [desdeY, desdeM] = cr.desde.split('-').map(Number);
+            const [actualY, actualM] = mesActual.split('-').map(Number);
+
+            const desdeDate = new Date(desdeY, desdeM - 1, 1);
+            const actualMonthDate = new Date(actualY, actualM - 1, 1);
+            const mesInteresDate = new Date(actualY, actualM - 2, 1); // interés hasta fin del mes anterior
+
+            const monthsDiff =
+                (actualMonthDate.getFullYear() - desdeDate.getFullYear()) * 12 +
+                (actualMonthDate.getMonth() - desdeDate.getMonth());
+
+            const aportacionesAcumuladas = Math.max(0, monthsDiff) * aportacion;
+
+            let totalInteres = 0;
+            if (interes > 0 && mesInteresDate >= desdeDate) {
+                let saldoInteres = monto;
+                const current = new Date(desdeDate);
+
+                totalInteres += saldoInteres * (interes / 100) / 12;
+                current.setMonth(current.getMonth() + 1);
+
+                while (current <= mesInteresDate) {
+                    saldoInteres += aportacion;
+                    totalInteres += saldoInteres * (interes / 100) / 12;
+                    current.setMonth(current.getMonth() + 1);
+                }
+            }
+
+            return monto + aportacionesAcumuladas + totalInteres;
+        },
         
         async loadData() {
-            const res = await fetch('/hucha');
-            const data = await res.json();
+            const [resHucha, resCR, resAssets] = await Promise.all([
+                fetch('/hucha'),
+                fetch('/cuenta_remunerada'),
+                fetch('/assets')
+            ]);
+
+            const data = resHucha.ok ? await resHucha.json() : [];
+            const cuentasRemuneradas = resCR.ok ? await resCR.json() : [];
+            const assets = resAssets.ok ? await resAssets.json() : [];
+            const now = new Date();
+            const mesActual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
             
             this.tbody.innerHTML = '';
             data.forEach(item => {
@@ -60,6 +111,47 @@ async function cargarHucha() {
                 `;
                 this.tbody.appendChild(tr);
             });
+
+            // Agregar cuentas remuneradas activas como filas solo lectura
+            cuentasRemuneradas
+                .filter(cr => this.isCuentaRemuneradaActiva(cr, mesActual))
+                .forEach(cr => {
+                    const tr = document.createElement('tr');
+                    tr.dataset.auto = 'true';
+                    const descripcion = cr.descripcion || cr.categoria || `Cuenta remunerada #${cr.id}`;
+                    const saldoActual = this.calcularSaldoCuentaRemunerada(cr, mesActual);
+                    tr.innerHTML = `
+                        <td>${descripcion}</td>
+                        <td><strong>${this.formatCurrency(saldoActual)}</strong></td>
+                        <td>—</td>
+                    `;
+                    this.tbody.appendChild(tr);
+                });
+
+            // Calcular total de assets
+            let totalAssets = 0;
+            for (const asset of assets) {
+                try {
+                    const currentPrice = await window.getAssetPrice(asset.ticker);
+                    if (currentPrice) {
+                        totalAssets += asset.shares * currentPrice;
+                    }
+                } catch (e) {
+                    console.error(`Error obteniendo precio para ${asset.ticker}:`, e);
+                }
+            }
+
+            // Agregar fila sumada de assets si hay
+            if (totalAssets > 0) {
+                const trAssets = document.createElement('tr');
+                trAssets.dataset.auto = 'true';
+                trAssets.innerHTML = `
+                    <td>Assets (Sumado)</td>
+                    <td><strong>${this.formatCurrency(totalAssets)}</strong></td>
+                    <td>—</td>
+                `;
+                this.tbody.appendChild(trAssets);
+            }
             
             this.attachEvents();
         },

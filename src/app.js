@@ -20,6 +20,8 @@ const cuentaRemuneradaRoutes = require('./routes/cuentaRemunerada');
 const assetsRoutes = require('./routes/assets');
 const yahooFinanceRoutes = require('./routes/yahooFinance');
 const dashboardRoutes = require('./routes/dashboard');
+const importacionBancariaRoutes = require('./routes/importacionBancaria');
+const realesRoutes = require('./routes/reales');
 
 const app = express();
 
@@ -42,6 +44,8 @@ app.use(cuentaRemuneradaRoutes);
 app.use(assetsRoutes);
 app.use(yahooFinanceRoutes);
 app.use(dashboardRoutes);
+app.use(importacionBancariaRoutes);
+app.use(realesRoutes);
 
 // ================ MANEJO DE ERRORES ================
 app.use(errorHandler);

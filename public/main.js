@@ -5,6 +5,272 @@ const tabContent = document.getElementById('tab-content');
 // Guardar posición de scroll por pestaña
 const scrollPositions = {};
 
+// ===== USUARIOS =====
+let activeUser = null;
+let switchingUser = false;
+const DEFAULT_USER_ICON = 'fa-user';
+const USER_ICON_OPTIONS = [
+    { value: 'fa-user', label: 'User' },
+    { value: 'fa-user-tie', label: 'Executive' },
+    { value: 'fa-user-astronaut', label: 'Astronaut' },
+    { value: 'fa-user-ninja', label: 'Ninja' },
+    { value: 'fa-user-secret', label: 'Secret' },
+    { value: 'fa-user-graduate', label: 'Graduate' },
+    { value: 'fa-user-gear', label: 'Gear' },
+    { value: 'fa-user-shield', label: 'Shield' },
+    { value: 'fa-user-clock', label: 'Clock' }
+];
+
+function setUserLabel(name) {
+    const label = document.getElementById('currentUserLabel');
+    if (label) {
+        label.textContent = name || 'Sin usuario';
+    }
+}
+
+function updateUserIconUI(iconClass) {
+    const icon = iconClass || DEFAULT_USER_ICON;
+    const button = document.getElementById('changeUserBtn');
+    const preview = document.getElementById('userIconPreview');
+
+    if (button) button.innerHTML = `<i class="fas ${icon}"></i>`;
+    if (preview) preview.innerHTML = `<i class="fas ${icon}"></i>`;
+}
+
+function fillUserIconSelect(select) {
+    if (!select) return;
+    select.innerHTML = '';
+    USER_ICON_OPTIONS.forEach(option => {
+        const opt = document.createElement('option');
+        opt.value = option.value;
+        opt.textContent = option.label;
+        select.appendChild(opt);
+    });
+}
+
+async function loadUserIcon(name) {
+    if (!name || !window.electronAPI?.getUserProfile) {
+        updateUserIconUI(DEFAULT_USER_ICON);
+        return DEFAULT_USER_ICON;
+    }
+    try {
+        const result = await window.electronAPI.getUserProfile({ name });
+        const icon = result?.profile?.icon || DEFAULT_USER_ICON;
+        const select = document.getElementById('userIconSelect');
+        if (select) select.value = icon;
+        updateUserIconUI(icon);
+        return icon;
+    } catch (err) {
+        updateUserIconUI(DEFAULT_USER_ICON);
+        return DEFAULT_USER_ICON;
+    }
+}
+
+function toggleUserOverlay(show) {
+    const overlay = document.getElementById('userOverlay');
+    if (overlay) {
+        overlay.classList.toggle('hidden', !show);
+    }
+}
+
+function showUserError(message) {
+    if (typeof showAlert === 'function') {
+        showAlert(message);
+        return;
+    }
+    // eslint-disable-next-line no-alert
+    alert(message);
+}
+
+function resetUserScopedState() {
+    Object.keys(scrollPositions).forEach(key => delete scrollPositions[key]);
+    if (window.estadoImportacion) {
+        window.estadoImportacion = {
+            archivoActual: null,
+            nombreArchivoOrigen: null,
+            datosRaw: [],
+            datosMapados: [],
+            columnas: [],
+            mapeo: { fecha: null, concepto: null, importe: null, tipo: null },
+            formatoFecha: 'DD/MM/YYYY',
+            charts: {},
+            archivoNuevo: true,
+            archivoId: null,
+            conceptosSeleccionados: []
+        };
+    }
+    resumenData = null;
+    cargandoResumen = false;
+}
+
+async function refreshUserList() {
+    const select = document.getElementById('userSelect');
+    if (!select || !window.electronAPI?.listUsers) return { users: [], currentUser: null };
+
+    const result = await window.electronAPI.listUsers();
+    const users = result?.users || [];
+    const currentUser = result?.currentUser || null;
+
+    select.innerHTML = '';
+    users.forEach(user => {
+        const opt = document.createElement('option');
+        opt.value = user;
+        opt.textContent = user;
+        select.appendChild(opt);
+    });
+
+    return { users, currentUser };
+}
+
+async function applyUserSelection(name, { auto = false } = {}) {
+    if (!name || !window.electronAPI?.setCurrentUser) return;
+    if (name === activeUser) {
+        if (!auto) toggleUserOverlay(false);
+        return;
+    }
+
+    try {
+        switchingUser = true;
+        await window.electronAPI.setCurrentUser({ name });
+        activeUser = name;
+        localStorage.setItem('currentUser', name);
+        setUserLabel(name);
+        await loadUserIcon(name);
+        toggleUserOverlay(false);
+        resetUserScopedState();
+
+        await ensureFxRates(BASE_CURRENCY);
+        switchingUser = false;
+        await cargarResumenPeriodos();
+        await loadTab('categorias');
+    } catch (err) {
+        showUserError(err.message || 'No se pudo seleccionar el usuario');
+        toggleUserOverlay(true);
+    } finally {
+        switchingUser = false;
+    }
+}
+
+async function initUserSelection() {
+    if (!window.electronAPI?.listUsers) {
+        loadTab('categorias');
+        return;
+    }
+
+    const changeBtn = document.getElementById('changeUserBtn');
+    const selectBtn = document.getElementById('userSelectBtn');
+    const createBtn = document.getElementById('userCreateBtn');
+    const refreshBtn = document.getElementById('userRefreshBtn');
+    const newUserInput = document.getElementById('newUserName');
+    const select = document.getElementById('userSelect');
+    const iconSelect = document.getElementById('userIconSelect');
+
+    fillUserIconSelect(iconSelect);
+    if (iconSelect) iconSelect.value = DEFAULT_USER_ICON;
+    updateUserIconUI(DEFAULT_USER_ICON);
+
+    if (changeBtn) {
+        changeBtn.addEventListener('click', () => toggleUserOverlay(true));
+    }
+
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', async () => {
+            await refreshUserList();
+        });
+    }
+
+    if (select) {
+        select.addEventListener('change', async () => {
+            const selected = select.value;
+            if (selected) await loadUserIcon(selected);
+        });
+    }
+
+    if (iconSelect) {
+        iconSelect.addEventListener('change', async () => {
+            const icon = iconSelect.value || DEFAULT_USER_ICON;
+            const targetUser = select?.value || activeUser;
+            if (!targetUser || !window.electronAPI?.setUserIcon) {
+                updateUserIconUI(icon);
+                return;
+            }
+            try {
+                await window.electronAPI.setUserIcon({ name: targetUser, icon });
+                updateUserIconUI(icon);
+            } catch (err) {
+                showUserError(err.message || 'No se pudo guardar el icono');
+            }
+        });
+    }
+
+    if (selectBtn) {
+        selectBtn.addEventListener('click', async () => {
+            const selected = select?.value;
+            if (!selected) return;
+            await applyUserSelection(selected);
+        });
+    }
+
+    if (createBtn) {
+        createBtn.addEventListener('click', async () => {
+            const name = (newUserInput?.value || '').trim();
+            if (!name) return;
+
+            try {
+                await window.electronAPI.createUser({ name });
+                const icon = iconSelect?.value || DEFAULT_USER_ICON;
+                if (window.electronAPI?.setUserIcon) {
+                    await window.electronAPI.setUserIcon({ name, icon });
+                }
+                newUserInput.value = '';
+                await refreshUserList();
+                await applyUserSelection(name);
+            } catch (err) {
+                showUserError(err.message || 'No se pudo crear el usuario');
+            }
+        });
+    }
+
+    const { users, currentUser } = await refreshUserList();
+    const storedUser = localStorage.getItem('currentUser');
+    const preferredUser = currentUser || (users.includes(storedUser) ? storedUser : null);
+
+    if (preferredUser) {
+        if (select) select.value = preferredUser;
+        setUserLabel(preferredUser);
+        await loadUserIcon(preferredUser);
+        await applyUserSelection(preferredUser, { auto: true });
+    } else {
+        toggleUserOverlay(true);
+    }
+}
+
+// ===== CACHE DE PRECIOS DE ACTIVOS =====
+const assetPriceCache = {};
+const ASSET_CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
+
+async function getAssetPrice(ticker) {
+    const now = Date.now();
+    if (assetPriceCache[ticker] && (now - assetPriceCache[ticker].timestamp) < ASSET_CACHE_DURATION) {
+        return assetPriceCache[ticker].price;
+    }
+    
+    try {
+        const res = await fetch(`/asset-price/${ticker}`);
+        if (res.ok) {
+            const data = await res.json();
+            assetPriceCache[ticker] = {
+                price: data.currentPrice,
+                timestamp: now
+            };
+            return data.currentPrice;
+        }
+    } catch (e) {
+        console.error(`Error obteniendo precio para ${ticker}:`, e);
+    }
+    return null;
+}
+
 // ===== CONFIGURACIÓN DE MONEDA (extensible a futuro) =====
 const BASE_CURRENCY = 'EUR';
 const currencyOptions = {
@@ -111,7 +377,11 @@ async function loadTab(tabId) {
         if (tabId === 'gastos') cargarGastosForm();
         if (tabId === 'ingresos') cargarIngresosForm();
         if (tabId === 'impuestos') await inicializarTaxes();
-        if (tabId === 'dashboard') cargarDashboardForm();
+        if (tabId === 'importacionBancaria') cargarImportacionBancaria();
+        if (tabId === 'dashboard') {
+            window.dashboardConfig = null;
+            cargarDashboardForm();
+        }
         if (tabId === 'hucha') {
             if (typeof cargarHucha !== 'undefined') await cargarHucha();
         }
@@ -142,7 +412,7 @@ buttons.forEach(btn => {
 
 // Cargar la pestaña inicial
 document.addEventListener('DOMContentLoaded', () => {
-    loadTab('categorias');
+    initUserSelection();
 });
 
 
@@ -152,7 +422,50 @@ let periodoActual = '1mes';
 let resumenData = null;
 let cargandoResumen = false;
 
+function isCuentaRemuneradaActiva(cr, mesActual) {
+    if (!cr || !cr.desde || !cr.hasta) return false;
+    return cr.desde <= mesActual && mesActual <= cr.hasta;
+}
+
+function calcularSaldoCuentaRemunerada(cr, mesActual) {
+    const monto = parseFloat(cr.monto) || 0;
+    const aportacion = parseFloat(cr.aportacion_mensual) || 0;
+    const interes = parseFloat(cr.interes) || 0;
+    if (!cr.desde || !mesActual) return monto;
+
+    const [desdeY, desdeM] = cr.desde.split('-').map(Number);
+    const [actualY, actualM] = mesActual.split('-').map(Number);
+
+    const desdeDate = new Date(desdeY, desdeM - 1, 1);
+    const actualMonthDate = new Date(actualY, actualM - 1, 1);
+    const mesInteresDate = new Date(actualY, actualM - 2, 1); // interés hasta fin del mes anterior
+
+    const monthsDiff =
+        (actualMonthDate.getFullYear() - desdeDate.getFullYear()) * 12 +
+        (actualMonthDate.getMonth() - desdeDate.getMonth());
+
+    const aportacionesAcumuladas = Math.max(0, monthsDiff) * aportacion;
+
+    let totalInteres = 0;
+    if (interes > 0 && mesInteresDate >= desdeDate) {
+        let saldoInteres = monto;
+        const current = new Date(desdeDate);
+
+        totalInteres += saldoInteres * (interes / 100) / 12;
+        current.setMonth(current.getMonth() + 1);
+
+        while (current <= mesInteresDate) {
+            saldoInteres += aportacion;
+            totalInteres += saldoInteres * (interes / 100) / 12;
+            current.setMonth(current.getMonth() + 1);
+        }
+    }
+
+    return monto + aportacionesAcumuladas + totalInteres;
+}
+
 async function cargarResumenPeriodos() {
+    if (switchingUser || !activeUser) return;
     if (cargandoResumen) return; // Evitar solicitudes múltiples simultáneas
     cargandoResumen = true;
 
@@ -190,14 +503,37 @@ async function cargarResumenPeriodos() {
                 // Obtener total hucha
                 if (hucha) {
                     try {
-                        const resHucha = await fetch('/hucha');
-                        if (resHucha.ok) {
-                            const dataHucha = await resHucha.json();
-                            const totalHucha = dataHucha.reduce((acc, item) => acc + (parseFloat(item.cantidad) || 0), 0);
-                            hucha.textContent = formatearEuro(totalHucha);
-                        } else {
-                            hucha.textContent = formatearEuro(0);
+                        const [resHucha, resCR, resAssets] = await Promise.all([
+                            fetch('/hucha'),
+                            fetch('/cuenta_remunerada'),
+                            fetch('/assets')
+                        ]);
+
+                        const dataHucha = resHucha.ok ? await resHucha.json() : [];
+                        const dataCR = resCR.ok ? await resCR.json() : [];
+                        const dataAssets = resAssets.ok ? await resAssets.json() : [];
+
+                        const totalHuchaManual = dataHucha.reduce((acc, item) => acc + (parseFloat(item.cantidad) || 0), 0);
+
+                        const now = new Date();
+                        const mesActual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                        const totalCR = dataCR
+                            .filter(cr => isCuentaRemuneradaActiva(cr, mesActual))
+                            .reduce((acc, cr) => acc + calcularSaldoCuentaRemunerada(cr, mesActual), 0);
+
+                        let totalAssets = 0;
+                        for (const asset of dataAssets) {
+                            try {
+                                const currentPrice = await window.getAssetPrice(asset.ticker);
+                                if (currentPrice) {
+                                    totalAssets += asset.shares * currentPrice;
+                                }
+                            } catch (e) {
+                                console.error(`Error obteniendo precio para ${asset.ticker}:`, e);
+                            }
                         }
+
+                        hucha.textContent = formatearEuro(totalHuchaManual + totalCR + totalAssets);
                     } catch {
                         hucha.textContent = formatearEuro(0);
                     }
@@ -279,11 +615,15 @@ async function cargarResumenPeriodos() {
                 btnRefresh.classList.add('spinning');
                 const periodoGuardado = periodoActual;
                 await cargarResumenPeriodos();
+                // Asegurar que el botón activo y el período actual coincidan
                 const btnActivo = document.querySelector(`[data-periodo="${periodoGuardado}"]`);
                 if (btnActivo) {
                     document.querySelectorAll('.btn-periodo').forEach(b => b.classList.remove('active'));
                     btnActivo.classList.add('active');
                     periodoActual = periodoGuardado;
+                    actualizarResumen(periodoGuardado);
+                } else {
+                    // Si no encuentra el botón, actualiza con el período actual guardado
                     actualizarResumen(periodoGuardado);
                 }
                 setTimeout(() => btnRefresh.classList.remove('spinning'), 600);
@@ -291,9 +631,9 @@ async function cargarResumenPeriodos() {
             btnRefresh.dataset.listenerAdded = 'true';
         }
 
-        // Cargar por defecto 1 mes
-        actualizarResumen('1mes');
-        console.log('✅ Resumen de períodos cargado');
+        // Cargar con el período actual (o 1mes si es la primera carga)
+        actualizarResumen(periodoActual);
+        console.log('✅ Resumen de períodos cargado con período:', periodoActual);
 
     } catch (error) {
 

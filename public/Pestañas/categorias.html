@@ -1,64 +1,64 @@
 <section id="categorias" class="tab" style="display:block;">
-    <h2 data-i18n="nav.categorias">Administrar Categorías</h2>
+  <h2 data-i18n="nav.categorias">Administrar Categorías</h2>
 
-    <!-- BOTONES SUBPESTAÑAS -->
-    <div style="margin-bottom:15px;">
-        <button class="subtab-btn" data-target="tabCategoriasGasto" data-i18n="categorias.gastos">Gastos</button>
-        <button class="subtab-btn" data-target="tabCategoriasIngreso" data-i18n="categorias.ingresos">Ingresos</button>
-        <button class="subtab-btn" data-target="tabCategoriasImpuestos" data-i18n="nav.impuestos">Impuestos</button>
-    </div>
+  <!-- BOTONES SUBPESTAÑAS -->
+  <div class="mb-15">
+    <button class="subtab-btn" data-target="tabCategoriasGasto" data-i18n="categorias.gastos">Gastos</button>
+    <button class="subtab-btn" data-target="tabCategoriasIngreso" data-i18n="categorias.ingresos">Ingresos</button>
+    <button class="subtab-btn" data-target="tabCategoriasImpuestos" data-i18n="nav.impuestos">Impuestos</button>
+  </div>
 
-    <!-- CATEGORÍAS GASTOS -->
-    <div id="tabCategoriasGasto" class="subtab">
-        <h3 data-i18n="categorias.categoriasGasto">Categorías de Gasto</h3>
-        <table id="tablaCategoriasGasto">
-            <thead>
-                <tr>
-                    <th data-i18n="formularios.nombre">Nombre</th>
-                    <th data-i18n="formularios.acciones">Acciones</th>
-                </tr>
-                <tr class="insert-row">
-                    <td><input type="text" id="nuevoNombreCategoriaGasto" data-i18n-placeholder="categorias.nuevaCategoria"></td>
-                    <td><button id="btnAgregarCategoriaGasto"><i class="fas fa-plus"></i> <span data-i18n="formularios.agregar">Agregar</span></button></td>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
+  <!-- CATEGORÍAS GASTOS -->
+  <div id="tabCategoriasGasto" class="subtab">
+    <h3 data-i18n="categorias.categoriasGasto">Categorías de Gasto</h3>
+    <table id="tablaCategoriasGasto">
+      <thead>
+        <tr>
+          <th data-i18n="formularios.nombre">Nombre</th>
+          <th data-i18n="formularios.acciones">Acciones</th>
+        </tr>
+        <tr class="insert-row">
+          <td><input type="text" id="nuevoNombreCategoriaGasto" data-i18n-placeholder="categorias.nuevaCategoria"></td>
+          <td><button id="btnAgregarCategoriaGasto"><i class="fas fa-plus"></i> <span data-i18n="formularios.agregar">Agregar</span></button></td>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
-    <!-- CATEGORÍAS INGRESOS -->
-    <div id="tabCategoriasIngreso" class="subtab" style="display:none;">
-        <h3 data-i18n="categorias.categoriasIngreso">Categorías de Ingreso</h3>
-        <table id="tablaCategoriasIngreso">
-            <thead>
-                <tr>
-                    <th data-i18n="formularios.nombre">Nombre</th>
-                    <th data-i18n="formularios.acciones">Acciones</th>
-                </tr>
-                <tr class="insert-row">
-                    <td><input type="text" id="nuevoNombreCategoriaIngreso" data-i18n-placeholder="categorias.nuevaCategoria"></td>
-                    <td><button id="btnAgregarCategoriaIngreso"><i class="fas fa-plus"></i> <span data-i18n="formularios.agregar">Agregar</span></button></td>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
+  <!-- CATEGORÍAS INGRESOS -->
+  <div id="tabCategoriasIngreso" class="subtab display-none">
+    <h3 data-i18n="categorias.categoriasIngreso">Categorías de Ingreso</h3>
+    <table id="tablaCategoriasIngreso">
+      <thead>
+        <tr>
+          <th data-i18n="formularios.nombre">Nombre</th>
+          <th data-i18n="formularios.acciones">Acciones</th>
+        </tr>
+        <tr class="insert-row">
+          <td><input type="text" id="nuevoNombreCategoriaIngreso" data-i18n-placeholder="categorias.nuevaCategoria"></td>
+          <td><button id="btnAgregarCategoriaIngreso"><i class="fas fa-plus"></i> <span data-i18n="formularios.agregar">Agregar</span></button></td>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
-    <!-- CATEGORÍAS IMPUESTOS -->
-    <div id="tabCategoriasImpuestos" class="subtab" style="display:none;">
-        <h3 data-i18n="nav.impuestos">Categorías de Impuestos</h3>
-        <table id="tablaCategoriasImpuestos">
-            <thead>
-                <tr>
-                    <th data-i18n="formularios.nombre">Nombre</th>
-                    <th data-i18n="formularios.acciones">Acciones</th>
-                </tr>
-                <tr class="insert-row">
-                    <td><input type="text" id="nuevoNombreCategoriaImpuestos" data-i18n-placeholder="categorias.nuevaCategoria"></td>
-                    <td><button id="btnAgregarCategoriaImpuestos"><i class="fas fa-plus"></i> <span data-i18n="formularios.agregar">Agregar</span></button></td>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
+  <!-- CATEGORÍAS IMPUESTOS -->
+  <div id="tabCategoriasImpuestos" class="subtab display-none">
+    <h3 data-i18n="nav.impuestos">Categorías de Impuestos</h3>
+    <table id="tablaCategoriasImpuestos">
+      <thead>
+        <tr>
+          <th data-i18n="formularios.nombre">Nombre</th>
+          <th data-i18n="formularios.acciones">Acciones</th>
+        </tr>
+        <tr class="insert-row">
+          <td><input type="text" id="nuevoNombreCategoriaImpuestos" data-i18n-placeholder="categorias.nuevaCategoria"></td>
+          <td><button id="btnAgregarCategoriaImpuestos"><i class="fas fa-plus"></i> <span data-i18n="formularios.agregar">Agregar</span></button></td>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 </section>

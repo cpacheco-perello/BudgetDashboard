@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self' https://api.exchangerate-api.com https://query2.finance.yahoo.com https://cdn.jsdelivr.net; img-src 'self' data:;">
     <title data-i18n="app.tituloPagina">Dashboard Económico</title>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+    <script src="https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.js"></script>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.css">
     
     <link rel="stylesheet" href="style.css">
 </head>
@@ -78,7 +81,17 @@
                     <option value="pt" data-i18n="idioma.portugues">Português</option>
                     <option value="fr" data-i18n="idioma.frances">Français</option>
                     <option value="eu" data-i18n="idioma.euskera">Euskara</option>
+                    <option value="ca" data-i18n="idioma.catalan">Català</option>
                 </select>
+            </div>
+
+            <!-- Selector de usuario -->
+            <div class="user-selector">
+                <span id="currentUserLabel">Sin usuario</span>
+                <button id="changeUserBtn" class="btn-secondary" type="button" aria-label="Usuario">
+                    <i class="fas fa-user"></i>
+                </button>
+
             </div>
         </div>
     </div>
@@ -112,18 +125,18 @@
                 <span id="total-gastos">€0</span>
             </div>
         </div>
-        <div class="card-stat saldo">
-            <i class="fas fa-wallet"></i>
-            <div>
-                <p data-i18n="resumen.saldo">Saldo</p>
-                <span id="saldo">€0</span>
-            </div>
-        </div>
         <div class="card-stat taxes">
             <i class="fas fa-receipt"></i>
             <div>
                 <p data-i18n="resumen.totalImpuestos">Total Impuestos</p>
                 <span id="total-taxes">€0</span>
+            </div>
+        </div>
+        <div class="card-stat saldo">
+            <i class="fas fa-wallet"></i>
+            <div>
+                <p data-i18n="resumen.saldo">Saldo</p>
+                <span id="saldo">€0</span>
             </div>
         </div>
         <div class="card-stat hucha">
@@ -148,11 +161,40 @@
     <button class="tablink" data-tab="gastos" data-i18n="nav.gastos"><i class="fas fa-credit-card"></i> Gastos</button>
     <button class="tablink" data-tab="ingresos" data-i18n="nav.ingresos"><i class="fas fa-money-bill"></i> Ingresos</button>
     <button class="tablink" data-tab="impuestos" data-i18n="nav.impuestos"><i class="fas fa-receipt"></i> Impuestos</button>
+    <button class="tablink" data-tab="importacionBancaria" data-i18n="nav.importacionBancaria"><i class="fas fa-file-import"></i> Importar Banco</button>
     <button class="tablink" data-tab="dashboard" data-i18n="nav.dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</button>
     <button class="tablink" data-tab="hucha" data-i18n="nav.hucha"><i class="fas fa-piggy-bank"></i> Hucha Real</button>
 </nav>
 
 <main id="tab-content"></main>
+
+<!-- Selector de usuarios -->
+<div id="userOverlay" class="user-overlay hidden">
+    <div class="user-card">
+        <h2>Selecciona usuario</h2>
+        <div class="user-row">
+            <label for="userSelect">Usuarios</label>
+            <select id="userSelect"></select>
+            <button id="userSelectBtn" class="btn-primary" type="button">Entrar</button>
+        </div>
+        <div class="user-row">
+            <label for="userIconSelect">Icono</label>
+            <select id="userIconSelect"></select>
+            <span id="userIconPreview" class="user-icon-preview">
+                <i class="fas fa-user"></i>
+            </span>
+        </div>
+        <div class="user-divider">o</div>
+        <div class="user-row">
+            <label for="newUserName">Nuevo usuario</label>
+            <input id="newUserName" type="text" placeholder="Nombre" />
+            <button id="userCreateBtn" class="btn-success" type="button">Crear</button>
+        </div>
+        <div class="user-actions">
+            <button id="userRefreshBtn" class="btn-secondary" type="button">Refrescar</button>
+        </div>
+    </div>
+</div>
 
 <!-- Sistema de modales personalizados -->
 <div id="customModal" class="custom-modal">
@@ -171,8 +213,13 @@
 </div>
 
 <!-- ⚠️ ORDEN CORRECTO DE SCRIPTS ⚠️ -->
-<!-- 1. Primero: Traducciones -->
-<script src="idiomas/traducciones.js"></script>
+<!-- 1. Primero: Traducciones (todos los idiomas) -->
+<script src="idiomas/es.js"></script>
+<script src="idiomas/en.js"></script>
+<script src="idiomas/pt.js"></script>
+<script src="idiomas/fr.js"></script>
+<script src="idiomas/eu.js"></script>
+<script src="idiomas/ca.js"></script>
 
 <!-- 2. Segundo: Gestor de idiomas -->
 <script src="idiomas/idiomas.js"></script>
@@ -180,19 +227,26 @@
 <!-- 3. Tercero: Sistema de temas -->
 <script src="Temas/temas.js"></script>
 
-<!-- 4. Sistema de modales personalizados -->
+<!-- 4. API Adapter - Debe cargarse ANTES de cualquier código que use fetch -->
+<script src="js/apiConfig.js"></script>
+
+<!-- 5. Sistema de modales personalizados -->
 <script src="js/customModal.js"></script>
 
-<!-- 5. Cuarto: Clases base y utilidades -->
+<!-- 6. Cuarto: Clases base y utilidades -->
 <script src="js/TransactionManager.js"></script>
 
-<!-- 5. Quinto: Páginas/Pestañas -->
+<!-- 7. Quinto: Páginas/Pestañas -->
 <script src="Pestañas/categorias.js"></script>
 <script src="Pestañas/gastos.js"></script>
 <script src="Pestañas/ingresos.js"></script>
 <script src="Pestañas/dashboard.js"></script>
 <script src="Pestañas/impuestos.js"></script>
 <script src="Pestañas/hucha.js"></script>
+<script src="Pestañas/importacionBancaria.js"></script>
+
+<!-- Librería para leer Excel (local) -->
+<script src="libs/xlsx.full.min.js"></script>
 
 <!-- 6. Último: Main.js -->
 <script src="main.js"></script>

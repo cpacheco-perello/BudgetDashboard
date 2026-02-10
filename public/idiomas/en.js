@@ -1,0 +1,517 @@
+// Extender el objeto TRADUCCIONES existente con inglés
+if (typeof TRADUCCIONES === 'undefined') {
+    var TRADUCCIONES = {};
+}
+
+TRADUCCIONES.en = {
+    // ===== APP =====
+    app: {
+            titulo: 'Economic Dashboard',
+            tituloPagina: 'Economic Dashboard',
+            moneda: 'Currency:'
+        },
+
+        // ===== TEMAS =====
+        temas: {
+            azul: 'Professional Blue',
+            verde: 'Modern Green',
+            naranja: 'Energetic Orange',
+            turquesa: 'Fresh Turquoise',
+            purpura: 'Modern Purple',
+            rojo: 'Elegant Red',
+            indigo: 'Soft Indigo',
+            teal: 'Professional Teal',
+            gris: 'Corporate Gray',
+            rosado: 'Modern Pink',
+            cian: 'Vibrant Cyan',
+            lima: 'Fresh Lime',
+            esmeralda: 'Premium Emerald',
+            ambar: 'Golden Amber',
+            violeta: 'Mystic Violet',
+            fresa: 'Strawberry Pink',
+            oceano: 'Deep Ocean',
+            bosque: 'Forest Green',
+            atardecer: 'Sunset',
+            medianoche: 'Dark Midnight',
+            neon: 'Cyberpunk Neon',
+            mint: 'Soft Mint',
+            coral: 'Tropical Coral',
+            lavanda: 'Elegant Lavender',
+            grisminimal: 'Minimalist Gray',
+            bronce: 'Vintage Bronze',
+            cielo: 'Clear Sky'
+        },
+
+        // ===== PERÍODOS =====
+        periodos: {
+            un_mes: '1 Month',
+            tres_meses: '3 Months',
+            seis_meses: '6 Months',
+            un_anio: '1 Year',
+            cinco_anios: '5 Years',
+            diez_anios: '10 Years'
+        },
+
+        // ===== RESUMEN =====
+        resumen: {
+            totalIngresos: 'Total Income',
+            totalGastos: 'Total Expenses',
+            saldo: 'Balance',
+            totalImpuestos: 'Total Taxes',
+            impuestosPre: 'Pre',
+            impuestosPost: 'Post',
+            totalHucha: 'Total Piggy Bank',
+            portfolioRendimiento: 'Portfolio Performance'
+        },
+
+        // ===== TEMA =====
+        tema: {
+            cambiarTema: '🎨 Theme:',
+            seleccionar: 'Select theme',
+            claro: 'Light',
+            oscuro: 'Dark',
+            automático: 'Auto'
+        },
+
+        // ===== IDIOMA =====
+        idioma: {
+            seleccionar: '🌐 Language:',
+            espanol: 'Español',
+            ingles: 'English',
+            portugues: 'Português',
+            frances: 'Français',
+            euskera: 'Euskara',
+            catalan: 'Català'
+        },
+        hucha: {
+            concepto: 'Concept',
+            cantidad: 'Amount',
+            placeholderConcepto: 'Concept...',
+            placeholderCantidad: '0.00'
+        },
+
+        // ===== NAVEGACIÓN =====
+        nav: {
+            categorias: 'Categories',
+            gastos: 'Expenses',
+            ingresos: 'Income',
+            impuestos: 'Taxes',
+            importacionBancaria: 'Import Bank',
+            dashboard: 'Dashboard',
+            dashboardReal: 'Real Dashboard',
+            hucha: 'Real Piggy Bank'
+        },
+
+        // ===== REAL DASHBOARD =====
+        dashboardReal: {
+            titulo: 'Real Dashboard'
+        },
+
+        // ===== IMPORTACIÓN BANCARIA =====
+        importacion: {
+            archivosGuardados: 'Saved Files',
+            cargandoArchivos: 'Loading saved files...',
+            titulo: 'Import Bank Transactions',
+            descripcion: 'Upload an Excel file with your bank transactions',
+            arrastrarArchivo: 'Drag your Excel file here or click to select',
+            mapeoColumnas: 'Column Mapping',
+            detectadoCampos: 'The following fields were detected. Please confirm which one is each:',
+            campoFecha: 'Date Column:',
+            campoConcepto: 'Concept/Description Column:',
+            campoImporte: 'Amount Column:',
+            campoTipo: 'Transaction Type (Optional):',
+            campoSaldo: 'Balance Column (Optional):',
+            ayudaTipo: 'Positive amounts will be income, negative amounts will be expenses',
+            vista_previa: 'Data Preview',
+            confirmarMapeo: 'Confirm Mapping',
+            cancelar: 'Cancel',
+            categorizacionDatos: 'Data Categorization',
+            asignarCategorias: 'Assign categories to transactions before importing:',
+            autoCategorizar: 'Auto-categorize',
+            marcarTodosCompleta: 'Mark All as Complete',
+            fecha: 'Date',
+            concepto: 'Concept',
+            importe: 'Amount',
+            categoria: 'Category',
+            importar: 'Import Transactions',
+            volver: 'Back',
+            resumenImportacion: 'Import Summary',
+            totalMovimientos: 'Total Transactions',
+            ingresos: 'Income',
+            gastos: 'Expenses',
+            saldo: 'Total Balance',
+            detallesImportacion: 'Import Details',
+            nueva: 'New Import',
+            analisisMovimientos: 'Analysis of Imported Transactions',
+            filtrarDesde: 'From:',
+            filtrarHasta: 'To:',
+            actualizar: 'Update',
+            movimientosPorCategoria: 'Transactions by Category',
+            ingresoVsGasto: 'Income vs Expenses',
+            evolucionSaldo: 'Balance Evolution',
+            movimientosPorMes: 'Transactions by Month',
+            exportarDatos: 'Export Data',
+            btnActualizar: 'Refresh',
+            btnNuevoArchivo: 'New File',
+            btnVolver: 'Back',
+            btnCargar: 'Load',
+            btnDescargar: 'Download',
+            btnEliminar: 'Delete',
+            noArchivos: 'No saved files. Upload a new one.',
+            confirmEliminar: 'Are you sure you want to delete',
+            errorArchivoFormato: 'Please upload an Excel file (.xlsx, .xls) or CSV (.csv)',
+            errorXlsxNoEstaCargado: 'Error: XLSX library not loaded. Please refresh the page.',
+            errorExcelInvalido: 'Error processing the file. Make sure it\'s a valid Excel file.',
+            errorCSVInvalido: 'The CSV file has no valid data.',
+            errorCSVSinDatos: 'The CSV file contains no valid data.',
+            errorCSVProcesar: 'Error processing the CSV file',
+            errorMapeoNoEncontrado: 'Error: Mapping elements not found. Please refresh the page.',
+            errorColumnasRequeridas: 'Please select all required columns: Date, Concept, and Amount.',
+            errorRangoFechas: 'Please select a date range',
+            errorSinDatosRango: 'No data found in the selected date range',
+            exitoGraficos: 'Charts updated successfully',
+            errorGraficoCategoria: 'Error generating category chart',
+            errorGraficoIngresoVsGasto: 'Error generating Income vs Expense chart',
+            errorGraficoEvolucionSaldo: 'Error generating Balance Evolution chart',
+            errorGraficoMovimientosPorMes: 'Error generating Movements per Month chart',
+            exitoDatosExportados: 'Data exported successfully',
+            guardarEnBD: 'Save to Database',
+            seleccionCategorias: 'Select Categories',
+            descripcionCategorias: 'Assign category to each transaction/concept',
+            tipo: 'Type',
+            cantidad: 'Amount',
+            seleccionConceptos: 'Select Concepts',
+            descripcionSeleccion: 'Select the concepts you want to include in the analysis',
+            continuar: 'Continue',
+            errorCargandoArchivos: 'Error loading files',
+            cargandoArchivo: 'Loading file...',
+            errorCargandoArchivo: 'Error loading file',
+            exitoArchivoCargado: 'File loaded successfully',
+            errorDescargandoArchivo: 'Error downloading file',
+            eliminandoArchivo: 'Deleting file...',
+            errorEliminandoArchivo: 'Error deleting file',
+            exitoArchivoEliminado: 'File deleted successfully',
+            errorSinDatos: 'No data to save',
+            guardandoArchivo: 'Saving file...',
+            errorGuardandoArchivo: 'Error saving file',
+            exitoArchivoGuardado: 'File saved successfully'
+        },
+
+        // ===== DASHBOARD =====
+        dashboard: {
+            titulo: 'Financial Summary',
+            cargando: 'Loading charts...',
+            periodoRapido: 'Quick Period',
+            desde: 'From',
+            hasta: 'To',
+            desdeDate: 'Select start date',
+            hastaDate: 'Select end date',
+            actualizar: 'Update',
+            totalPeriodo: 'Period Totals',
+            gastosPorMes: 'Expenses per Month',
+            todasCategorias: 'All categories',
+            ingresos: 'Income',
+            gastos: 'Expenses',
+            ahorros: 'Savings',
+            ingresosPorCategoria: 'Income by Category',
+            gastosPorCategoria: 'Expenses by Category',
+            media: 'Average',
+            varianza: 'Variance',
+            desviacion: 'Deviation',
+            desviacionAbrev: 'Std Dev',
+            mediaTotal: 'Total Average',
+            cuentasRemuneradas: 'Savings Accounts',
+            impuestosIngresos: 'Taxes (income)',
+            impuestosOtros: 'Taxes (other)',
+            impuestosRetenciones: 'Tax Withholdings (income)',
+            impuestosOtrosCorto: 'Other Taxes',
+            incomeBruto: 'Gross Income',
+            ingresoNeto: 'Net Income',
+            ingresoBruto: 'Gross Income',
+            gastosImpuestosOtros: 'Expenses + Taxes (other)',
+            porcentajes: 'Percentage Analysis',
+            gastosMesCategoria: 'Monthly Expenses',
+            mediaMensualTotal: 'Total monthly average',
+            total: 'Total',
+            totalIngresos: 'Total Income',
+            cuentasRemuneradasAbrev: 'Savings Acc.',
+            impuestosCategoria: 'Taxes',
+            errorHastaMenorDesde: 'End date cannot be earlier than start date',
+            seleccionaRango: 'Please select a date range',
+            refrescarResumen: 'Refresh summary',
+            mostrarReales: 'Show real',
+            ingresosReales: 'Real Income',
+            gastosReales: 'Real Expenses',
+            ahorrosReales: 'Real Savings',
+            realesSuffix: 'Real'
+        },
+
+        // ===== CATEGORÍAS =====
+        categorias: {
+            titulo: 'Manage Categories',
+            gastos: 'Expenses',
+            ingresos: 'Income',
+            categoriasGasto: 'Expense Categories',
+            categoriasIngreso: 'Income Categories',
+            nuevaCategoria: 'New category...',
+            noHayCategoriasGasto: 'No expense categories',
+            noHayCategoriasIngreso: 'No income categories',
+            categoriaAgregada: 'Category added successfully',
+            categoriaEliminada: 'Category deleted successfully',
+            categoriaActualizada: 'Category updated successfully',
+            confirmarEliminar: 'Delete category "{nombre}"?',
+            errorActualizar: 'Error updating category',
+            errorEliminar: 'Error deleting category',
+            errorAgregar: 'Error: {error}',
+            errorConexion: 'Connection error: {error}',
+            noPudoAgregar: 'Could not add category'
+        },
+
+        // ===== GASTOS =====
+        gastos: {
+            titulo: 'Manage Expenses',
+            puntuales: 'One-time Expenses',
+            mensuales: 'Monthly Expenses',
+            descripcion: 'Description...',
+            desde: 'From',
+            hasta: 'To',
+            monto: 'Amount',
+            mostrarAntiguos: 'Show old',
+            ocultarAntiguos: 'Hide old',
+            fraccionar: 'Split',
+            noHayGastos: 'No expenses recorded',
+            gastoAgregado: 'Expense added successfully',
+            gastoEliminado: 'Expense deleted successfully',
+            gastoActualizado: 'Expense updated successfully',
+            validarFecha: 'Please select a valid date',
+            validarMonto: 'Please enter a valid amount',
+            validarCategoria: 'Please select a category',
+            noHayCambios: 'No changes',
+            descripcionRequerida: 'Description required',
+            categoriaRequerida: 'Category required',
+            montoInvalido: 'Invalid amount',
+            fechaRequerida: 'Date required',
+            formatoDesde: "'From' field must be in YYYY-MM format",
+            formatoHasta: "'To' field must be in YYYY-MM format",
+            seleccionaFecha: 'Select a date',
+            ingresaDescripcion: 'Enter a description',
+            seleccionaCategoria: 'Select a category',
+            confirmarEliminarPuntual: 'Delete this expense?',
+            confirmarEliminarMensual: 'Delete this monthly expense?',
+            parteFraccion: ' (part {parte}/{total})'
+        },
+
+        // ===== INGRESOS =====
+        ingresos: {
+            titulo: 'Manage Income',
+            puntuales: 'One-time Income',
+            mensuales: 'Monthly Income',
+            cuenta_remunerada: 'Interest-bearing Account',
+            descripcion: 'Description...',
+            desde: 'From',
+            hasta: 'To',
+            bruto: 'Gross',
+            aportacionInicial: 'Initial Contribution',
+            aportacionMensual: 'Monthly Contribution',
+            interes: 'Interest (%)',
+            interesGenerado: 'Interest Generated',
+            mostrarAntiguos: 'Show old',
+            ocultarAntiguos: 'Hide old',
+            noHayIngresos: 'No income recorded',
+            ingresoAgregado: 'Income added successfully',
+            ingresoEliminado: 'Income deleted successfully',
+            ingresoActualizado: 'Income updated successfully',
+            validarFecha: 'Please select a valid date',
+            validarMonto: 'Please enter a valid amount',
+            validarCategoria: 'Please select a category',
+            assets: 'Assets',
+            noHayCambios: 'No changes',
+            descripcionRequerida: 'Description required',
+            categoriaRequerida: 'Category required',
+            montoInvalido: 'Invalid amount',
+            fechaRequerida: 'Date required',
+            formatoDesde: "'From' field must be in YYYY-MM format",
+            formatoHasta: "'To' field must be in YYYY-MM format",
+            aportacionInvalida: 'Invalid monthly contribution',
+            interesInvalido: 'Invalid interest',
+            seleccionaFecha: 'Select a date',
+            ingresaDescripcion: 'Enter a description',
+            seleccionaCategoria: 'Select a category',
+            ingresaDesde: "Enter 'from' month in YYYY-MM format",
+            ingresaHasta: "Enter 'to' month in YYYY-MM format",
+            montoInicialInvalido: 'Invalid initial amount',
+            desdeNoMayorHasta: "'From' month cannot be later than 'to'",
+            ingresaNombreCompania: 'Enter company name',
+            ingresaTicker: 'Enter ticker',
+            accionesInvalidas: 'Invalid number of shares',
+            precioCompraInvalido: 'Invalid purchase price',
+            precioVentaInvalido: 'Please enter a valid sale price',
+            confirmarVenta: 'Confirm sale of {shares} shares of {company} at {price} per share?',
+            ventaExitosa: 'Sale successful. Profit recorded: {profit}',
+            errorVenta: 'Error: {error}',
+            errorProcesarVenta: 'Error processing sale',
+            eliminarAsset: 'Delete this asset?',
+            company: 'Company',
+            ticker: 'Ticker',
+            shares: 'Shares',
+            purchasePrice: 'Purchase Price',
+            totalInvestment: 'Total Invested',
+            currentPrice: 'Current Price',
+            currentValue: 'Current Value',
+            diffPercent: 'Diff. %',
+            diffAmount: 'Diff. €',
+            sellAsset: 'Sell Asset',
+            salePrice: 'Sale Price',
+            saleValue: 'Sale Value',
+            profit: 'Profit/Loss',
+            confirmSale: 'Confirm Sale',
+            placeholderDescripcion: 'Description...',
+            placeholderMonto: '0.00',
+            placeholderYYYYMM: 'YYYY-MM',
+            placeholderCompany: 'Apple Inc.',
+            placeholderTicker: 'AAPL',
+            placeholderShares: '10',
+            placeholderPrice: '150.00',
+            placeholderInteres: '0.00',
+            placeholderAportacion: '0.00',
+            confirmarEliminarPuntual: 'Delete this income?',
+            confirmarEliminarMensual: 'Delete this monthly income?',
+            confirmarEliminarAportacion: 'Delete this contribution?',
+            companyRequerido: 'Company required',
+            tickerRequerido: 'Ticker required',
+            numeroAccionesInvalido: 'Invalid number of shares',
+            precioCompraInvalidoAlt: 'Invalid purchase price',
+            verHistorico: 'View historical data',
+            historicalChart: 'Historical data for'
+        },
+
+        // ===== IMPUESTOS =====
+        taxes: {
+            agregarPuntual: 'Add One-time Tax',
+            agregarMensual: 'Add Monthly Tax',
+            impuestoAgregado: 'Tax added successfully',
+            impuestoEliminado: 'Tax deleted successfully',
+            impuestoActualizado: 'Tax updated successfully',
+            desde: 'From',
+            hasta: 'To',
+            completaCampos: 'Complete all fields',
+            mostrarAntiguos: 'Show old'
+        },
+
+        // ===== IMPUESTOS (alias para compatibilidad) =====
+        impuestos: {
+            mostrarAntiguos: 'Show old'
+        },
+
+        // ===== FORMULARIOS =====
+        formularios: {
+            guardar: 'Save',
+            cancelar: 'Cancel',
+            editar: 'Edit',
+            eliminar: 'Delete',
+            agregar: 'Add',
+            buscar: 'Search',
+            nombre: 'Name',
+            descripcion: 'Description',
+            cantidad: 'Quantity',
+            monto: 'Amount',
+            categoria: 'Category',
+            fecha: 'Date',
+            desde: 'From',
+            hasta: 'To',
+            bruto: 'Gross',
+            interes: 'Interest',
+            accion: 'Action',
+            acciones: 'Actions',
+            obligatorio: 'Required field',
+            confirmarEliminar: 'Are you sure you want to delete this?',
+            si: 'Yes',
+            no: 'No',
+            cerrar: 'Close',
+            aceptar: 'Accept',
+            rechazar: 'Reject',
+            placeholderDescripcion: 'Description...',
+            placeholderMonto: '0.00',
+            placeholderYYYYMM: 'YYYY-MM',
+            placeholderNumeroPartes: 'No.',
+            formatoYYYYMM: 'Format: YYYY-MM',
+            numeroPartes: 'Number of parts'
+        },
+
+        // ===== MODALES =====
+        modal: {
+            informacion: 'Information',
+            error: 'Error',
+            advertencia: 'Warning',
+            confirmar: 'Confirm'
+        },
+
+        // ===== BOTONES =====
+        botones: {
+            agregar: 'Add',
+            actualizar: 'Update',
+            editar: 'Edit',
+            eliminar: 'Delete',
+            guardar: 'Save',
+            cancelar: 'Cancel'
+        },
+
+        // ===== TABS =====
+        tabs: {
+            puntuales: 'One-time',
+            mensuales: 'Monthly'
+        },
+
+        // ===== MENSAJES =====
+        mensajes: {
+            exito: 'Operation completed successfully',
+            error: 'An error occurred',
+            cargando: 'Loading...',
+            noHayDatos: 'No data available',
+            seleccionaRango: 'Select a date range',
+            categoriasCargadas: 'Categories loaded',
+            dashboardActualizado: 'Dashboard updated',
+            errorCargando: 'Error loading data',
+            errorGuardando: 'Error saving data',
+            errorEliminando: 'Error deleting data',
+            validacionError: 'Please fill in all required fields',
+            confirmacion: 'Confirmation required'
+        },
+
+        // ===== TABLAS =====
+        tablas: {
+            sinResultados: 'No results',
+            fecha: 'Date',
+            descripcion: 'Description',
+            monto: 'Amount',
+            categoria: 'Category',
+            acciones: 'Actions',
+            cargando: 'Loading...',
+            mostrandoRegistros: 'Showing {0} of {1} records',
+            siguiente: 'Next',
+            anterior: 'Previous',
+            primera: 'First',
+            ultima: 'Last',
+            porPagina: 'Records per page'
+        },
+
+        // ===== ERRORES =====
+        errores: {
+            campoObligatorio: 'This field is required',
+            montoNegativo: 'Amount cannot be negative',
+            fechaInvalida: 'Invalid date',
+            seleccionaCategoria: 'You must select a category',
+            seleccionaFecha: 'You must select a date',
+            sinConexion: 'Connection error',
+            tiempoAgotado: 'Connection timeout'
+        },
+
+        // ===== CONFIRMACIONES =====
+        confirmaciones: {
+            guardar: 'Do you want to save the changes?',
+            eliminar: 'Are you sure you want to delete this item?',
+            cancelar: 'Do you want to cancel this operation?',
+            salirSinGuardar: 'Do you want to exit without saving changes?'
+        }
+};
+

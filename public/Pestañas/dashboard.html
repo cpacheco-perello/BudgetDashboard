@@ -36,30 +36,50 @@
         <input type="date" id="dashHasta" class="date-input" data-i18n-placeholder="dashboard.hastaDate">
       </div>
 
+      <div class="filtro-group">
+        <label for="dashboardToggleReal" data-i18n="dashboard.mostrarReales">Mostrar reales:</label>
+        <input type="checkbox" id="dashboardToggleReal" class="checkbox-input">
+      </div>
+
+      <div class="filtro-group date-slider-group">
+        <div class="date-slider-header">
+          <span class="date-slider-value">
+            <span data-i18n="dashboard.desde">Desde:</span>
+            <span id="sliderDesdeLabel">-</span>
+          </span>
+          <span class="date-slider-sep">•</span>
+          <span class="date-slider-value">
+            <span data-i18n="dashboard.hasta">Hasta:</span>
+            <span id="sliderHastaLabel">-</span>
+          </span>
+        </div>
+        <div id="dashboardDateRangeSlider" class="date-range-slider"></div>
+      </div>
+
     </div>
   </div>
 
   <!-- GRID DE GRÁFICOS -->
   <div class="dashboard-grid">
+    <!-- Loader mientras se cargan los gráficos -->
+    <div class="dashboard-loader hidden" id="dashboardLoader">
+      <div class="loader-spinner"></div>
+      <p data-i18n="dashboard.cargando">Cargando gráficos...</p>
+    </div>
     
-    <!-- Fila 1: Totales y Gastos por mes -->
+    <!-- Fila 1: Totales y Porcentajes -->
     <div class="chart-card card-primary">
       <h3 data-i18n="dashboard.totalPeriodo"><i class="fas fa-calculator icon-primary"></i> Totales Período</h3>
       <canvas id="chartTotales"></canvas>
     </div>
 
-    <div class="chart-card card-warning">
-      <div class="chart-header">
-        <h3 data-i18n="dashboard.gastosPorMes"><i class="fas fa-chart-bar icon-warning"></i> Gastos por Mes</h3>
-        <select id="filtroGastoCategoria" class="filtro-categoria" data-i18n="dashboard.todasCategorias">
-          <option value="" data-i18n="dashboard.todasCategorias">Todas las categorías</option>
-        </select>
-      </div>
-      <canvas id="chartGastosMes"></canvas>
+    <div class="chart-card card-info">
+      <h3 data-i18n="dashboard.porcentajes"><i class="fas fa-percentage icon-info"></i> Análisis de Porcentajes</h3>
+      <canvas id="chartPorcentajes"></canvas>
     </div>
 
 
-  <!-- Fila 2: Ingresos, Gastos, Ahorros -->
+  <!-- Fila 2: Ingresos, Gastos por Mes, Ahorros -->
   <div class="chart-card card-success">
     <h3 style="color: var(--success);">
       <i class="fas fa-arrow-up icon-success"></i> 
@@ -68,17 +88,7 @@
     <canvas id="chartIngresos"></canvas>
   </div>
 
-  <div class="chart-card card-danger">
-    <h3 style="color: var(--danger);">
-      <i class="fas fa-arrow-down icon-danger"></i> 
-      <span data-i18n="dashboard.gastos">Gastos</span>
-    </h3>
-    <canvas id="chartGastos"></canvas>
-  </div>
-
-
-    <!-- Fila 3: Ahorros full-width -->
-    <div class="chart-card card-info full-width">
+    <div class="chart-card card-info ">
       <h3 class="chart-title" style="color: var(--info);">
         <i class="fas fa-piggy-bank"></i> 
         <span data-i18n="dashboard.ahorros">Ahorros</span>
@@ -87,6 +97,18 @@
     </div>
 
 
+    <!-- Fila 3: Ahorros full-width -->
+
+
+  <div class="chart-card card-warning full-width">
+    <div class="chart-header">
+      <h3 data-i18n="dashboard.gastosMesCategoria"><i class="fas fa-chart-bar icon-warning"></i> Gastos por Mes</h3>
+      <select id="filtroGastoCategoria" class="filtro-categoria" data-i18n="dashboard.todasCategorias">
+        <option value="" data-i18n="dashboard.todasCategorias">Todas las categorías</option>
+      </select>
+    </div>
+    <canvas id="chartGastosMes"></canvas>
+  </div>
 
 
     <!-- Fila 4: Distribución por categoría -->

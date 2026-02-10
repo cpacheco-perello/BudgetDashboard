@@ -28,8 +28,32 @@ function cargarGastosForm() {
         showOldFlag: 'showOldGastos'
     });
 
+    // Inicializar TransactionManager para gastos reales
+    const gastosRealesManager = new TransactionManager({
+        entityName: 'gastos_reales',
+        entityNameSingular: 'gasto_real',
+        categoryType: 'gastos',
+        endpoints: {
+            puntuales: 'gastos_reales',
+            delete: {
+                puntual: '/delete/gasto_real'
+            }
+        },
+        updateEndpoints: {
+            puntual: '/update/gasto_real'
+        },
+        tables: {
+            puntuales: '#tablaGastosReales tbody'
+        },
+        selects: {
+            puntuales: '#categoriaGastoReal'
+        },
+        showOldFlag: 'showOldGastosReales'
+    });
+
     // Inicializar manager
     gastosManager.init();
+    gastosRealesManager.init();
 
     // ===== LÓGICA ESPECÍFICA: AGREGAR GASTO PUNTUAL =====
     document.getElementById('btnAgregarGastoPuntual').onclick = async () => {
@@ -107,6 +131,37 @@ function cargarGastosForm() {
         if (typeof cargarResumenPeriodos === 'function') cargarResumenPeriodos();
     };
 
+    // ===== LÓGICA ESPECÍFICA: AGREGAR GASTO REAL =====
+    document.getElementById('btnAgregarGastoReal').onclick = async () => {
+        const fecha = document.getElementById('fechaGastoReal').value;
+        const desc = document.getElementById('descGastoReal').value;
+        const monto = parseFloat(document.getElementById('montoGastoReal').value);
+        const selectCat = document.getElementById('categoriaGastoReal');
+
+        if (!fecha) return showAlert(gastosManager.t('gastos.seleccionaFecha', "Selecciona una fecha"));
+        if (!desc) return showAlert(gastosManager.t('gastos.ingresaDescripcion', "Ingresa una descripción"));
+        if (isNaN(monto) || monto <= 0) return showAlert(gastosManager.t('gastos.montoInvalido', "Monto inválido"));
+
+        await fetch('/add/gasto_real', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                fecha: fecha,
+                descripcion: desc,
+                monto: monto,
+                categoria_id: selectCat.value,
+                archivo_origen: 'manual'
+            })
+        });
+
+        document.getElementById('fechaGastoReal').value = '';
+        document.getElementById('descGastoReal').value = '';
+        document.getElementById('montoGastoReal').value = '';
+
+        gastosRealesManager.loadData();
+        if (typeof cargarResumenPeriodos === 'function') cargarResumenPeriodos();
+    };
+
     // ===== LÓGICA ESPECÍFICA: AGREGAR GASTO MENSUAL =====
     document.getElementById('btnAgregarMensual').onclick = async () => {
         const desde = document.getElementById('desdeGasto').value;
@@ -148,9 +203,14 @@ function cargarGastosForm() {
 
     // ===== TOGGLE MOSTRAR/OCULTAR ANTIGUOS =====
     window.showOldGastos = false;
+    window.showOldGastosReales = false;
     const toggleBtns = [
         document.getElementById('toggleGastosAntiguos'),
         document.getElementById('toggleGastosMensualesAntiguos')
+    ].filter(Boolean);
+
+    const toggleBtnsReales = [
+        document.getElementById('toggleGastosRealesAntiguos')
     ].filter(Boolean);
     
     if (toggleBtns.length) {
@@ -167,27 +227,36 @@ function cargarGastosForm() {
         updateAll();
     }
 
+    if (toggleBtnsReales.length) {
+        const updateAllReales = () => {
+            const textoMostrar = gastosRealesManager.t('gastos.mostrarAntiguos', 'Mostrar antiguos');
+            const textoOcultar = gastosRealesManager.t('gastos.ocultarAntiguos', 'Ocultar antiguos');
+            toggleBtnsReales.forEach(b => b.textContent = window.showOldGastosReales ? textoOcultar : textoMostrar);
+        };
+        toggleBtnsReales.forEach(b => b.addEventListener('click', () => {
+            window.showOldGastosReales = !window.showOldGastosReales;
+            updateAllReales();
+            gastosRealesManager.loadData();
+        }));
+        updateAllReales();
+    }
+
     // ===== SUBPESTAÑAS =====
-    const btnPuntuales = document.getElementById('tabGastosPuntualesBtn');
-    const btnMensuales = document.getElementById('tabGastosMensualesBtn');
-    const tabPuntuales = document.getElementById('tabGastosPuntuales');
-    const tabMensuales = document.getElementById('tabGastosMensuales');
+    const botonesSubtab = document.querySelectorAll('#gastos .subtab-btn');
+    const subtabs = document.querySelectorAll('#gastos .subtab');
 
-    btnPuntuales.onclick = () => {
-        tabPuntuales.style.display = 'block';
-        tabMensuales.style.display = 'none';
-        btnPuntuales.classList.add('active');
-        btnMensuales.classList.remove('active');
-    };
+    botonesSubtab.forEach(btn => {
+        btn.addEventListener('click', () => {
+            botonesSubtab.forEach(b => b.classList.remove('active'));
+            subtabs.forEach(st => st.style.display = 'none');
+            btn.classList.add('active');
+            document.getElementById(btn.dataset.target).style.display = 'block';
+        });
+    });
 
-    btnMensuales.onclick = () => {
-        tabPuntuales.style.display = 'none';
-        tabMensuales.style.display = 'block';
-        btnPuntuales.classList.remove('active');
-        btnMensuales.classList.add('active');
-    };
-
-    btnPuntuales.classList.add('active');
+    if (botonesSubtab.length > 0) {
+        botonesSubtab[0].classList.add('active');
+    }
 
     // ===== TOGGLE FRACCIONAMIENTO =====
     const chkFraccionar = document.getElementById('fraccionarGasto');
@@ -220,6 +289,11 @@ function cargarGastosForm() {
             const textoMostrar = gastosManager.t('gastos.mostrarAntiguos', 'Mostrar antiguos');
             const textoOcultar = gastosManager.t('gastos.ocultarAntiguos', 'Ocultar antiguos');
             toggleBtns.forEach(b => b.textContent = window.showOldGastos ? textoOcultar : textoMostrar);
+        }
+        if (toggleBtnsReales.length) {
+            const textoMostrar = gastosRealesManager.t('gastos.mostrarAntiguos', 'Mostrar antiguos');
+            const textoOcultar = gastosRealesManager.t('gastos.ocultarAntiguos', 'Ocultar antiguos');
+            toggleBtnsReales.forEach(b => b.textContent = window.showOldGastosReales ? textoOcultar : textoMostrar);
         }
     });
 }
