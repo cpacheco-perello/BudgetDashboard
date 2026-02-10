@@ -28,7 +28,7 @@ A lightweight personal finance dashboard to track income, expenses, savings, and
 - Each user has their own SQLite database and upload folder.
 - No cloud sync is included by default.
 
-<<<<<<< HEAD
+
 ## Bank Import
 
 - Supported formats: CSV, XLS, XLSX.
@@ -40,8 +40,6 @@ A lightweight personal finance dashboard to track income, expenses, savings, and
 - Prices are converted to EUR using an exchange rate API when needed.
 =======
 
----
->>>>>>> e45d5a33c38543fd0bb58efe2f6604288bdf19db
 
 ## Screenshots
 
@@ -50,17 +48,3 @@ A lightweight personal finance dashboard to track income, expenses, savings, and
 
 ![Preview 2](Imatges/Preview2.png)
 
-<<<<<<< HEAD
-=======
----
-
-
----
-
-## 📝 License
-
-This project is for personal use.
-
----
-
->>>>>>> e45d5a33c38543fd0bb58efe2f6604288bdf19db
