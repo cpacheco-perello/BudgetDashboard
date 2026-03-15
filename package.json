@@ -2,6 +2,10 @@
   "name": "dashboardeconomic",
   "version": "0.0.2",
   "description": "Dashboard financiero con gastos e ingresos",
+  "author": {
+    "name": "cpacheco-perello",
+    "email": "cpacheco.perello@outlook.com"
+  },
   "main": "main.js",
   "type": "commonjs",
   "scripts": {
@@ -60,7 +64,8 @@
           ]
         }
       ],
-      "category": "Finance"
+      "category": "Finance",
+      "maintainer": "cpacheco.perello@outlook.com"
     },
     "mac": {
       "target": [
