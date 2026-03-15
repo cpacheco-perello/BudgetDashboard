@@ -1,9 +1,11 @@
 const fs = require('fs');
 const path = require('path');
+const readline = require('readline/promises');
 const { spawnSync } = require('child_process');
 
 const packageJsonPath = path.join(process.cwd(), 'package.json');
 const distPath = path.join(process.cwd(), 'dist');
+const releaseNotesPath = path.join(process.cwd(), 'release-notes.json');
 
 function run(command, args) {
   const prettyCommand = `${command} ${args.join(' ')}`;
@@ -43,7 +45,13 @@ function hasStagedChangesFor(filePath) {
   return result.status === 1;
 }
 
-function incrementPatch(version) {
+function stageReleaseNotesIfPresent() {
+  if (fs.existsSync(releaseNotesPath)) {
+    run('git', ['add', 'release-notes.json']);
+  }
+}
+
+function incrementVersion(version, bumpType) {
   const match = version.match(/^(\d+)\.(\d+)\.(\d+)$/);
   if (!match) {
     throw new Error(`Version invalida en package.json: ${version}`);
@@ -51,9 +59,77 @@ function incrementPatch(version) {
 
   const major = Number(match[1]);
   const minor = Number(match[2]);
-  const patch = Number(match[3]) + 1;
+  const patch = Number(match[3]);
 
-  return `${major}.${minor}.${patch}`;
+  if (bumpType === 'major') {
+    return `${major + 1}.0.0`;
+  }
+
+  if (bumpType === 'minor') {
+    return `${major}.${minor + 1}.0`;
+  }
+
+  return `${major}.${minor}.${patch + 1}`;
+}
+
+async function askQuestion(prompt, defaultValue = '') {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  try {
+    const suffix = defaultValue ? ` [${defaultValue}]` : '';
+    const answer = (await rl.question(`${prompt}${suffix}: `)).trim();
+    return answer || defaultValue;
+  } finally {
+    rl.close();
+  }
+}
+
+async function askList(title) {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  try {
+    console.log(`\n${title}`);
+    console.log('Introduce una linea por elemento. Pulsa Enter en blanco para terminar.');
+
+    const items = [];
+    while (true) {
+      const answer = (await rl.question(`- `)).trim();
+      if (!answer) {
+        break;
+      }
+      items.push(answer);
+    }
+
+    return items;
+  } finally {
+    rl.close();
+  }
+}
+
+async function askBumpType() {
+  while (true) {
+    const answer = (await askQuestion('Tipo de subida de version (patch/minor/major)', 'patch')).toLowerCase();
+    if (['patch', 'minor', 'major'].includes(answer)) {
+      return answer;
+    }
+
+    console.log('Valor no valido. Usa patch, minor o major.');
+  }
+}
+
+function writeReleaseNotes(newFeatures, bugFixes) {
+  const content = {
+    newFeatures,
+    bugFixes,
+  };
+
+  fs.writeFileSync(releaseNotesPath, `${JSON.stringify(content, null, 2)}\n`, 'utf8');
 }
 
 function tagExistsLocal(tag) {
@@ -78,12 +154,12 @@ function tagExistsRemote(tag) {
   return Boolean((result.stdout || '').trim());
 }
 
-function getNextAvailableVersion(currentVersion) {
-  let candidateVersion = incrementPatch(currentVersion);
+function getNextAvailableVersion(currentVersion, bumpType) {
+  let candidateVersion = incrementVersion(currentVersion, bumpType);
   let candidateTag = `v${candidateVersion}`;
 
   while (tagExistsLocal(candidateTag) || tagExistsRemote(candidateTag)) {
-    candidateVersion = incrementPatch(candidateVersion);
+    candidateVersion = incrementVersion(candidateVersion, bumpType);
     candidateTag = `v${candidateVersion}`;
   }
 
@@ -126,23 +202,27 @@ function cleanPreviousBuilds() {
   }
 }
 
-function main() {
+async function main() {
   if (!fs.existsSync(packageJsonPath)) {
     throw new Error('No se encontro package.json en la raiz del proyecto.');
   }
 
   const packageData = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
   const currentVersion = packageData.version;
-  const nextVersion = getNextAvailableVersion(currentVersion);
+  const bumpType = await askBumpType();
+  const newFeatures = await askList('New features');
+  const bugFixes = await askList('Bug fixes');
+  const nextVersion = getNextAvailableVersion(currentVersion, bumpType);
   const tag = `v${nextVersion}`;
 
   packageData.version = nextVersion;
   fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageData, null, 2)}\n`, 'utf8');
+  writeReleaseNotes(newFeatures, bugFixes);
 
   console.log(`Version actual: ${currentVersion}`);
   console.log(`Nueva version: ${nextVersion}`);
-  if (nextVersion !== incrementPatch(currentVersion)) {
-    console.log('Se detectaron tags existentes, se uso el siguiente patch disponible.');
+  if (nextVersion !== incrementVersion(currentVersion, bumpType)) {
+    console.log(`Se detectaron tags existentes, se uso el siguiente ${bumpType} disponible.`);
   }
 
   cleanPreviousBuilds();
@@ -150,11 +230,12 @@ function main() {
   run('npm', ['run', 'dist']);
 
   run('git', ['add', 'package.json']);
+  stageReleaseNotesIfPresent();
 
-  if (hasStagedChangesFor('package.json')) {
+  if (hasStagedChangesFor('package.json') || hasStagedChangesFor('release-notes.json')) {
     run('git', ['commit', '-m', `chore: version ${nextVersion}`]);
   } else {
-    console.warn('No hay cambios en package.json para commitear. Se continua sin commit.');
+    console.warn('No hay cambios en package.json ni en release-notes.json para commitear. Se continua sin commit.');
   }
 
   run('git', ['tag', tag]);
@@ -164,9 +245,7 @@ function main() {
   console.log(`Proceso completado. Tag publicado: ${tag}`);
 }
 
-try {
-  main();
-} catch (error) {
+main().catch((error) => {
   console.error(error.message);
   process.exit(1);
-}
+});

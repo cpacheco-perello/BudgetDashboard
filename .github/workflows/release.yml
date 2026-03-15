@@ -84,14 +84,100 @@ jobs:
     needs: [build-windows, build-linux, build-mac]
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Descargar todos los artefactos
         uses: actions/download-artifact@v4
         with:
           path: artifacts
 
+      - name: Generar titulo y notas del release
+        id: release_notes
+        run: |
+          node <<'EOF'
+          const fs = require('fs');
+          const path = require('path');
+
+          const version = (process.env.GITHUB_REF_NAME || '').replace(/^v/, '');
+          const notesPath = path.join(process.cwd(), 'release-notes.json');
+          const outputPath = path.join(process.cwd(), 'release-body.txt');
+          const notes = fs.existsSync(notesPath)
+            ? JSON.parse(fs.readFileSync(notesPath, 'utf8'))
+            : { newFeatures: [], bugFixes: [] };
+
+          function walk(dir) {
+            return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+              const fullPath = path.join(dir, entry.name);
+              if (entry.isDirectory()) {
+                return walk(fullPath);
+              }
+              return [fullPath];
+            });
+          }
+
+          function getDownloadLabel(fileName) {
+            const lower = fileName.toLowerCase();
+            if (lower.endsWith('.exe')) return 'Windows';
+            if (lower.endsWith('.dmg') && lower.includes('arm64')) return 'Mac M1/M2';
+            if (lower.endsWith('.dmg') && lower.includes('x64')) return 'Mac Intel';
+            if (lower.endsWith('.appimage')) return 'Linux';
+            if (lower.endsWith('.deb')) return 'Ubuntu/Debian';
+            return 'Download';
+          }
+
+          const artifactRoot = path.join(process.cwd(), 'artifacts');
+          const files = fs.existsSync(artifactRoot)
+            ? walk(artifactRoot)
+                .filter((file) => fs.statSync(file).isFile())
+                .map((file) => path.basename(file))
+                .sort()
+            : [];
+
+          const lines = [];
+          lines.push(`DashboardEconomic v${version}`);
+          lines.push('');
+          lines.push('New features:');
+          if (Array.isArray(notes.newFeatures) && notes.newFeatures.length > 0) {
+            for (const item of notes.newFeatures) {
+              lines.push(`- ${item}`);
+            }
+          } else {
+            lines.push('- No feature notes provided');
+          }
+          lines.push('');
+          lines.push('Bug fixes:');
+          if (Array.isArray(notes.bugFixes) && notes.bugFixes.length > 0) {
+            for (const item of notes.bugFixes) {
+              lines.push(`- ${item}`);
+            }
+          } else {
+            lines.push('- No bug fix notes provided');
+          }
+          lines.push('');
+          lines.push('Downloads:');
+          if (files.length > 0) {
+            for (const file of files) {
+              lines.push(`${getDownloadLabel(file)} -> ${file}`);
+            }
+          } else {
+            lines.push('No artifacts found');
+          }
+
+          fs.writeFileSync(outputPath, `${lines.join('\n')}\n`, 'utf8');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `release_name=DashboardEconomic v${version}\n`);
+          EOF
+
       - name: Publicar Release con todos los instaladores
         uses: softprops/action-gh-release@v2
         with:
+          name: ${{ steps.release_notes.outputs.release_name }}
+          body_path: release-body.txt
           files: artifacts/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
