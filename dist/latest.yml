@@ -1,8 +1,8 @@
-version: 3.0.5
+version: 3.0.6
 files:
-  - url: DashboardEconomic-Setup-3.0.5.exe
-    sha512: TyWSoT9VFL3ydx/1QkUjCP4oucNTbfxklorPb+Fywa5aJXCgLd6+b+fPyLIZMNYiDOJ9+iY4yY8IeTQc9hAJEg==
-    size: 111322768
-path: DashboardEconomic-Setup-3.0.5.exe
-sha512: TyWSoT9VFL3ydx/1QkUjCP4oucNTbfxklorPb+Fywa5aJXCgLd6+b+fPyLIZMNYiDOJ9+iY4yY8IeTQc9hAJEg==
-releaseDate: '2026-03-15T15:56:39.731Z'
+  - url: DashboardEconomic-Setup-3.0.6.exe
+    sha512: Sn8h/DEDYKnpUnnz0Am890ilOowvezFZF4L7J9iMs8Roro5VglvOaJWIzezAIyt1gZnMTLzQI0aYZma2mgvQlw==
+    size: 111322687
+path: DashboardEconomic-Setup-3.0.6.exe
+sha512: Sn8h/DEDYKnpUnnz0Am890ilOowvezFZF4L7J9iMs8Roro5VglvOaJWIzezAIyt1gZnMTLzQI0aYZma2mgvQlw==
+releaseDate: '2026-03-15T16:07:21.737Z'
