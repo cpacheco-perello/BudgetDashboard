@@ -1,6 +1,6 @@
 {
   "name": "dashboardeconomic",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Dashboard financiero con gastos e ingresos",
   "author": {
     "name": "cpacheco-perello",
@@ -31,6 +31,7 @@
     "asar": true,
     "compression": "maximum",
     "win": {
+      "artifactName": "dashboardeconomic_v${version}_windows_${arch}.${ext}",
       "target": [
         {
           "target": "nsis",
@@ -50,6 +51,7 @@
       "shortcutName": "DashboardEconomic"
     },
     "linux": {
+      "artifactName": "dashboardeconomic_v${version}_linux_${arch}.${ext}",
       "target": [
         {
           "target": "AppImage",
@@ -68,6 +70,7 @@
       "maintainer": "cpacheco.perello@outlook.com"
     },
     "mac": {
+      "artifactName": "dashboardeconomic_v${version}_mac_${arch}.${ext}",
       "target": [
         {
           "target": "dmg",
