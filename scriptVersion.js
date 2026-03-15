@@ -34,6 +34,15 @@ function run(command, args) {
   }
 }
 
+function hasStagedChangesFor(filePath) {
+  const result = spawnSync('git', ['diff', '--cached', '--quiet', '--', filePath], {
+    stdio: 'ignore',
+    shell: false,
+  });
+
+  return result.status === 1;
+}
+
 function incrementPatch(version) {
   const match = version.match(/^(\d+)\.(\d+)\.(\d+)$/);
   if (!match) {
@@ -47,18 +56,31 @@ function incrementPatch(version) {
   return `${major}.${minor}.${patch}`;
 }
 
+function sleep(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+function killAppProcesses() {
+  const processes = ['DashboardEconomic.exe', 'electron.exe', 'Electron.exe'];
+  for (const proc of processes) {
+    spawnSync('taskkill', ['/F', '/IM', proc, '/T'], { shell: false });
+  }
+}
+
 function cleanPreviousBuilds() {
   if (!fs.existsSync(distPath)) return;
 
-  console.log(`\nLimpiando builds anteriores en: ${distPath}`);
+  console.log('\nCerrando procesos Electron antes de limpiar...');
+  killAppProcesses();
+  sleep(2000);
+
+  console.log(`Limpiando builds anteriores en: ${distPath}`);
   try {
     fs.rmSync(distPath, { recursive: true, force: true });
   } catch (err) {
     if (err.code === 'EBUSY' || err.code === 'EPERM') {
-      console.warn(`Aviso: algunos archivos en dist/ están bloqueados (${err.code}).`);
-      console.warn('Intentando cerrar procesos Electron que puedan estar usando esos archivos...');
-      spawnSync('taskkill', ['/F', '/IM', 'DashboardEconomic.exe', '/T'], { shell: false });
-      spawnSync('taskkill', ['/F', '/IM', 'electron.exe', '/T'], { shell: false });
+      console.warn(`Archivos aún bloqueados (${err.code}), reintentando en 3 segundos...`);
+      sleep(3000);
       try {
         fs.rmSync(distPath, { recursive: true, force: true });
       } catch {
@@ -91,7 +113,12 @@ function main() {
   run('npm', ['run', 'dist']);
 
   run('git', ['add', 'package.json']);
-  run('git', ['commit', '-m', `chore: version ${nextVersion}`]);
+
+  if (hasStagedChangesFor('package.json')) {
+    run('git', ['commit', '-m', `chore: version ${nextVersion}`]);
+  } else {
+    console.warn('No hay cambios en package.json para commitear. Se continua sin commit.');
+  }
 
   run('git', ['tag', tag]);
   run('git', ['push', 'origin']);
