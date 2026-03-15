@@ -1,10 +1,10 @@
 node_modules/
+dist/
 win-unpacked/
 documentacion/
 uploads/
 tests/
 usuarios/
-*.exe
 *.blockmap
 *.log
 *.dll
@@ -13,4 +13,3 @@ usuarios/
 # Base de datos de usuario
 finanzas.db
 commandosBuild.txt
-comandosBuild.txt

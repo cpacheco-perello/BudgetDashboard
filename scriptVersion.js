@@ -3,6 +3,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 const packageJsonPath = path.join(process.cwd(), 'package.json');
+const distPath = path.join(process.cwd(), 'dist');
 
 function run(command, args) {
   const prettyCommand = `${command} ${args.join(' ')}`;
@@ -46,6 +47,13 @@ function incrementPatch(version) {
   return `${major}.${minor}.${patch}`;
 }
 
+function cleanPreviousBuilds() {
+  if (fs.existsSync(distPath)) {
+    console.log(`\nLimpiando builds anteriores en: ${distPath}`);
+    fs.rmSync(distPath, { recursive: true, force: true });
+  }
+}
+
 function main() {
   if (!fs.existsSync(packageJsonPath)) {
     throw new Error('No se encontro package.json en la raiz del proyecto.');
@@ -62,9 +70,11 @@ function main() {
   console.log(`Version actual: ${currentVersion}`);
   console.log(`Nueva version: ${nextVersion}`);
 
+  cleanPreviousBuilds();
+
   run('npm', ['run', 'dist']);
 
-  run('git', ['add', '-A']);
+  run('git', ['add', 'package.json']);
   run('git', ['commit', '-m', `chore: version ${nextVersion}`]);
 
   run('git', ['tag', tag]);
