@@ -1,6 +1,6 @@
 {
   "name": "dashboardeconomic",
-  "version": "3.0.1",
+  "version": "3.0.4",
   "description": "Dashboard financiero con gastos e ingresos",
   "main": "main.js",
   "type": "commonjs",
