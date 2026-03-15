@@ -1,6 +1,6 @@
 {
   "name": "dashboardeconomic",
-  "version": "1.0.0",
+  "version": "3.0.1",
   "description": "Dashboard financiero con gastos e ingresos",
   "main": "main.js",
   "type": "commonjs",
@@ -8,7 +8,8 @@
     "start": "electron .",
     "postinstall": "electron-builder install-app-deps",
     "dist": "electron-builder",
-    "test": "jest"
+    "test": "jest",
+    "scriptVersion": "node scriptVersion.js"
   },
   "dependencies": {
     "sqlite3": "^5.1.6",
