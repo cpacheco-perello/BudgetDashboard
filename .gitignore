@@ -13,5 +13,5 @@ usuarios/
 # Base de datos de usuario
 finanzas.db
 commandosBuild.txt
-releaseNotes.txt
 commandosBuild.sh
+comandosBuild.txt
