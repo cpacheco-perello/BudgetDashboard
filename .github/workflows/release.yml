@@ -20,17 +20,20 @@ jobs:
 
       - name: Bump version in package.json from tag
         id: bump_version
+        shell: pwsh
         run: |
-          TAG_VERSION=${GITHUB_REF#refs/tags/v}
-          node -e "let pkg=require('./package.json');pkg.version='${TAG_VERSION}';require('fs').writeFileSync('package.json',JSON.stringify(pkg,null,2));"
-          echo "Nueva versión en package.json: ${TAG_VERSION}"
+          $tag = $env:GITHUB_REF -replace 'refs/tags/v', ''
+          node -e "let pkg=require('./package.json');pkg.version='$tag';require('fs').writeFileSync('package.json',JSON.stringify(pkg,null,2));"
+          echo "Nueva versión en package.json: $tag"
 
       - name: Commit version bump
+        shell: pwsh
         run: |
+          $tag = $env:GITHUB_REF -replace 'refs/tags/v', ''
           git config user.name cpacheco-perello
           git config user.email cpacheco.perello@outlook.com
           git add package.json
-          git commit -m "chore: bump version to ${GITHUB_REF#refs/tags/v} [skip ci]"
+          git commit -m "chore: bump version to $tag [skip ci]"
           git push || echo "No se pudo hacer push (posiblemente por permisos en PRs de forks)"
 
       - name: Buscar el archivo .exe
