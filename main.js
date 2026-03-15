@@ -1,4 +1,4 @@
-const { app: electronApp, BrowserWindow } = require('electron');
+const { app: electronApp, BrowserWindow, Menu } = require('electron');
 const path = require('path');
 const { registerIpcHandlers } = require('./src/ipc/ipcHandlers');
 
@@ -15,13 +15,20 @@ async function startApp() {
         mainWindow = new BrowserWindow({
             width: 1200,
             height: 800,
+            autoHideMenuBar: electronApp.isPackaged,
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
                 preload: path.join(__dirname, 'preload.js'),
-                devTools: false
+                devTools: true
             }
         });
+
+        // En build ocultamos la barra superior (File, View, etc.).
+        if (electronApp.isPackaged) {
+            Menu.setApplicationMenu(null);
+            mainWindow.setMenuBarVisibility(false);
+        }
 
         // Cargar el archivo HTML directamente
         mainWindow.loadFile(path.join(__dirname, 'public', 'index.html'));

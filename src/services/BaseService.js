@@ -12,6 +12,7 @@ class BaseService {
         this.dateField = dateField; // 'fecha' for puntual, 'desde' for mensual
         this.hasIncome = tableName.includes('ingresos');
         this.hasBruto = this.hasIncome && this.tableName !== 'ingresos_reales';
+        this.hasIpc = this.tableName === 'gastos_mensuales';
     }
 
     /**
@@ -23,6 +24,7 @@ class BaseService {
         const dateSelect = this.dateField ? `e.${this.dateField},` : '';
         const hastaField = this.tableName.includes('mensuales') ? 'e.hasta,' : '';
         const bruteField = this.hasBruto ? 'e.bruto,' : '';
+        const ipcField = this.hasIpc ? 'e.ipc_porcentaje,' : '';
         
         return await dbAll(db, `
             SELECT 
@@ -32,6 +34,7 @@ class BaseService {
                 e.descripcion, 
                 e.monto, 
                 ${bruteField}
+                ${ipcField}
                 c.nombre AS categoria
             FROM ${this.tableName} e
             JOIN categorias c ON e.categoria_id = c.id
@@ -45,7 +48,7 @@ class BaseService {
      * @param {Object} data - Record data
      */
     async add(data) {
-        const { descripcion, monto, bruto, categoria_id, fecha, desde, hasta, archivo_origen } = data;
+        const { descripcion, monto, bruto, categoria_id, fecha, desde, hasta, archivo_origen, ipc_porcentaje } = data;
         
         // Build INSERT based on table structure
         const columns = ['descripcion', 'monto', 'categoria_id'];
@@ -76,6 +79,12 @@ class BaseService {
             values.push(bruto || null);
         }
 
+        if (this.hasIpc && ipc_porcentaje !== undefined) {
+            columns.push('ipc_porcentaje');
+            placeholders.push('?');
+            values.push(parseFloat(ipc_porcentaje) || 0);
+        }
+
         if (archivo_origen !== undefined) {
             columns.push('archivo_origen');
             placeholders.push('?');
@@ -91,7 +100,7 @@ class BaseService {
      * @param {Object} data - Update data including ID
      */
     async update(data) {
-        const { id, descripcion, monto, bruto, categoria, categoria_id, fecha, desde, hasta } = data;
+        const { id, descripcion, monto, bruto, categoria, categoria_id, fecha, desde, hasta, ipc_porcentaje } = data;
         
         // Determine category ID - prefer categoria_id if provided, otherwise look up by name
         let catId = categoria_id;
@@ -136,6 +145,10 @@ class BaseService {
         if (this.hasBruto && bruto !== undefined) {
             updates.push('bruto = ?');
             values.push(bruto || null);
+        }
+        if (this.hasIpc && ipc_porcentaje !== undefined) {
+            updates.push('ipc_porcentaje = ?');
+            values.push(parseFloat(ipc_porcentaje) || 0);
         }
 
         if (catId) {

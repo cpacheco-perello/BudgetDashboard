@@ -65,6 +65,12 @@ class GestorIdiomas {
             elemento.alt = this.obtenerTexto(clave);
         });
 
+        // Atributos aria-label
+        document.querySelectorAll('[data-i18n-aria-label]').forEach(elemento => {
+            const clave = elemento.getAttribute('data-i18n-aria-label');
+            elemento.setAttribute('aria-label', this.obtenerTexto(clave));
+        });
+
         // Atributos placeholder
         document.querySelectorAll('[data-i18n-placeholder]').forEach(elemento => {
             const clave = elemento.getAttribute('data-i18n-placeholder');
@@ -101,7 +107,7 @@ class GestorIdiomas {
     }
 
     setupSelectores() {
-        // Selector de idiomas en el header
+        // El selector vive en la pestaña ajustes (carga diferida) — se vincula en initAjustes()
         const languageSelect = document.getElementById('languageSelect');
         if (languageSelect) {
             languageSelect.value = this.idiomaActual;
@@ -110,8 +116,6 @@ class GestorIdiomas {
                 console.log(`✅ Idioma cambiado a: ${e.target.value}`);
             });
             console.log('✅ Selector de idiomas vinculado');
-        } else {
-            console.warn('⚠️ Elemento languageSelect no encontrado');
         }
     }
 

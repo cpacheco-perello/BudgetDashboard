@@ -47,6 +47,7 @@ async function cargarHucha() {
             const monto = parseFloat(cr.monto) || 0;
             const aportacion = parseFloat(cr.aportacion_mensual) || 0;
             const interes = parseFloat(cr.interes) || 0;
+            const retencion = parseFloat(cr.retencion) || 0;
             if (!cr.desde || !mesActual) return monto;
 
             const [desdeY, desdeM] = cr.desde.split('-').map(Number);
@@ -77,7 +78,9 @@ async function cargarHucha() {
                 }
             }
 
-            return monto + aportacionesAcumuladas + totalInteres;
+            // Aplicar retención: solo se recibe el interés neto
+            const interesNeto = totalInteres * (1 - retencion / 100);
+            return monto + aportacionesAcumuladas + interesNeto;
         },
         
         async loadData() {

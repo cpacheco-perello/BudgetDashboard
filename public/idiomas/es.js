@@ -49,7 +49,20 @@ TRADUCCIONES.es = {
             seis_meses: '6 Meses',
             un_anio: '1 Año',
             cinco_anios: '5 Años',
-            diez_anios: '10 Años'
+            diez_anios: '10 Años',
+            proximo_mes: 'Próximo mes',
+            proximos_tres_meses: 'Próximos 3 meses',
+            proximos_seis_meses: 'Próximos 6 meses',
+            label_mes_actual: 'Mes actual',
+            label_ultimos_3_meses: 'Últimos 3 meses',
+            label_ultimos_6_meses: 'Últimos 6 meses',
+            label_ultimos_12_meses: 'Últimos 12 meses',
+            label_ultimos_5_anios: 'Últimos 5 años',
+            label_ultimos_10_anios: 'Últimos 10 años',
+            label_proximo_mes: 'Próximo mes',
+            label_proximos_3_meses: 'Próximos 3 meses',
+            label_proximos_6_meses: 'Próximos 6 meses',
+            label_periodo_seleccionado: 'Período seleccionado'
         },
 
         // ===== RESUMEN =====
@@ -57,11 +70,21 @@ TRADUCCIONES.es = {
             totalIngresos: 'Total Ingresos',
             totalGastos: 'Total Gastos',
             saldo: 'Saldo',
+            saldoDisponible: 'Saldo disponible',
             totalImpuestos: 'Total Impuestos',
             impuestosPre: 'Pre',
             impuestosPost: 'Post',
             totalHucha: 'Total Hucha',
             portfolioRendimiento: 'Rendimiento Portfolio'
+        },
+
+        inicio: {
+            evolucionMensual: 'Evolución mensual',
+            ingresosVsGastos: 'Ingresos vs Gastos',
+            gastosPorCategoria: 'Gastos por categoría',
+            distribucionPeriodo: 'Distribución del período',
+            sinDatosPeriodo: 'Sin datos para este período',
+            graficoIngresosBrutos: 'Ingresos brutos'
         },
 
         // ===== TEMA =====
@@ -92,14 +115,40 @@ TRADUCCIONES.es = {
 
         // ===== NAVEGACIÓN =====
         nav: {
-            categorias: 'Categorías',
-            gastos: 'Gastos',
-            ingresos: 'Ingresos',
-            impuestos: 'Impuestos',
-            importacionBancaria: 'Importar Banco',
-            dashboard: 'Dashboard',
-            dashboardReal: 'Dashboard Real',
-            hucha: 'Hucha Real'
+            inicio: 'Inicio',
+                categorias: 'Categorías',
+                gastos: 'Gastos',
+                ingresos: 'Ingresos',
+                impuestos: 'Impuestos',
+                importacionBancaria: 'Importar Banco',
+            importarBanco: 'Importar Banco',
+                dashboard: 'Dashboard',
+                dashboardReal: 'Dashboard Real',
+            hucha: 'Hucha Real',
+            ajustes: 'Ajustes',
+            usuario: 'Usuario',
+            navegacionPrincipal: 'Navegación principal'
+            },
+
+            // ===== AJUSTES =====
+            ajustes: {
+                titulo: 'Ajustes',
+                descripcion: 'Configura tema, idioma y moneda de trabajo',
+                usuarioActivo: 'Usuario activo',
+                cambiarUsuarioSidebar: 'Puedes cambiar de usuario desde el botón del sidebar.'
+            },
+
+        usuarios: {
+            seleccionaUsuario: 'Selecciona usuario',
+            usuarios: 'Usuarios',
+            entrar: 'Entrar',
+            icono: 'Icono',
+            o: 'o',
+            nuevoUsuario: 'Nuevo usuario',
+            placeholderNombre: 'Nombre',
+            crear: 'Crear',
+            refrescar: 'Refrescar',
+            sinUsuario: 'Sin usuario'
         },
 
         // ===== DASHBOARD REAL =====
@@ -121,6 +170,9 @@ TRADUCCIONES.es = {
             campoImporte: 'Columna de Importe:',
             campoTipo: 'Tipo de Transacción (Opcional):',
             campoSaldo: 'Columna de Saldo (Opcional):',
+            formatoFechaPlaceholder: 'ej: DD/MM/YYYY',
+            opcionSelecciona: '-- Selecciona --',
+            opcionNingunoAuto: '-- Ninguno (se auto-detectará) --',
             ayudaTipo: 'Los positivos serán ingresos, negativos gastos',
             vista_previa: 'Vista Previa de Datos',
             confirmarMapeo: 'Confirmar Mapeo',
@@ -182,6 +234,9 @@ TRADUCCIONES.es = {
             cantidad: 'Cantidad',
             seleccionConceptos: 'Seleccionar Conceptos',
             descripcionSeleccion: 'Selecciona los conceptos que deseas incluir en el análisis',
+            seleccionarTodos: 'Seleccionar Todos',
+            deseleccionarTodos: 'Deseleccionar Todos',
+            movimientos: 'Movimientos',
             continuar: 'Continuar',
             errorCargandoArchivos: 'Error cargando archivos',
             cargandoArchivo: 'Cargando archivo...',
@@ -221,6 +276,8 @@ TRADUCCIONES.es = {
             desviacionAbrev: 'Desv',
             mediaTotal: 'Media Total',
             cuentasRemuneradas: 'Cuentas Remuneradas',
+            cuentasRemuneradasNeto: 'Ctas. Rem. (neto)',
+            retencionCR: 'Retención CR',
             impuestosIngresos: 'Impuestos (ingresos)',
             impuestosOtros: 'Impuestos (otros)',
             impuestosRetenciones: 'Imp. Retenciones (ingresos)',
@@ -276,6 +333,9 @@ TRADUCCIONES.es = {
             desde: 'Desde',
             hasta: 'Hasta',
             monto: 'Monto',
+            ipc: 'IPC %',
+            montoAjustado: 'Monto ajustado',
+            ipcPlaceholder: '0.00',
             mostrarAntiguos: 'Mostrar antiguos',
             ocultarAntiguos: 'Ocultar antiguos',
             fraccionar: 'Fraccionar',
@@ -314,7 +374,9 @@ TRADUCCIONES.es = {
             aportacionInicial: 'Aportación Inicial',
             aportacionMensual: 'Aportación Mensual',
             interes: 'Interés (%)',
+            retencion: 'Retención (%)',
             interesGenerado: 'Interés Generado',
+            interesNeto: 'Interés Neto',
             mostrarAntiguos: 'Mostrar antiguos',
             ocultarAntiguos: 'Ocultar antiguos',
             noHayIngresos: 'No hay ingresos registrados',
@@ -373,6 +435,7 @@ TRADUCCIONES.es = {
             placeholderShares: '10',
             placeholderPrice: '150.00',
             placeholderInteres: '0.00',
+            placeholderRetencion: '0.00',
             placeholderAportacion: '0.00',
             confirmarEliminarPuntual: '¿Eliminar este ingreso?',
             confirmarEliminarMensual: '¿Eliminar este ingreso mensual?',

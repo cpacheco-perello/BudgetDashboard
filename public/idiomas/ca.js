@@ -49,7 +49,20 @@ TRADUCCIONES.ca = {
             seis_meses: '6 Mesos',
             un_anio: '1 Any',
             cinco_anios: '5 Anys',
-            diez_anios: '10 Anys'
+            diez_anios: '10 Anys',
+            proximo_mes: 'Mes següent',
+            proximos_tres_meses: 'Pròxims 3 mesos',
+            proximos_seis_meses: 'Pròxims 6 mesos',
+            label_mes_actual: 'Mes actual',
+            label_ultimos_3_meses: 'Últims 3 mesos',
+            label_ultimos_6_meses: 'Últims 6 mesos',
+            label_ultimos_12_meses: 'Últims 12 mesos',
+            label_ultimos_5_anios: 'Últims 5 anys',
+            label_ultimos_10_anios: 'Últims 10 anys',
+            label_proximo_mes: 'Mes següent',
+            label_proximos_3_meses: 'Pròxims 3 mesos',
+            label_proximos_6_meses: 'Pròxims 6 mesos',
+            label_periodo_seleccionado: 'Període seleccionat'
         },
 
         // ===== RESUM =====
@@ -57,11 +70,21 @@ TRADUCCIONES.ca = {
             totalIngresos: 'Total ingressos',
             totalGastos: 'Total despeses',
             saldo: 'Saldo',
+            saldoDisponible: 'Saldo disponible',
             totalImpuestos: 'Total impostos',
             impuestosPre: 'Pre',
             impuestosPost: 'Post',
             totalHucha: 'Total guardiola',
             portfolioRendimiento: 'Rendiment del portafoli'
+        },
+
+        inicio: {
+            evolucionMensual: 'Evolució mensual',
+            ingresosVsGastos: 'Ingressos vs despeses',
+            gastosPorCategoria: 'Despeses per categoria',
+            distribucionPeriodo: 'Distribució del període',
+            sinDatosPeriodo: 'Sense dades per a aquest període',
+            graficoIngresosBrutos: 'Ingressos bruts'
         },
 
         // ===== TEMA =====
@@ -92,19 +115,45 @@ TRADUCCIONES.ca = {
 
         // ===== NAVEGACIÓ =====
         nav: {
+            inicio: 'Inici',
             categorias: 'Categories',
             gastos: 'Despeses',
             ingresos: 'Ingressos',
             impuestos: 'Impostos',
             importacionBancaria: 'Importar banc',
+            importarBanco: 'Importar banc',
             dashboard: 'Quadre de comandament',
             dashboardReal: 'Quadre de comandament real',
-            hucha: 'Guardiola real'
+            hucha: 'Guardiola real',
+            ajustes: 'Ajustos',
+            usuario: 'Usuari',
+            navegacionPrincipal: 'Navegació principal'
         },
 
         // ===== DASHBOARD REAL =====
         dashboardReal: {
-            titulo: 'Quadre de comandament real'
+                titulo: 'Quadre de comandament real'
+            },
+
+            // ===== AJUSTOS =====
+            ajustes: {
+                titulo: 'Ajustos',
+                descripcion: 'Configura tema, idioma i moneda de treball',
+                usuarioActivo: 'Usuari actiu',
+                cambiarUsuarioSidebar: 'Pots canviar d\'usuari des del botó del sidebar.'
+        },
+
+        usuarios: {
+            seleccionaUsuario: 'Selecciona usuari',
+            usuarios: 'Usuaris',
+            entrar: 'Entrar',
+            icono: 'Icona',
+            o: 'o',
+            nuevoUsuario: 'Nou usuari',
+            placeholderNombre: 'Nom',
+            crear: 'Crear',
+            refrescar: 'Refrescar',
+            sinUsuario: 'Sense usuari'
         },
 
         // ===== IMPORTACIÓ BANCÀRIA =====
@@ -121,6 +170,9 @@ TRADUCCIONES.ca = {
             campoImporte: 'Columna d\'import:',
             campoTipo: 'Tipus de transacció (opcional):',
             campoSaldo: 'Columna de saldo (opcional):',
+            formatoFechaPlaceholder: 'ex: DD/MM/YYYY',
+            opcionSelecciona: '-- Selecciona --',
+            opcionNingunoAuto: '-- Cap (auto-detecció) --',
             ayudaTipo: 'Els positius seran ingressos, els negatius despeses',
             vista_previa: 'Vista prèvia de dades',
             confirmarMapeo: 'Confirmar mapeig',
@@ -182,6 +234,9 @@ TRADUCCIONES.ca = {
             cantidad: 'Quantitat',
             seleccionConceptos: 'Seleccionar conceptes',
             descripcionSeleccion: 'Selecciona els conceptes que vols incloure a l\'anàlisi',
+            seleccionarTodos: 'Seleccionar tots',
+            deseleccionarTodos: 'Deseleccionar tots',
+            movimientos: 'Moviments',
             continuar: 'Continuar',
             errorCargandoArchivos: 'Error carregant arxius',
             cargandoArchivo: 'Carregant arxiu...',
@@ -221,6 +276,8 @@ TRADUCCIONES.ca = {
             desviacionAbrev: 'Desv',
             mediaTotal: 'Mitjana total',
             cuentasRemuneradas: 'Comptes remunerats',
+            cuentasRemuneradasNeto: 'Comptes rem. (net)',
+            retencionCR: 'Retenció CR',
             impuestosIngresos: 'Impostos (ingressos)',
             impuestosOtros: 'Impostos (altres)',
             impuestosRetenciones: 'Imp. retencions (ingressos)',
@@ -276,6 +333,9 @@ TRADUCCIONES.ca = {
             desde: 'Des de',
             hasta: 'Fins a',
             monto: 'Import',
+            ipc: 'IPC %',
+            montoAjustado: 'Import ajustat',
+            ipcPlaceholder: '0.00',
             mostrarAntiguos: 'Mostrar antics',
             ocultarAntiguos: 'Amagar antics',
             fraccionar: 'Fraccionar',
@@ -314,7 +374,9 @@ TRADUCCIONES.ca = {
             aportacionInicial: 'Aportació inicial',
             aportacionMensual: 'Aportació mensual',
             interes: 'Interès (%)',
+            retencion: 'Retenció (%)',
             interesGenerado: 'Interès generat',
+            interesNeto: 'Interès net',
             mostrarAntiguos: 'Mostrar antics',
             ocultarAntiguos: 'Amagar antics',
             noHayIngresos: 'No hi ha ingressos registrats',
@@ -373,6 +435,7 @@ TRADUCCIONES.ca = {
             placeholderShares: '10',
             placeholderPrice: '150.00',
             placeholderInteres: '0.00',
+            placeholderRetencion: '0.00',
             placeholderAportacion: '0.00',
             confirmarEliminarPuntual: 'Eliminar aquest ingrés?',
             confirmarEliminarMensual: 'Eliminar aquest ingrés mensual?',

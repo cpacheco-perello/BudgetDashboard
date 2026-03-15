@@ -7,15 +7,18 @@ const router = express.Router();
  * GET /asset-price/:ticker - Obtener precio de un activo
  */
 router.get('/asset-price/:ticker', async (req, res) => {
+    const ticker = String(req.params.ticker || '').trim().toUpperCase();
     try {
-        const result = await getAssetPrice(req.params.ticker);
+        const result = await getAssetPrice(ticker);
         res.json(result);
     } catch (e) {
-        console.error('Error obteniendo precio:', e);
-        res.status(500).json({ 
-            error: 'No se pudo obtener el precio', 
-            ticker: req.params.ticker,
-            mensaje: 'Verifica que el ticker sea válido (ej: AAPL, MSFT, etc.)'
+        console.warn(`⚠️ /asset-price sin datos para ${ticker}: ${e.message}`);
+        res.json({
+            ticker,
+            currentPrice: null,
+            currency: 'EUR',
+            unavailable: true,
+            mensaje: 'No se pudo obtener el precio para este ticker'
         });
     }
 });

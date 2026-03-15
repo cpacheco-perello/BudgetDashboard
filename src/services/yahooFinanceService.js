@@ -7,6 +7,20 @@ let exchangeRate = 0.92;
 let exchangeRateTime = 0;
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hora
 
+// Control de ruido de logs para tickers inválidos/no disponibles
+const failedTickerLogCache = new Map();
+const FAILED_TICKER_LOG_TTL = 10 * 60 * 1000; // 10 minutos
+
+function shouldLogTickerFailure(ticker) {
+    const now = Date.now();
+    const last = failedTickerLogCache.get(ticker) || 0;
+    if (now - last > FAILED_TICKER_LOG_TTL) {
+        failedTickerLogCache.set(ticker, now);
+        return true;
+    }
+    return false;
+}
+
 /**
  * Obtiene la tasa de cambio USD a EUR
  */
@@ -37,6 +51,11 @@ async function obtenerTasaCambio() {
  * Obtiene el precio de un activo y lo convierte a EUR
  */
 async function getAssetPrice(ticker) {
+    const normalizedTicker = String(ticker || '').trim().toUpperCase();
+    if (!normalizedTicker) {
+        throw new Error('Ticker vacío');
+    }
+
     let quote = null;
     let currency = 'USD';
     let priceUSD = 0;
@@ -46,29 +65,31 @@ async function getAssetPrice(ticker) {
     const europeanExchanges = ['.DE', '.MI', '.PA', '.L', '.BR', '.AT', '.BE'];
 
     // 1) Si el ticker tiene sufijo, probarlo tal cual
-    if (ticker.includes('.')) {
+    if (normalizedTicker.includes('.')) {
         try {
-            quote = await yahooFinance.quote(ticker);
+            quote = await yahooFinance.quote(normalizedTicker);
             if (quote && quote.regularMarketPrice) {
                 currency = quote.currency || 'EUR';
                 if (currency === 'EUR') {
                     priceEUR = quote.regularMarketPrice;
                     found = true;
-                    console.log(`✅ Precio obtenido en EUR desde ${ticker}: ${priceEUR} EUR`);
+                    console.log(`✅ Precio obtenido en EUR desde ${normalizedTicker}: ${priceEUR} EUR`);
                 } else {
                     priceUSD = quote.regularMarketPrice;
                 }
             }
         } catch (e) {
-            console.log(`ℹ️ ${ticker} no encontrado, probando alternativas`);
+            if (shouldLogTickerFailure(normalizedTicker)) {
+                console.log(`ℹ️ ${normalizedTicker} no encontrado, probando alternativas`);
+            }
         }
     }
 
     // 2) Probar con sufijos europeos
-    if (!found && !ticker.includes('.')) {
+    if (!found && !normalizedTicker.includes('.')) {
         for (const exchange of europeanExchanges) {
             try {
-                const eurTicker = ticker + exchange;
+                const eurTicker = normalizedTicker + exchange;
                 quote = await yahooFinance.quote(eurTicker);
                 if (quote && quote.regularMarketPrice) {
                     currency = quote.currency || 'EUR';
@@ -88,21 +109,23 @@ async function getAssetPrice(ticker) {
     // 3) Fallback: ticker base
     if (!found) {
         try {
-            quote = await yahooFinance.quote(ticker);
+            quote = await yahooFinance.quote(normalizedTicker);
             if (quote && quote.regularMarketPrice) {
                 priceUSD = quote.regularMarketPrice;
                 currency = quote.currency || 'USD';
                 if (currency === 'USD') {
                     const tasa = await obtenerTasaCambio();
                     priceEUR = priceUSD * tasa;
-                    console.log(`💱 Convertido: ${ticker} ${priceUSD} USD × ${tasa} = ${priceEUR} EUR`);
+                    console.log(`💱 Convertido: ${normalizedTicker} ${priceUSD} USD × ${tasa} = ${priceEUR} EUR`);
                 } else {
                     priceEUR = priceUSD;
                 }
                 found = true;
             }
         } catch (e) {
-            console.error(`Error obteniendo precio para ${ticker}:`, e.message);
+            if (shouldLogTickerFailure(normalizedTicker)) {
+                console.warn(`⚠️ Error obteniendo precio para ${normalizedTicker}: ${e.message}`);
+            }
         }
     }
 
@@ -111,7 +134,7 @@ async function getAssetPrice(ticker) {
     }
 
     return {
-        ticker: ticker,
+        ticker: normalizedTicker,
         currentPrice: parseFloat(priceEUR.toFixed(2)),
         currency: 'EUR',
         originalPrice: priceUSD,

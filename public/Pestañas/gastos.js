@@ -25,6 +25,9 @@ function cargarGastosForm() {
             puntuales: '#categoriaGasto',
             mensuales: '#categoriaMensual'
         },
+        customColumns: {
+            mensual: ['desde', 'hasta', 'descripcion', 'monto', 'ipc_porcentaje', 'monto_ajustado', 'categoria']
+        },
         showOldFlag: 'showOldGastos'
     });
 
@@ -168,7 +171,9 @@ function cargarGastosForm() {
         const hasta = document.getElementById('hastaGasto').value;
         const desc = document.getElementById('descMensual').value;
         const monto = parseFloat(document.getElementById('montoMensual').value);
+        const ipcPorcentaje = parseFloat(document.getElementById('ipcMensual')?.value);
         const categoria = document.getElementById('categoriaMensual').value;
+        const ipcValue = Number.isNaN(ipcPorcentaje) ? 0 : ipcPorcentaje;
 
         // Validación de formato YYYY-MM
         const validarYYYYMM = (valor) => /^\d{4}-(0[1-9]|1[0-2])$/.test(valor);
@@ -187,7 +192,8 @@ function cargarGastosForm() {
                 monto: monto,
                 categoria_id: categoria,
                 desde: desde,
-                hasta: hasta
+                hasta: hasta,
+                ipc_porcentaje: ipcValue
             })
         });
 
@@ -196,6 +202,8 @@ function cargarGastosForm() {
         document.getElementById('hastaGasto').value = '';
         document.getElementById('descMensual').value = '';
         document.getElementById('montoMensual').value = '';
+        const ipcMensualInput = document.getElementById('ipcMensual');
+        if (ipcMensualInput) ipcMensualInput.value = '';
         
         gastosManager.loadData();
         if (typeof cargarResumenPeriodos === 'function') cargarResumenPeriodos();

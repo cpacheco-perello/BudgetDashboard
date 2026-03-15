@@ -430,19 +430,16 @@ class GestorTemas {
      * Inicializa el gestor de temas
      */
     inicializar() {
-        this.themeSelect = document.getElementById('themeSelect');
-        
-        if (!this.themeSelect) {
-            console.error('❌ ERROR: No se encontró elemento #themeSelect');
-            return;
-        }
-
+        // Aplicar el tema guardado siempre, independientemente de si el select existe
         this.temaActual = localStorage.getItem(GestorTemas.STORAGE_KEY) || GestorTemas.DEFAULT_THEME;
-        
         this.aplicarTema(this.temaActual);
+
+        // El select vive en la pestaña ajustes (carga diferida) — se vincula en initAjustes()
+        this.themeSelect = document.getElementById('themeSelect');
+        if (!this.themeSelect) return;
+
         this.themeSelect.value = this.temaActual;
         this.themeSelect.addEventListener('change', (e) => this.cambiarTema(e.target.value));
-
         console.log('✅ GestorTemas inicializado correctamente');
     }
 

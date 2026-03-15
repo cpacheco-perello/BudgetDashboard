@@ -48,7 +48,20 @@ TRADUCCIONES.pt =  {
             seis_meses: '6 Meses',
             un_anio: '1 Ano',
             cinco_anios: '5 Anos',
-            diez_anios: '10 Anos'
+            diez_anios: '10 Anos',
+            proximo_mes: 'Próximo mês',
+            proximos_tres_meses: 'Próximos 3 meses',
+            proximos_seis_meses: 'Próximos 6 meses',
+            label_mes_actual: 'Mês atual',
+            label_ultimos_3_meses: 'Últimos 3 meses',
+            label_ultimos_6_meses: 'Últimos 6 meses',
+            label_ultimos_12_meses: 'Últimos 12 meses',
+            label_ultimos_5_anios: 'Últimos 5 anos',
+            label_ultimos_10_anios: 'Últimos 10 anos',
+            label_proximo_mes: 'Próximo mês',
+            label_proximos_3_meses: 'Próximos 3 meses',
+            label_proximos_6_meses: 'Próximos 6 meses',
+            label_periodo_seleccionado: 'Período selecionado'
         },
 
         // ===== RESUMEN =====
@@ -56,11 +69,21 @@ TRADUCCIONES.pt =  {
             totalIngresos: 'Total de Receitas',
             totalGastos: 'Total de Despesas',
             saldo: 'Saldo',
+            saldoDisponible: 'Saldo disponível',
             totalImpuestos: 'Total de Impostos',
             impuestosPre: 'Pré',
             impuestosPost: 'Pós',
             totalHucha: 'Total Cofrinho',
             portfolioRendimiento: 'Desempenho do Portfólio'
+        },
+
+        inicio: {
+            evolucionMensual: 'Evolução mensal',
+            ingresosVsGastos: 'Receitas vs Despesas',
+            gastosPorCategoria: 'Despesas por categoria',
+            distribucionPeriodo: 'Distribuição do período',
+            sinDatosPeriodo: 'Sem dados para este período',
+            graficoIngresosBrutos: 'Receitas brutas'
         },
 
         // ===== TEMA =====
@@ -91,19 +114,45 @@ TRADUCCIONES.pt =  {
 
         // ===== NAVEGACIÓN =====
         nav: {
+            inicio: 'Início',
             categorias: 'Categorias',
             gastos: 'Despesas',
             ingresos: 'Receitas',
             impuestos: 'Impostos',
             importacionBancaria: 'Importar Banco',
+            importarBanco: 'Importar Banco',
             dashboard: 'Painel',
             dashboardReal: 'Painel Real',
-            hucha: 'Cofrinho Real'
+            hucha: 'Cofrinho Real',
+            ajustes: 'Configurações',
+            usuario: 'Usuário',
+            navegacionPrincipal: 'Navegação principal'
         },
 
         // ===== DASHBOARD REAL =====
         dashboardReal: {
-            titulo: 'Painel Real'
+                titulo: 'Painel Real'
+            },
+
+            // ===== CONFIGURAÇÕES =====
+            ajustes: {
+                titulo: 'Configurações',
+                descripcion: 'Configure o tema, idioma e moeda de trabalho',
+                usuarioActivo: 'Usuário ativo',
+                cambiarUsuarioSidebar: 'Você pode trocar de usuário pelo botão da barra lateral.'
+            },
+
+        usuarios: {
+            seleccionaUsuario: 'Selecionar usuário',
+            usuarios: 'Usuários',
+            entrar: 'Entrar',
+            icono: 'Ícone',
+            o: 'ou',
+            nuevoUsuario: 'Novo usuário',
+            placeholderNombre: 'Nome',
+            crear: 'Criar',
+            refrescar: 'Atualizar',
+            sinUsuario: 'Sem usuário'
         },
 
         // ===== IMPORTACIÓN BANCARIA =====
@@ -120,6 +169,9 @@ TRADUCCIONES.pt =  {
             campoImporte: 'Coluna de Valor:',
             campoTipo: 'Tipo de Transação (Opcional):',
             campoSaldo: 'Coluna de Saldo (Opcional):',
+            formatoFechaPlaceholder: 'ex: DD/MM/YYYY',
+            opcionSelecciona: '-- Selecionar --',
+            opcionNingunoAuto: '-- Nenhum (auto-detectar) --',
             ayudaTipo: 'Valores positivos serão receitas, valores negativos serão despesas',
             vista_previa: 'Visualização de Dados',
             confirmarMapeo: 'Confirmar Mapeamento',
@@ -140,6 +192,9 @@ TRADUCCIONES.pt =  {
             descripcionCategorias: 'Atribua categoria a cada conceito/transação',
             seleccionConceptos: 'Selecionar Conceitos',
             descripcionSeleccion: 'Selecione os conceitos que deseja incluir na análise',
+            seleccionarTodos: 'Selecionar todos',
+            deseleccionarTodos: 'Desmarcar todos',
+            movimientos: 'Movimentos',
             continuar: 'Continuar',
             volver: 'Voltar',
             resumenImportacion: 'Resumo da Importação',
@@ -224,6 +279,8 @@ TRADUCCIONES.pt =  {
             desviacionAbrev: 'Desv',
             mediaTotal: 'Média Total',
             cuentasRemuneradas: 'Contas Poupança',
+            cuentasRemuneradasNeto: 'Contas Poup. (líq.)',
+            retencionCR: 'Retenção CR',
             impuestosIngresos: 'Impostos (receita)',
             impuestosOtros: 'Impostos (outros)',
             impuestosRetenciones: 'Retenções Fiscais (receita)',
@@ -279,6 +336,9 @@ TRADUCCIONES.pt =  {
             desde: 'De',
             hasta: 'Até',
             monto: 'Montante',
+            ipc: 'IPC %',
+            montoAjustado: 'Montante ajustado',
+            ipcPlaceholder: '0.00',
             mostrarAntiguos: 'Mostrar antigos',
             ocultarAntiguos: 'Ocultar antigos',
             fraccionar: 'Dividir',
@@ -317,7 +377,9 @@ TRADUCCIONES.pt =  {
             aportacionInicial: 'Contribuição Inicial',
             aportacionMensual: 'Contribuição Mensal',
             interes: 'Juros (%)',
+            retencion: 'Retenção (%)',
             interesGenerado: 'Juros Gerados',
+            interesNeto: 'Juros Líquidos',
             mostrarAntiguos: 'Mostrar antigos',
             ocultarAntiguos: 'Ocultar antigos',
             noHayIngresos: 'Sem receitas registradas',
@@ -376,6 +438,7 @@ TRADUCCIONES.pt =  {
             placeholderShares: '10',
             placeholderPrice: '150,00',
             placeholderInteres: '0,00',
+            placeholderRetencion: '0,00',
             placeholderAportacion: '0,00',
             confirmarEliminarPuntual: 'Eliminar esta receita?',
             confirmarEliminarMensual: 'Eliminar esta receita mensal?',

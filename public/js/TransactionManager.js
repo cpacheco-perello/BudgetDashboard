@@ -173,12 +173,17 @@ class TransactionManager {
         let content = item[column] !== undefined ? item[column] : '';
         
         // Formatear columnas especiales
-        if (column === 'monto' || column === 'bruto' || column === 'aportacion_mensual' || column === 'interes_generado') {
+        if (column === 'interes_neto') {
+            const bruto = parseFloat(item.interes_generado) || 0;
+            const ret = parseFloat(item.retencion) || 0;
+            content = `<strong>${this.formatCurrency(bruto * (1 - ret / 100))}</strong>`;
+        } else if (column === 'monto' || column === 'bruto' || column === 'aportacion_mensual' || column === 'interes_generado' || column === 'monto_ajustado') {
             content = `<strong>${this.formatCurrency(content)}</strong>`;
-        } else if (column === 'interes') {
-            content = content ? `${content}%` : '—';
+        } else if (column === 'interes' || column === 'ipc_porcentaje' || column === 'retencion') {
+            const num = parseFloat(content);
+            content = Number.isNaN(num) ? '—' : `${num}%`;
         } else if (content === null || content === undefined) {
-            content = (column === 'bruto' || column === 'aportacion_mensual' || column === 'interes_generado') ? '—' : '';
+            content = (column === 'bruto' || column === 'aportacion_mensual' || column === 'interes_generado' || column === 'monto_ajustado' || column === 'ipc_porcentaje' || column === 'retencion') ? '—' : '';
         }
 
         return `<td class="editable" data-field="${column}">${content}</td>`;
@@ -268,7 +273,7 @@ class TransactionManager {
                 const input = cell.querySelector('input, select');
                 
                 // Saltar campos de solo lectura
-                if (field === 'interes_generado') return;
+                if (field === 'interes_generado' || field === 'monto_ajustado' || field === 'interes_neto') return;
                 
                 let value = input.value;
                 
@@ -276,6 +281,12 @@ class TransactionManager {
                     value = this.parseAmount(value);
                 } else if (field === 'interes') {
                     value = parseFloat(value) || null;
+                } else if (field === 'retencion') {
+                    value = parseFloat(value);
+                    if (Number.isNaN(value)) value = 0;
+                } else if (field === 'ipc_porcentaje') {
+                    value = parseFloat(value);
+                    if (Number.isNaN(value)) value = 0;
                 } else if (field === 'categoria') {
                     // Guardar el nombre de categoría para mostrar y el ID para enviar al servidor
                     newData['categoria_id'] = input.value;
@@ -317,7 +328,7 @@ class TransactionManager {
         let input;
 
         // Campos de solo lectura (no editables)
-        if (field === 'interes_generado') {
+        if (field === 'interes_generado' || field === 'monto_ajustado' || field === 'interes_neto') {
             input = document.createElement('span');
             input.textContent = value;
             return input;
@@ -351,12 +362,16 @@ class TransactionManager {
             input.step = '0.01';
             input.value = this.parseAmount(value);
             input.style.width = '100%';
-        } else if (field === 'interes') {
+        } else if (field === 'interes' || field === 'ipc_porcentaje' || field === 'retencion') {
             input = document.createElement('input');
             input.type = 'number';
             input.step = '0.01';
             input.value = parseFloat(value) || '';
             input.style.width = '100%';
+            if (field === 'retencion') {
+                input.min = '0';
+                input.max = '100';
+            }
         } else {
             input = document.createElement('input');
             input.type = 'text';

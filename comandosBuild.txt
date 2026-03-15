@@ -3,3 +3,7 @@ npm install
 npx electron-rebuild
 npm install sqlite3@5.1.6 --save
 npx electron-rebuild
+
+
+
+npm run dist

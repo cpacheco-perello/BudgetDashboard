@@ -58,6 +58,8 @@
           <th data-i18n="gastos.hasta">Hasta</th>
           <th data-i18n="formularios.descripcion">Descripción</th>
           <th data-i18n="formularios.monto">Monto</th>
+          <th data-i18n="gastos.ipc">IPC %</th>
+          <th data-i18n="gastos.montoAjustado">Monto ajustado</th>
           <th data-i18n="formularios.categoria">Categoría</th>
           <th class="w-120" data-i18n="tablas.acciones">Acciones</th>
         </tr>
@@ -91,6 +93,10 @@
               <input type="number" id="montoMensual" step="0.01" data-i18n-placeholder="formularios.placeholderMonto">
             </div>
           </td>
+          <td>
+            <input type="number" id="ipcMensual" step="0.01" min="0" data-i18n-placeholder="gastos.ipcPlaceholder" style="width:70px;">
+          </td>
+          <td>—</td>
           <td><select id="categoriaMensual"></select></td>
           <td><button id="btnAgregarMensual"><i class="fas fa-plus"></i></button></td>
         </tr>

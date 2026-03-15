@@ -48,7 +48,20 @@ TRADUCCIONES.eu = {
             seis_meses: '6 Hilabete',
             un_anio: '1 Urte',
             cinco_anios: '5 Urte',
-            diez_anios: '10 Urte'
+            diez_anios: '10 Urte',
+            proximo_mes: 'Hurrengo hilabetea',
+            proximos_tres_meses: 'Hurrengo 3 hilabeteak',
+            proximos_seis_meses: 'Hurrengo 6 hilabeteak',
+            label_mes_actual: 'Uneko hilabetea',
+            label_ultimos_3_meses: 'Azken 3 hilabeteak',
+            label_ultimos_6_meses: 'Azken 6 hilabeteak',
+            label_ultimos_12_meses: 'Azken 12 hilabeteak',
+            label_ultimos_5_anios: 'Azken 5 urteak',
+            label_ultimos_10_anios: 'Azken 10 urteak',
+            label_proximo_mes: 'Hurrengo hilabetea',
+            label_proximos_3_meses: 'Hurrengo 3 hilabeteak',
+            label_proximos_6_meses: 'Hurrengo 6 hilabeteak',
+            label_periodo_seleccionado: 'Hautatutako aldia'
         },
 
         // ===== RESUMEN =====
@@ -56,11 +69,21 @@ TRADUCCIONES.eu = {
             totalIngresos: 'Diru-sarrera Osoa',
             totalGastos: 'Gastu Osoa',
             saldo: 'Saldoa',
+            saldoDisponible: 'Saldo erabilgarria',
             totalImpuestos: 'Zerga Osoa',
             impuestosPre: 'Aurre',
             impuestosPost: 'Ondo',
             totalHucha: 'Kutxa Osoa',
             portfolioRendimiento: 'Portafolio Errendimendua'
+        },
+
+        inicio: {
+            evolucionMensual: 'Hileroko bilakaera',
+            ingresosVsGastos: 'Diru-sarrerak vs gastuak',
+            gastosPorCategoria: 'Gastuak kategoriaka',
+            distribucionPeriodo: 'Aldiaren banaketa',
+            sinDatosPeriodo: 'Ez dago daturik aldi honetarako',
+            graficoIngresosBrutos: 'Diru-sarrera gordinak'
         },
 
         // ===== TEMA =====
@@ -91,19 +114,45 @@ TRADUCCIONES.eu = {
 
         // ===== NAVEGACIÓN =====
         nav: {
+            inicio: 'Hasiera',
             categorias: 'Kategoriak',
             gastos: 'Gastuak',
             ingresos: 'Diru-sarrerak',
             impuestos: 'Zergak',
             importacionBancaria: 'Bankua Inportatu',
+            importarBanco: 'Bankua Inportatu',
             dashboard: 'Panela',
             dashboardReal: 'Benetako Panela',
-            hucha: 'Benetako Kutxa'
+            hucha: 'Benetako Kutxa',
+            ajustes: 'Ezarpenak',
+            usuario: 'Erabiltzailea',
+            navegacionPrincipal: 'Nabigazio nagusia'
         },
 
         // ===== DASHBOARD REAL =====
         dashboardReal: {
-            titulo: 'Benetako Panela'
+                titulo: 'Benetako Panela'
+            },
+
+            // ===== EZARPENAK =====
+            ajustes: {
+                titulo: 'Ezarpenak',
+                descripcion: 'Konfiguratu gaia, hizkuntza eta lan-moneta',
+                usuarioActivo: 'Erabiltzaile aktiboa',
+                cambiarUsuarioSidebar: 'Erabiltzailea alda dezakezu sidebar-eko botoitik.'
+            },
+
+        usuarios: {
+            seleccionaUsuario: 'Hautatu erabiltzailea',
+            usuarios: 'Erabiltzaileak',
+            entrar: 'Sartu',
+            icono: 'Ikonoa',
+            o: 'edo',
+            nuevoUsuario: 'Erabiltzaile berria',
+            placeholderNombre: 'Izena',
+            crear: 'Sortu',
+            refrescar: 'Freskatu',
+            sinUsuario: 'Erabiltzailerik ez'
         },
 
         // ===== IMPORTACIÓN BANCARIA =====
@@ -118,6 +167,9 @@ TRADUCCIONES.eu = {
             campoImporte: 'Zenbatekoa Zutabea:',
             campoTipo: 'Transakzio Mota (Aukerakoa):',
             campoSaldo: 'Saldoa Zutabea (Aukerakoa):',
+            formatoFechaPlaceholder: 'adib: DD/MM/YYYY',
+            opcionSelecciona: '-- Hautatu --',
+            opcionNingunoAuto: '-- Bat ere ez (auto-detektatu) --',
             ayudaTipo: 'Positiboak diru-sarrerak izango dira, negatiboak gastuak',
             vista_previa: 'Datuen Aurrebista',
             confirmarMapeo: 'Mapa Berretsi',
@@ -138,6 +190,9 @@ TRADUCCIONES.eu = {
             descripcionCategorias: 'Esleitu kategoria kontzeptu/transakzio bakoitzari',
             seleccionConceptos: 'Kontzeptuak Hautatu',
             descripcionSeleccion: 'Hautatu analisian sartu nahi dituzun kontzeptuak',
+            seleccionarTodos: 'Denak hautatu',
+            deseleccionarTodos: 'Denak desautatu',
+            movimientos: 'Mugimenduak',
             continuar: 'Jarraitu',
             volver: 'Atzera',
             resumenImportacion: 'Inportazioaren Laburpena',
@@ -218,6 +273,8 @@ TRADUCCIONES.eu = {
             desviacionAbrev: 'Desb',
             mediaTotal: 'Batezbesteko Guztira',
             cuentasRemuneradas: 'Aurrezki Kontuak',
+            cuentasRemuneradasNeto: 'Aurrezki Kont. (gar.)',
+            retencionCR: 'Atxikipena CR',
             impuestosIngresos: 'Zergak (diru-sarrerak)',
             impuestosOtros: 'Zergak (beste)',
             impuestosRetenciones: 'Zerga Atxikipenak (diru-sarrerak)',
@@ -273,6 +330,9 @@ TRADUCCIONES.eu = {
             desde: 'Noiztik',
             hasta: 'Noizera',
             monto: 'Zenbatekoa',
+            ipc: 'IPC %',
+            montoAjustado: 'Zenbateko egokitua',
+            ipcPlaceholder: '0.00',
             mostrarAntiguos: 'Zaharrak erakutsi',
             ocultarAntiguos: 'Zaharrak ezkutatu',
             fraccionar: 'Zatitu',
@@ -311,7 +371,9 @@ TRADUCCIONES.eu = {
             aportacionInicial: 'Hasierako Ekarpena',
             aportacionMensual: 'Hileroko Ekarpena',
             interes: 'Interesa (%)',
+            retencion: 'Atxikipena (%)',
             interesGenerado: 'Sortutako Interesa',
+            interesNeto: 'Interes Garbia',
             mostrarAntiguos: 'Zaharrak erakutsi',
             ocultarAntiguos: 'Zaharrak ezkutatu',
             noHayIngresos: 'Ez dago diru-sarrerarik erregistraturik',
@@ -370,6 +432,7 @@ TRADUCCIONES.eu = {
             placeholderShares: '10',
             placeholderPrice: '150,00',
             placeholderInteres: '0,00',
+            placeholderRetencion: '0,00',
             placeholderAportacion: '0,00',
             confirmarEliminarPuntual: 'Diru-sarrera hau ezabatu?',
             confirmarEliminarMensual: 'Hileroko diru-sarrera hau ezabatu?',

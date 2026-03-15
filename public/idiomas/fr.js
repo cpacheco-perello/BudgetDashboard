@@ -48,7 +48,20 @@ TRADUCCIONES.fr = {
             seis_meses: '6 Mois',
             un_anio: '1 An',
             cinco_anios: '5 Ans',
-            diez_anios: '10 Ans'
+            diez_anios: '10 Ans',
+            proximo_mes: 'Mois prochain',
+            proximos_tres_meses: '3 prochains mois',
+            proximos_seis_meses: '6 prochains mois',
+            label_mes_actual: 'Mois en cours',
+            label_ultimos_3_meses: '3 derniers mois',
+            label_ultimos_6_meses: '6 derniers mois',
+            label_ultimos_12_meses: '12 derniers mois',
+            label_ultimos_5_anios: '5 dernières années',
+            label_ultimos_10_anios: '10 dernières années',
+            label_proximo_mes: 'Mois prochain',
+            label_proximos_3_meses: '3 prochains mois',
+            label_proximos_6_meses: '6 prochains mois',
+            label_periodo_seleccionado: 'Période sélectionnée'
         },
 
         // ===== RESUMEN =====
@@ -56,11 +69,21 @@ TRADUCCIONES.fr = {
             totalIngresos: 'Total des Revenus',
             totalGastos: 'Total des Dépenses',
             saldo: 'Solde',
+            saldoDisponible: 'Solde disponible',
             totalImpuestos: 'Total des Impôts',
             impuestosPre: 'Pré',
             impuestosPost: 'Post',
             totalHucha: 'Total Tirelire',
             portfolioRendimiento: 'Performance du Portefeuille'
+        },
+
+        inicio: {
+            evolucionMensual: 'Évolution mensuelle',
+            ingresosVsGastos: 'Revenus vs Dépenses',
+            gastosPorCategoria: 'Dépenses par catégorie',
+            distribucionPeriodo: 'Répartition de la période',
+            sinDatosPeriodo: 'Aucune donnée pour cette période',
+            graficoIngresosBrutos: 'Revenus bruts'
         },
 
         // ===== TEMA =====
@@ -91,19 +114,45 @@ TRADUCCIONES.fr = {
 
         // ===== NAVEGACIÓN =====
         nav: {
+            inicio: 'Accueil',
             categorias: 'Catégories',
             gastos: 'Dépenses',
             ingresos: 'Revenus',
             impuestos: 'Impôts',
             importacionBancaria: 'Importer Banque',
+            importarBanco: 'Importer Banque',
             dashboard: 'Tableau de Bord',
             dashboardReal: 'Tableau de Bord Réel',
-            hucha: 'Vraie Tirelire'
+            hucha: 'Vraie Tirelire',
+            ajustes: 'Paramètres',
+            usuario: 'Utilisateur',
+            navegacionPrincipal: 'Navigation principale'
         },
 
         // ===== TABLEAU DE BORD REEL =====
         dashboardReal: {
-            titulo: 'Tableau de Bord Réel'
+                titulo: 'Tableau de Bord Réel'
+            },
+
+            // ===== PARAMÈTRES =====
+            ajustes: {
+                titulo: 'Paramètres',
+                descripcion: 'Configurer le thème, la langue et la devise de travail',
+                usuarioActivo: 'Utilisateur actif',
+                cambiarUsuarioSidebar: 'Vous pouvez changer d\'utilisateur depuis le bouton de la barre latérale.'
+            },
+
+        usuarios: {
+            seleccionaUsuario: 'Sélectionner un utilisateur',
+            usuarios: 'Utilisateurs',
+            entrar: 'Entrer',
+            icono: 'Icône',
+            o: 'ou',
+            nuevoUsuario: 'Nouvel utilisateur',
+            placeholderNombre: 'Nom',
+            crear: 'Créer',
+            refrescar: 'Actualiser',
+            sinUsuario: 'Aucun utilisateur'
         },
 
         // ===== IMPORTACIÓN BANCARIA =====
@@ -120,6 +169,9 @@ TRADUCCIONES.fr = {
             campoImporte: 'Colonne Montant:',
             campoTipo: 'Type de Transaction (Optionnel):',
             campoSaldo: 'Colonne Solde (Optionnel):',
+            formatoFechaPlaceholder: 'ex: DD/MM/YYYY',
+            opcionSelecciona: '-- Sélectionnez --',
+            opcionNingunoAuto: '-- Aucun (auto-détection) --',
             ayudaTipo: 'Les montants positifs seront des revenus, les montants négatifs seront des dépenses',
             vista_previa: 'Aperçu des Données',
             confirmarMapeo: 'Confirmer le Mappage',
@@ -140,6 +192,9 @@ TRADUCCIONES.fr = {
             descripcionCategorias: 'Attribuer une catégorie à chaque concept/transaction',
             seleccionConceptos: 'Sélectionner les Concepts',
             descripcionSeleccion: 'Sélectionnez les concepts que vous souhaitez inclure dans l\'analyse',
+            seleccionarTodos: 'Sélectionner tout',
+            deseleccionarTodos: 'Désélectionner tout',
+            movimientos: 'Mouvements',
             continuar: 'Continuer',
             volver: 'Retour',
             resumenImportacion: 'Résumé de l\'Importation',
@@ -221,6 +276,8 @@ TRADUCCIONES.fr = {
             desviacionAbrev: 'Éc',
             mediaTotal: 'Moyenne Totale',
             cuentasRemuneradas: 'Comptes d\'Épargne',
+            cuentasRemuneradasNeto: 'Comptes Ép. (net)',
+            retencionCR: 'Retenue CR',
             impuestosIngresos: 'Impôts (revenus)',
             impuestosOtros: 'Impôts (autres)',
             impuestosRetenciones: 'Retenues Fiscales (revenus)',
@@ -276,6 +333,9 @@ TRADUCCIONES.fr = {
             desde: 'De',
             hasta: 'À',
             monto: 'Montant',
+            ipc: 'IPC %',
+            montoAjustado: 'Montant ajuste',
+            ipcPlaceholder: '0.00',
             mostrarAntiguos: 'Afficher anciens',
             ocultarAntiguos: 'Masquer anciens',
             fraccionar: 'Diviser',
@@ -314,7 +374,9 @@ TRADUCCIONES.fr = {
             aportacionInicial: 'Contribution Initiale',
             aportacionMensual: 'Contribution Mensuelle',
             interes: 'Intérêt (%)',
+            retencion: 'Retenue (%)',
             interesGenerado: 'Intérêt Généré',
+            interesNeto: 'Intérêt Net',
             mostrarAntiguos: 'Afficher anciens',
             ocultarAntiguos: 'Masquer anciens',
             noHayIngresos: 'Aucun revenu enregistré',
@@ -373,6 +435,7 @@ TRADUCCIONES.fr = {
             placeholderShares: '10',
             placeholderPrice: '150,00',
             placeholderInteres: '0,00',
+            placeholderRetencion: '0,00',
             placeholderAportacion: '0,00',
             confirmarEliminarPuntual: 'Supprimer ce revenu?',
             confirmarEliminarMensual: 'Supprimer ce revenu mensuel?',

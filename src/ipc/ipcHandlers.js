@@ -74,6 +74,15 @@ function getUploadsDir() {
  * Registrar todos los handlers IPC
  */
 function registerIpcHandlers() {
+        // Limpiar caché de dashboardService al iniciar la app
+        try {
+            const dashboardService = require('../services/dashboardService');
+            if ('resumenCache' in dashboardService) dashboardService.resumenCache = null;
+            if ('resumenCacheTime' in dashboardService) dashboardService.resumenCacheTime = 0;
+            if ('resumenCacheKey' in dashboardService) dashboardService.resumenCacheKey = null;
+        } catch (e) {
+            console.warn('No se pudo limpiar caché de dashboardService:', e.message);
+        }
     // ============= USUARIOS =============
 
     ipcMain.handle('list-users', async () => {
@@ -453,7 +462,7 @@ function registerIpcHandlers() {
     });
 
     ipcMain.handle('add-cuenta-remunerada', async (event, data) => {
-        const { descripcion, monto, aportacion_mensual, interes, categoria_id, desde, hasta } = data;
+        const { descripcion, monto, aportacion_mensual, interes, retencion, categoria_id, desde, hasta } = data;
         if (monto === undefined || categoria_id === undefined || !desde || !hasta) {
             throw new Error('Monto, categoría, desde y hasta son requeridos');
         }
@@ -462,14 +471,14 @@ function registerIpcHandlers() {
         const interesGenerado = calcularInteresGenerado(monto, aportacion_mensual || 0, interes || 0, desde, hasta);
 
         await dbRun(db, `
-            INSERT INTO cuenta_remunerada (descripcion, monto, aportacion_mensual, interes, interes_generado, categoria_id, desde, hasta)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `, [descripcionFinal, monto, aportacion_mensual || null, interes || null, interesGenerado, categoria_id, desde, hasta]);
+            INSERT INTO cuenta_remunerada (descripcion, monto, aportacion_mensual, interes, retencion, interes_generado, categoria_id, desde, hasta)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [descripcionFinal, monto, aportacion_mensual || null, interes || null, retencion || 0, interesGenerado, categoria_id, desde, hasta]);
         return { success: true };
     });
 
     ipcMain.handle('update-cuenta-remunerada', async (event, data) => {
-        const { id, desde, hasta, monto, aportacion_mensual, interes, categoria_id, categoria, descripcion } = data;
+        const { id, desde, hasta, monto, aportacion_mensual, interes, retencion, categoria_id, categoria, descripcion } = data;
         if (!id) {
             throw new Error('ID es requerido');
         }
@@ -496,9 +505,9 @@ function registerIpcHandlers() {
 
         await dbRun(db, `
             UPDATE cuenta_remunerada 
-            SET descripcion = ?, desde = ?, hasta = ?, monto = ?, aportacion_mensual = ?, interes = ?, interes_generado = ?, categoria_id = ?
+            SET descripcion = ?, desde = ?, hasta = ?, monto = ?, aportacion_mensual = ?, interes = ?, retencion = ?, interes_generado = ?, categoria_id = ?
             WHERE id = ?
-        `, [descripcionFinal, desde, hasta, monto, aportacion_mensual || null, interes || null, interesGenerado, catId, id]);
+        `, [descripcionFinal, desde, hasta, monto, aportacion_mensual || null, interes || null, retencion !== undefined ? (parseFloat(retencion) || 0) : 0, interesGenerado, catId, id]);
 
         return { success: true };
     });
@@ -613,11 +622,16 @@ function registerIpcHandlers() {
     });
 
     ipcMain.handle('get-asset-price', async (event, ticker) => {
+        const safeTicker = String(ticker || '').trim().toUpperCase();
+        if (!safeTicker) {
+            return { ticker: safeTicker, currentPrice: null, currency: 'EUR', unavailable: true };
+        }
+
         try {
-            const result = await yahooFinanceService.getAssetPrice(ticker);
-            return result;
+            return await yahooFinanceService.getAssetPrice(safeTicker);
         } catch (err) {
-            throw new Error(`Error obteniendo precio: ${err.message}`);
+            console.warn(`⚠️ get-asset-price sin datos para ${safeTicker}: ${err.message}`);
+            return { ticker: safeTicker, currentPrice: null, currency: 'EUR', unavailable: true };
         }
     });
 

@@ -10,6 +10,7 @@ const {
     restarFecha,
     contarMesesDesde28,
     generarArrayMeses,
+    calcularMontoIpc,
     esMensualActivo,
     agregarPuntualesPorMes,
     agregarMensualesPorMes,
@@ -34,8 +35,9 @@ const impuestosMensualesService = new MensualService('impuestos_mensuales');
  */
 router.get('/dashboard', async (req, res) => {
     try {
-        const gastos_puntuales = await gastosPuntualesService.getAll(config.QUERY_LIMIT);
-        const gastos_mensuales = await gastosMensualesService.getAll(config.QUERY_LIMIT);
+        const hoy = new Date();
+        const gastos_puntuales_raw = await gastosPuntualesService.getAll(config.QUERY_LIMIT);
+        const gastos_mensuales_raw = await gastosMensualesService.getAll(config.QUERY_LIMIT);
         const ingresos_puntuales = await ingresosPuntualesService.getAll(config.QUERY_LIMIT);
         const ingresos_mensuales = await ingresosMensualesService.getAll(config.QUERY_LIMIT);
         const impuestos_puntuales = await impuestosPuntualesService.getAll(config.QUERY_LIMIT);
@@ -54,6 +56,14 @@ router.get('/dashboard', async (req, res) => {
         const cuenta_remunerada_con_interes = cuenta_remunerada.map(cr => ({
             ...cr,
             interes_generado: cr.interes ? calcularInteresGenerado(cr.monto, cr.aportacion_mensual || 0, cr.interes, cr.desde, cr.hasta) : 0
+        }));
+
+        const gastos_puntuales = gastos_puntuales_raw;
+
+        const gastos_mensuales = gastos_mensuales_raw.map(g => ({
+            ...g,
+            ipc_porcentaje: g.ipc_porcentaje || 0,
+            monto_ajustado: calcularMontoIpc(g.monto, g.ipc_porcentaje, g.desde, hoy)
         }));
 
         res.json({
@@ -227,12 +237,25 @@ router.get('/ahorros-mes', async (req, res) => {
             });
         });
 
-        // Gastos
+        // Gastos puntuales (sin IPC)
         const gastosP = await gastosPuntualesService.getByMonth(desde, hasta, categoria_id);
         agregarPuntualesPorMes(gastosP, meses, 'gastos');
 
-        const gastosM = await gastosMensualesService.getAllForCalculations(categoria_id);
-        agregarMensualesPorMes(gastosM, meses, hastaDate, 'gastos');
+        let gastosMQuery = `SELECT monto, desde, hasta, ipc_porcentaje FROM gastos_mensuales`;
+        const gastosMParams = [];
+        if (categoria_id) {
+            gastosMQuery += ' WHERE categoria_id = ?';
+            gastosMParams.push(categoria_id);
+        }
+        const gastosM = await dbAll(db, gastosMQuery, gastosMParams);
+        gastosM.forEach(g => {
+            meses.forEach(m => {
+                if (esMensualActivo(m.mes, hastaDate, g.desde, g.hasta)) {
+                    const targetDate = new Date(`${m.mes}-01`);
+                    m.gastos += calcularMontoIpc(g.monto, g.ipc_porcentaje, g.desde, targetDate);
+                }
+            });
+        });
 
         // Impuestos desde ingresos (bruto - monto)
         const ingresosPBruto = await dbAll(db, `
@@ -328,10 +351,12 @@ router.get('/categorias-periodo', async (req, res) => {
             JOIN categorias c ON g.categoria_id = c.id
             WHERE g.fecha BETWEEN ? AND ?
         `, [desde, hasta]);
-        gastosP.forEach(g => gastosCat[g.categoria] = (gastosCat[g.categoria] || 0) + g.monto);
+        gastosP.forEach(g => {
+            gastosCat[g.categoria] = (gastosCat[g.categoria] || 0) + g.monto;
+        });
 
         const gastosM = await dbAll(db, `
-            SELECT g.monto, g.desde, g.hasta, c.nombre AS categoria
+            SELECT g.monto, g.desde, g.hasta, g.ipc_porcentaje, c.nombre AS categoria
             FROM gastos_mensuales g
             JOIN categorias c ON g.categoria_id = c.id
         `);
@@ -342,7 +367,9 @@ router.get('/categorias-periodo', async (req, res) => {
             current.setDate(28);
             const end = new Date(Math.min(gHasta, hastaDate));
             while(current <= end){
-                gastosCat[g.categoria] = (gastosCat[g.categoria] || 0) + g.monto;
+                const targetDate = new Date(current.getFullYear(), current.getMonth(), 1);
+                const montoAdj = calcularMontoIpc(g.monto, g.ipc_porcentaje, g.desde, targetDate);
+                gastosCat[g.categoria] = (gastosCat[g.categoria] || 0) + montoAdj;
                 current.setMonth(current.getMonth() + 1);
             }
         });
@@ -442,14 +469,16 @@ router.get('/gastos-categoria-mes', async (req, res) => {
 
         // Gastos mensuales
         const gastosM = await dbAll(db, `
-            SELECT g.monto, g.desde, g.hasta, c.nombre AS categoria
+            SELECT g.monto, g.desde, g.hasta, g.ipc_porcentaje, c.nombre AS categoria
             FROM gastos_mensuales g
             JOIN categorias c ON g.categoria_id = c.id
         `);
         gastosM.forEach(g => {
             meses.forEach(m => {
-                if(esMensualActivo(m.mes, hastaDate, g.desde, g.hasta)){
-                    dataMesCat[m.mes][g.categoria] = (dataMesCat[m.mes][g.categoria] || 0) + g.monto;
+                if (esMensualActivo(m.mes, hastaDate, g.desde, g.hasta)) {
+                    const targetDate = new Date(`${m.mes}-01`);
+                    const montoAdj = calcularMontoIpc(g.monto, g.ipc_porcentaje, g.desde, targetDate);
+                    dataMesCat[m.mes][g.categoria] = (dataMesCat[m.mes][g.categoria] || 0) + montoAdj;
                 }
             });
         });
@@ -542,9 +571,28 @@ router.get('/resumen-periodos', async (req,res) => {
         };
         const resultado = {};
 
+        const sumarMensualConIpc = (registro, desdeStr, hastaStr) => {
+            const desdeDate = new Date(desdeStr);
+            const hastaDate = new Date(hastaStr);
+            const rDesde = new Date(registro.desde + "-28");
+            const rHasta = registro.hasta ? new Date(registro.hasta + "-28") : new Date(9999, 11, 31);
+            let current = new Date(Math.max(rDesde, desdeDate));
+            current.setDate(28);
+            const end = new Date(Math.min(rHasta, hastaDate));
+            let total = 0;
+
+            while (current <= end) {
+                const targetDate = new Date(current.getFullYear(), current.getMonth(), 1);
+                total += calcularMontoIpc(registro.monto, registro.ipc_porcentaje, registro.desde, targetDate);
+                current.setMonth(current.getMonth() + 1);
+            }
+
+            return total;
+        };
+
         const ingresosM = await dbAll(db, `SELECT monto, desde, hasta FROM ingresos_mensuales LIMIT 1000`);
         const cuentasRemuneradas = await dbAll(db, `SELECT monto, desde, hasta FROM cuenta_remunerada LIMIT 1000`);
-        const gastosM = await dbAll(db, `SELECT monto, desde, hasta FROM gastos_mensuales LIMIT 1000`);
+        const gastosM = await dbAll(db, `SELECT monto, desde, hasta, ipc_porcentaje FROM gastos_mensuales LIMIT 1000`);
         const ingresosMBruto = await dbAll(db, `SELECT bruto, monto, desde, hasta FROM ingresos_mensuales WHERE bruto IS NOT NULL AND bruto != monto LIMIT 1000`);
         const impuestosMensuales = await dbAll(db, `SELECT monto, desde, hasta FROM impuestos_mensuales LIMIT 1000`);
 
@@ -563,10 +611,12 @@ router.get('/resumen-periodos', async (req,res) => {
 
             const totalIngresos = ingresosP + totalIngresosMensuales + totalCuentaRemunerada;
 
-            const gastosP = (await dbGet(db, `SELECT IFNULL(SUM(monto),0) as total FROM gastos_puntuales WHERE fecha BETWEEN ? AND ? LIMIT 1000`, [desdeStr, hastaStr])).total;
+            const gastosP = (await dbAll(db, `SELECT IFNULL(SUM(monto),0) as total FROM gastos_puntuales WHERE fecha BETWEEN ? AND ? LIMIT 1000`, [desdeStr, hastaStr]))[0]?.total || 0;
 
             let totalGastosMensuales = 0;
-            gastosM.forEach(g => totalGastosMensuales += g.monto * contarMesesDesde28(desdeStr, hastaStr, g.desde, g.hasta));
+            gastosM.forEach(g => {
+                totalGastosMensuales += sumarMensualConIpc(g, desdeStr, hastaStr);
+            });
 
             const totalGastos = gastosP + totalGastosMensuales;
 

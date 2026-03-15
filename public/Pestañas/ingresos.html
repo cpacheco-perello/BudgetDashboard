@@ -116,65 +116,73 @@
     <div class="mb-8">
       <button id="toggleCuentaRemuneradaAntiguos" class="small-btn" data-i18n="ingresos.mostrarAntiguos">Mostrar antiguos</button>
     </div>
-    <table id="tablaCuentaRemunerada">
-      <thead>
-        <tr>
-          <th data-i18n="ingresos.desde">Desde</th>
-          <th data-i18n="ingresos.hasta">Hasta</th>
-          <th data-i18n="formularios.descripcion">Descripción</th>
-          <th data-i18n="ingresos.aportacionInicial">Aportación Inicial</th>
-          <th data-i18n="ingresos.aportacionMensual">Aportación Mensual</th>
-          <th data-i18n="ingresos.interes">Interés (%)</th>
-          <th data-i18n="ingresos.interesGenerado">Interés Generado</th>
-          <th data-i18n="formularios.categoria">Categoría</th>
-          <th class="w-120" data-i18n="tablas.acciones">Acciones</th>
-        </tr>
-        <tr class="insert-row">
-          <td>
-            <input 
-              type="text" 
-              id="desdeCuentaRemunerada" 
-              data-i18n-placeholder="ingresos.placeholderYYYYMM" 
-              maxlength="7"
-              pattern="\\d{4}-\\d{2}"
-              data-i18n-title="formularios.formatoYYYYMM"
-              title="Formato: YYYY-MM"
-            >
-          </td>
-          <td>
-            <input 
-              type="text" 
-              id="hastaCuentaRemunerada" 
-              data-i18n-placeholder="ingresos.placeholderYYYYMM" 
-              maxlength="7"
-              pattern="\\d{4}-\\d{2}"
-              data-i18n-title="formularios.formatoYYYYMM"
-              title="Formato: YYYY-MM"
-            >
-          </td>
-          <td><input type="text" id="descCuentaRemunerada" data-i18n-placeholder="ingresos.placeholderDescripcion"></td>
-          <td>
-            <div class="input-euro">
-              <span>€</span>
-              <input type="number" id="montoCuentaRemunerada" step="0.01" data-i18n-placeholder="ingresos.placeholderMonto">
-            </div>
-          </td>
-          <td>
-            <div class="input-euro">
-              <span>€</span>
-              <input type="number" id="aportacionMensualCR" step="0.01" data-i18n-placeholder="ingresos.placeholderAportacion">
-            </div>
-          </td>
-          <td>
-            <input type="number" id="interesCuentaRemunerada" step="0.01" data-i18n-placeholder="ingresos.placeholderInteres">
-          </td>
-          <td></td>
-          <td><select id="categoriaCuentaRemunerada"></select></td>
-          <td><button id="btnAgregarCuentaRemunerada"><i class="fas fa-plus"></i></button></td>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+    <div class="table-container">
+      <table id="tablaCuentaRemunerada">
+        <thead>
+          <tr>
+            <th data-i18n="ingresos.desde">Desde</th>
+            <th data-i18n="ingresos.hasta">Hasta</th>
+            <th data-i18n="formularios.descripcion">Descripción</th>
+            <th data-i18n="ingresos.aportacionInicial">Aportación Inicial</th>
+            <th data-i18n="ingresos.aportacionMensual">Aportación Mensual</th>
+            <th data-i18n="ingresos.interes">Interés (%)</th>
+            <th data-i18n="ingresos.retencion">Retención (%)</th>
+            <th data-i18n="ingresos.interesGenerado">Interés Generado</th>
+            <th data-i18n="ingresos.interesNeto">Interés Neto</th>
+            <th data-i18n="formularios.categoria">Categoría</th>
+            <th class="w-120" data-i18n="tablas.acciones">Acciones</th>
+          </tr>
+          <tr class="insert-row">
+            <td>
+              <input 
+                type="text" 
+                id="desdeCuentaRemunerada" 
+                data-i18n-placeholder="ingresos.placeholderYYYYMM" 
+                maxlength="7"
+                pattern="\\d{4}-\\d{2}"
+                data-i18n-title="formularios.formatoYYYYMM"
+                title="Formato: YYYY-MM"
+              >
+            </td>
+            <td>
+              <input 
+                type="text" 
+                id="hastaCuentaRemunerada" 
+                data-i18n-placeholder="ingresos.placeholderYYYYMM" 
+                maxlength="7"
+                pattern="\\d{4}-\\d{2}"
+                data-i18n-title="formularios.formatoYYYYMM"
+                title="Formato: YYYY-MM"
+              >
+            </td>
+            <td><input type="text" id="descCuentaRemunerada" data-i18n-placeholder="ingresos.placeholderDescripcion"></td>
+            <td>
+              <div class="input-euro">
+                <span>€</span>
+                <input type="number" id="montoCuentaRemunerada" step="0.01" data-i18n-placeholder="ingresos.placeholderMonto">
+              </div>
+            </td>
+            <td>
+              <div class="input-euro">
+                <span>€</span>
+                <input type="number" id="aportacionMensualCR" step="0.01" data-i18n-placeholder="ingresos.placeholderAportacion">
+              </div>
+            </td>
+            <td>
+              <input type="number" id="interesCuentaRemunerada" step="0.01" data-i18n-placeholder="ingresos.placeholderInteres">
+            </td>
+            <td>
+              <input type="number" id="retencionCuentaRemunerada" step="0.01" min="0" max="100" data-i18n-placeholder="ingresos.placeholderRetencion" title="Retención fiscal sobre intereses (%)">
+            </td>
+            <td></td>
+            <td></td>
+            <td><select id="categoriaCuentaRemunerada"></select></td>
+            <td><button id="btnAgregarCuentaRemunerada"><i class="fas fa-plus"></i></button></td>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </div>
 
   <!-- ASSETS (ACCIONES) -->

@@ -1,5 +1,18 @@
 
 function cargarDashboardForm() {
+// ===== UTILIDAD PARA RESTAR FECHAS =====
+function restarFecha(fecha, cantidad, unidad = 'days') {
+    const resultado = new Date(fecha);
+    if (unidad === 'months') {
+        resultado.setMonth(resultado.getMonth() - cantidad);
+    } else if (unidad === 'years') {
+        resultado.setFullYear(resultado.getFullYear() - cantidad);
+    } else { // 'days' por defecto
+        resultado.setDate(resultado.getDate() - cantidad);
+    }
+    return resultado;
+}
+
 // ===== VARIABLES GLOBALES DEL DASHBOARD =====
 let filtroGastoCategoria = null;
 let dashDesde = null;
@@ -260,8 +273,23 @@ function manejarClickPeriodo(e) {
     
     e.preventDefault();
     const days = parseInt(btn.getAttribute('data-days'));
-    const desde = new Date();
-    desde.setDate(desde.getDate() - days);
+    
+    // Mapear días a períodos calendario para coincidir con el resumen
+    let desde;
+    if (days === 30) {
+        desde = restarFecha(hoy, 1, 'months');
+    } else if (days === 90) {
+        desde = restarFecha(hoy, 3, 'months');
+    } else if (days === 180) {
+        desde = restarFecha(hoy, 6, 'months');
+    } else if (days === 365) {
+        desde = restarFecha(hoy, 1, 'years');
+    } else if (days === 1825) {
+        desde = restarFecha(hoy, 5, 'years');
+    } else {
+        // Fallback: usar días directamente
+        desde = restarFecha(hoy, days, 'days');
+    }
 
     dashDesde.value = desde.toISOString().slice(0, 10);
     dashHasta.value = hoy.toISOString().slice(0, 10);
@@ -609,6 +637,8 @@ function obtenerLabelsTraducidos() {
         mediaTotal: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.mediaTotal') : 'Media Total',
         mediaMensualTotal: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.mediaMensualTotal') : 'Media mensual total',
         cuentasRemuneradas: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.cuentasRemuneradas') : 'Cuentas Remuneradas',
+        cuentasRemuneradasNeto: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.cuentasRemuneradasNeto') : 'Ctas. Rem. (neto)',
+        retencionCR: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.retencionCR') : 'Retención CR',
         impuestosIngresos: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosIngresos') : 'Impuestos (ingresos)',
         impuestosOtros: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosOtros') : 'Impuestos (otros)'
     };
@@ -682,13 +712,17 @@ function obtenerLabelsTraducidos() {
             const totalIngresos = dataTotales.reduce((sum, m) => sum + (m.ingresos || 0), 0); // Suma ingresos netos
             const totalGastos = dataTotales.reduce((sum, m) => sum + (m.gastos || 0), 0); // Suma gastos tabla
             const totalCuentasRemuneradas = dataTotales.reduce((sum, m) => sum + (m.cuentas_remuneradas || 0), 0); // Suma intereses generados de cuentas remuneradas
-            const totalAhorros = dataTotales.reduce((sum, m) => sum + (m.ahorros || 0), 0); // Suma ahorros como (ingresos + cuentas_remuneradas) - gastos - impuestos_otros
+            const totalAhorros = dataTotales.reduce((sum, m) => sum + (m.ahorros || 0), 0); // Suma ahorros como (ingresos + cuentas_remuneradas) - gastos - impuestos_otros - retencion_cr
 
             const meses = dataTotales.map(m => m.mes);
             const ingresosMes = dataTotales.map(m => m.ingresos || 0);
             const cuentasRemuneradasMes = dataTotales.map(m => m.cuentas_remuneradas || 0);
             const gastosMes = dataTotales.map(m => m.gastos || 0);
             const ahorrosMes = dataTotales.map(m => m.ahorros || 0);
+            const retencionCRMes = dataTotales.map(m => m.retencion_cr || 0);
+            const cuentasRemuneradasNetasMes = cuentasRemuneradasMes.map((cr, idx) => cr - retencionCRMes[idx]);
+            const totalRetencionCR = retencionCRMes.reduce((sum, m) => sum + m, 0);
+            const totalCuentasRemuneradasNetas = totalCuentasRemuneradas - totalRetencionCR;
 
             const ingresosRealesMes = Array.isArray(dataAhorrosReal) ? dataAhorrosReal.map(m => m.ingresos || 0) : [];
             const gastosRealesMes = Array.isArray(dataAhorrosReal) ? dataAhorrosReal.map(m => m.gastos || 0) : [];
@@ -905,6 +939,9 @@ function obtenerLabelsTraducidos() {
             // ===== OBTENER IMPUESTOS POR MES (ya cargados en paralelo) =====
             const impuestosMes = (Array.isArray(dataImpuestosMes) ? dataImpuestosMes : []).map(m => m.impuestos || 0); 
             const totalImpuestosIngresos = impuestosMes.reduce((sum, m) => sum + m, 0);
+            // Restar CR retention de impuestosIngresos donde se muestra por separado (evitar doble conteo)
+            const totalImpuestosIngresosNoCR = Math.max(0, totalImpuestosIngresos - totalRetencionCR);
+            const impuestosIngresosNetMes = impuestosMes.map((imp, idx) => Math.max(0, imp - retencionCRMes[idx]));
             
             // ===== OBTENER IMPUESTOS STANDALONE (de tablas impuestos_puntuales/mensuales) =====  
             const totalImpuestosStandalone = dashboardFeatures.simpleMode ? 0 : labelsMeses.reduce((sum, mes) => { 
@@ -982,8 +1019,8 @@ function obtenerLabelsTraducidos() {
                             stack: showReales ? 'main' : undefined
                         },
                         {
-                            label: labelsTraducidos.cuentasRemuneradas,
-                            data:[totalCuentasRemuneradas, 0, 0],
+                            label: labelsTraducidos.cuentasRemuneradasNeto,
+                            data:[totalCuentasRemuneradasNetas, 0, 0],
                             backgroundColor: temasGraficos.primary,
                             borderColor: temasGraficos.primary,
                             borderWidth: 2,
@@ -991,8 +1028,17 @@ function obtenerLabelsTraducidos() {
                             stack: showReales ? 'main' : undefined
                         },
                         {
+                            label: labelsTraducidos.retencionCR,
+                            data:[totalRetencionCR, 0, 0],
+                            backgroundColor: '#9b59b6',
+                            borderColor: '#9b59b6',
+                            borderWidth: 2,
+                            borderRadius: 8,
+                            stack: showReales ? 'main' : undefined
+                        },
+                        {
                             label: labelsTraducidos.impuestosIngresos,
-                            data:[totalImpuestosIngresos, 0, 0],
+                            data:[totalImpuestosIngresosNoCR, 0, 0],
                             backgroundColor: temasGraficos.warning,
                             borderColor: temasGraficos.warning,
                             borderWidth: 2,
@@ -1044,36 +1090,41 @@ function obtenerLabelsTraducidos() {
             window.chartsInstances.push(charts.totales);
 
             // ===== GRÁFICO DE PORCENTAJES =====
-            const incomeBruto = totalIngresos + totalCuentasRemuneradas + totalImpuestosIngresos;
-            const incomeNeto = totalIngresos + totalCuentasRemuneradas;
-            const gastosTotal = totalGastos  ;
-            
-            // Calcular porcentajes para Ingreso Bruto
-            const porcentajeAhorroBruto = incomeBruto > 0 ? (totalAhorros / incomeBruto * 100) : 0;
-            const porcentajeGastosBruto = incomeBruto > 0 ? (totalGastos / incomeBruto * 100) : 0;
-            const porcentajeImpuestosIngresos = incomeBruto > 0 ? (totalImpuestosIngresos / incomeBruto * 100) : 0;
-            const porcentajeImpuestosStandaloneBruto = incomeBruto > 0 ? (totalImpuestosStandalone / incomeBruto * 100) : 0;
-            
-            // Calcular porcentajes para Ingreso Neto
-            const porcentajeAhorroNeto = incomeNeto > 0 ? (totalAhorros / incomeNeto * 100) : 0;
-            const porcentajeGastosNeto = incomeNeto > 0 ? (totalGastos / incomeNeto * 100) : 0;
-            const porcentajeImpuestosStandaloneNeto = incomeNeto > 0 ? (totalImpuestosStandalone / incomeNeto * 100) : 0;
-            
-            const labelIngresoBruto = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.ingresoBruto') : 'Ingreso Bruto';
-            const labelIngresoNeto = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.ingresoNeto') : 'Ingreso Neto';
-            const labelAhorro = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.ahorros') : 'Ahorro';
-            const labelGastos = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.gastos') : 'Gastos';
-            const labelImpRetenciones = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosRetenciones') : 'Imp. Retenciones';
-            const labelImpOtros = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosOtrosCorto') : 'Imp. Otros';
-            
+            // incomeBruto = salario neto + impuestos salario + intereses CR brutos
+            //             = totalIngresos + totalImpuestosIngresosNoCR + totalCuentasRemuneradas
+            // Suma de segmentos de barra Bruto: ahorros + gastos + impOtros + impSalario + retencionCR = incomeBruto ✓
+            const incomeBruto = totalIngresos + totalCuentasRemuneradas + totalImpuestosIngresosNoCR;
+            const incomeNeto = totalIngresos + totalCuentasRemuneradas - totalImpuestosStandalone;
+
+            // Porcentajes Bruto
+            const porcentajeAhorroBruto           = incomeBruto > 0 ? (totalAhorros               / incomeBruto * 100) : 0;
+            const porcentajeGastosBruto           = incomeBruto > 0 ? (totalGastos                / incomeBruto * 100) : 0;
+            const porcentajeImpSalarioBruto       = incomeBruto > 0 ? (totalImpuestosIngresosNoCR / incomeBruto * 100) : 0;
+            const porcentajeRetencionCRBruto      = incomeBruto > 0 ? (totalRetencionCR           / incomeBruto * 100) : 0;
+            const porcentajeImpOtrosBruto         = incomeBruto > 0 ? (totalImpuestosStandalone   / incomeBruto * 100) : 0;
+
+            // Porcentajes Neto
+            const porcentajeAhorroNeto  = incomeNeto > 0 ? (totalAhorros / incomeNeto * 100) : 0;
+            const porcentajeGastosNeto  = incomeNeto > 0 ? (totalGastos  / incomeNeto * 100) : 0;
+
+            const labelIngresoBruto   = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.ingresoBruto')        : 'Ingreso Bruto';
+            const labelIngresoNeto    = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.ingresoNeto')         : 'Ingreso Neto';
+            const labelAhorro         = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.ahorros')            : 'Ahorro';
+            const labelGastos         = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.gastos')             : 'Gastos';
+            const labelImpRetenciones = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosRetenciones'): 'Imp. Retenciones';
+            const labelImpOtros       = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosOtrosCorto') : 'Imp. Otros';
+            const labelRetencionCR    = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.retencionCR')         : 'Retención CR';
+
             // Guardar datos para el tooltip en el contexto del chart
+            // 0=Ahorro 1=Gastos 2=ImpSalario 3=RetencionCR 4=ImpOtros
             const porcentajesData = {
-                totalAhorros: totalAhorros,
-                totalGastos: totalGastos,
-                totalImpuestosIngresos: totalImpuestosIngresos,
-                totalImpuestosStandalone: totalImpuestosStandalone,
-                incomeBruto: incomeBruto,
-                incomeNeto: incomeNeto
+                totalAhorros,
+                totalGastos,
+                totalImpuestosIngresosNoCR,
+                totalRetencionCR,
+                totalImpuestosStandalone,
+                incomeBruto,
+                incomeNeto
             };
 
             charts.porcentajes = new Chart(document.getElementById('chartPorcentajes'), {
@@ -1087,7 +1138,8 @@ function obtenerLabelsTraducidos() {
                             backgroundColor: temasGraficos.info,
                             borderColor: temasGraficos.info,
                             borderWidth: 2,
-                            borderRadius: 8
+                            borderRadius: 8,
+                            stack: 'impuestosBrutos'
                         },
                         {
                             label: labelGastos,
@@ -1095,23 +1147,35 @@ function obtenerLabelsTraducidos() {
                             backgroundColor: temasGraficos.danger,
                             borderColor: temasGraficos.danger,
                             borderWidth: 2,
-                            borderRadius: 8
+                            borderRadius: 8,
+                            stack: 'impuestosBrutos'
                         },
                         {
                             label: labelImpRetenciones,
-                            data: [porcentajeImpuestosIngresos, 0],
+                            data: [porcentajeImpSalarioBruto, null], // solo en Bruto
                             backgroundColor: temasGraficos.warning,
                             borderColor: temasGraficos.warning,
                             borderWidth: 2,
-                            borderRadius: 8
+                            borderRadius: 8,
+                            stack: 'impuestosBrutos'
+                        },
+                        {
+                            label: labelRetencionCR,
+                            data: [porcentajeRetencionCRBruto, null], // solo en Bruto
+                            backgroundColor: '#9b59b6',
+                            borderColor: '#9b59b6',
+                            borderWidth: 2,
+                            borderRadius: 8,
+                            stack: 'impuestosBrutos'
                         },
                         {
                             label: labelImpOtros,
-                            data: [porcentajeImpuestosStandaloneBruto, porcentajeImpuestosStandaloneNeto],
+                            data: [porcentajeImpOtrosBruto, null], // solo en Bruto
                             backgroundColor: '#e7a33c',
                             borderColor: '#e7a33c',
                             borderWidth: 2,
-                            borderRadius: 8
+                            borderRadius: 8,
+                            stack: 'impuestosBrutos'
                         }
                     ]
                 },
@@ -1141,23 +1205,16 @@ function obtenerLabelsTraducidos() {
                                 label: function(ctx) {
                                     const label = ctx.dataset.label || '';
                                     const porcentaje = ctx.parsed.x || 0;
-                                    const datasetIndex = ctx.datasetIndex; // 0=Ahorro, 1=Gastos, 2=ImpRet, 3=ImpOtros
-                                    const labelIndex = ctx.dataIndex; // 0=Bruto, 1=Neto
                                     const datos = ctx.chart.porcentajesData;
-                                    
-                                    // Calcular monto según dataset y categoría
-                                    let monto = 0;
-                                    
-                                    if (datasetIndex === 0) { // Ahorro
-                                        monto = datos.totalAhorros;
-                                    } else if (datasetIndex === 1) { // Gastos
-                                        monto = datos.totalGastos;
-                                    } else if (datasetIndex === 2) { // Impuestos Retenciones
-                                        monto = labelIndex === 0 ? datos.totalImpuestosIngresos : 0;
-                                    } else if (datasetIndex === 3) { // Impuestos Otros
-                                        monto = datos.totalImpuestosStandalone;
-                                    }
-                                    
+                                    // 0=Ahorro 1=Gastos 2=ImpSalario 3=RetencionCR 4=ImpOtros
+                                    const montos = [
+                                        datos.totalAhorros,
+                                        datos.totalGastos,
+                                        datos.totalImpuestosIngresosNoCR,
+                                        datos.totalRetencionCR,
+                                        datos.totalImpuestosStandalone
+                                    ];
+                                    const monto = montos[ctx.datasetIndex] ?? 0;
                                     return `${label}: ${porcentaje.toFixed(1)}% (${formatearEuro(monto)})`;
                                 }
                             }
@@ -1202,11 +1259,12 @@ function obtenerLabelsTraducidos() {
 
             // Media y varianza
             const mediaIngresos = calcularMedia(ingresosMes);
-            const mediaCuentasRemuneradas = calcularMedia(cuentasRemuneradasMes);
-            const mediaImpuestosMes = calcularMedia(impuestosMes);
-            const mediaTotalIngresos = mediaIngresos + mediaCuentasRemuneradas + mediaImpuestosMes;
-            // Calcular desviación sobre la suma de los tres
-            const sumaTotalPorMes = ingresosMes.map((ing, idx) => ing + cuentasRemuneradasMes[idx] + impuestosMes[idx]);
+            const mediaCuentasRemuneradasNetas = calcularMedia(cuentasRemuneradasNetasMes);
+            const mediaRetencionCRMes = calcularMedia(retencionCRMes);
+            const mediaImpuestosIngresosNet = calcularMedia(impuestosIngresosNetMes);
+            const mediaTotalIngresos = mediaIngresos + mediaCuentasRemuneradasNetas + mediaRetencionCRMes + mediaImpuestosIngresosNet;
+            // Calcular desviación sobre la suma de los cuatro componentes
+            const sumaTotalPorMes = ingresosMes.map((ing, idx) => ing + cuentasRemuneradasNetasMes[idx] + retencionCRMes[idx] + impuestosIngresosNetMes[idx]);
             const varianzaIngresos = calcularDesviacion(sumaTotalPorMes);
 
             const tituloIngresos = `${labelsTraducidos.media}: ${formatearEuro(mediaTotalIngresos)} | ${labelsTraducidos.desviacion}: ${formatearEuro(varianzaIngresos)}`;
@@ -1221,8 +1279,9 @@ function obtenerLabelsTraducidos() {
                     labels: meses,
                     datasets: [
                         crearDataset(labelsTraducidos.ingresos + ' €', ingresosMes, temasGraficos.success, true),
-                        crearDataset(labelsTraducidos.cuentasRemuneradas + ' €', cuentasRemuneradasMes, temasGraficos.primary, true),
-                        crearDataset(labelsTraducidos.impuestosCategoria + ' €', impuestosMes, temasGraficos.warning, true)
+                        crearDataset(labelsTraducidos.cuentasRemuneradasNeto + ' €', cuentasRemuneradasNetasMes, temasGraficos.primary, true),
+                        crearDataset(labelsTraducidos.retencionCR + ' €', retencionCRMes, '#9b59b6', true),
+                        crearDataset(labelsTraducidos.impuestosCategoria + ' €', impuestosIngresosNetMes, temasGraficos.warning, true)
                     ]
                 },
                 options: crearOpcionesGrafico(optComun, tituloIngresos, true)
@@ -1246,11 +1305,12 @@ function obtenerLabelsTraducidos() {
             
             charts.ingresos.updateChartStats = function() {
                 const visibleIngresos = this.isDatasetVisible(0) ? ingresosMes : ingresosMes.map(() => 0);
-                const visibleCuentas = this.isDatasetVisible(1) ? cuentasRemuneradasMes : cuentasRemuneradasMes.map(() => 0);
-                const visibleImpuestos = this.isDatasetVisible(2) ? impuestosMes : impuestosMes.map(() => 0);
+                const visibleCuentasNetas = this.isDatasetVisible(1) ? cuentasRemuneradasNetasMes : cuentasRemuneradasNetasMes.map(() => 0);
+                const visibleRetencionCR = this.isDatasetVisible(2) ? retencionCRMes : retencionCRMes.map(() => 0);
+                const visibleImpuestos = this.isDatasetVisible(3) ? impuestosIngresosNetMes : impuestosIngresosNetMes.map(() => 0);
                 
-                const sumaTotalVisiblePorMes = visibleIngresos.map((ing, idx) => ing + visibleCuentas[idx] + visibleImpuestos[idx]);
-                const mediaTot = calcularMedia(visibleIngresos) + calcularMedia(visibleCuentas) + calcularMedia(visibleImpuestos);
+                const sumaTotalVisiblePorMes = visibleIngresos.map((ing, idx) => ing + visibleCuentasNetas[idx] + visibleRetencionCR[idx] + visibleImpuestos[idx]);
+                const mediaTot = calcularMedia(visibleIngresos) + calcularMedia(visibleCuentasNetas) + calcularMedia(visibleRetencionCR) + calcularMedia(visibleImpuestos);
                 const desv = calcularDesviacion(sumaTotalVisiblePorMes);
                 
                 this.options.plugins.title.text = `${labelsTraducidos.mediaTotal}: ${formatearEuro(mediaTot)} | ${labelsTraducidos.desviacionAbrev}: ${formatearEuro(desv)}`;

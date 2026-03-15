@@ -64,8 +64,28 @@
             </div>
           </td>
           <td><select id="cat-impuesto-m"></select></td>
-          <td><input type="date" id="desde-impuesto-m"></td>
-          <td><input type="date" id="hasta-impuesto-m"></td>
+          <td>
+            <input 
+              type="text" 
+              id="desde-impuesto-m" 
+              data-i18n-placeholder="formularios.placeholderYYYYMM" 
+              maxlength="7"
+              pattern="\\d{4}-\\d{2}"
+              data-i18n-title="formularios.formatoYYYYMM"
+              title="Formato: YYYY-MM"
+            >
+          </td>
+          <td>
+            <input 
+              type="text" 
+              id="hasta-impuesto-m" 
+              data-i18n-placeholder="formularios.placeholderYYYYMM" 
+              maxlength="7"
+              pattern="\\d{4}-\\d{2}"
+              data-i18n-title="formularios.formatoYYYYMM"
+              title="Formato: YYYY-MM"
+            >
+          </td>
           <td><button id="btnAgregarImpuestoMensual"><i class="fas fa-plus"></i></button></td>
         </tr>
       </thead>

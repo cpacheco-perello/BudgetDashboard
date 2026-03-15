@@ -9,15 +9,15 @@ const router = express.Router();
  * POST /add/cuenta_remunerada - Agregar cuenta remunerada
  */
 router.post('/add/cuenta_remunerada', async (req, res) => {
-    const { descripcion, monto, aportacion_mensual, interes, categoria_id, desde, hasta } = req.body;
+    const { descripcion, monto, aportacion_mensual, interes, retencion, categoria_id, desde, hasta } = req.body;
     try {
         const interesGenerado = calcularInteresGenerado(monto, aportacion_mensual || 0, interes || 0, desde, hasta);
         const descripcionFinal = (descripcion || '').trim() || generarDescripcionRandom();
         
         await dbRun(db, `
-            INSERT INTO cuenta_remunerada (descripcion, monto, aportacion_mensual, interes, interes_generado, categoria_id, desde, hasta)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `, [descripcionFinal, monto, aportacion_mensual || null, interes || null, interesGenerado, categoria_id, desde, hasta]);
+            INSERT INTO cuenta_remunerada (descripcion, monto, aportacion_mensual, interes, retencion, interes_generado, categoria_id, desde, hasta)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [descripcionFinal, monto, aportacion_mensual || null, interes || null, retencion || 0, interesGenerado, categoria_id, desde, hasta]);
           
         res.sendStatus(200);
     } catch (err) {
@@ -41,7 +41,7 @@ router.post('/delete/cuenta_remunerada', async (req, res) => {
  * POST /update/cuenta_remunerada - Actualizar cuenta remunerada
  */
 router.post('/update/cuenta_remunerada', async (req, res) => {
-    const { id, desde, hasta, monto, aportacion_mensual, interes, categoria, categoria_id, descripcion } = req.body;
+    const { id, desde, hasta, monto, aportacion_mensual, interes, retencion, categoria, categoria_id, descripcion } = req.body;
     try {
         let catId = categoria_id;
         if (!catId && categoria) {
@@ -60,9 +60,9 @@ router.post('/update/cuenta_remunerada', async (req, res) => {
         
         await dbRun(db, `
             UPDATE cuenta_remunerada 
-            SET descripcion = ?, desde = ?, hasta = ?, monto = ?, aportacion_mensual = ?, interes = ?, interes_generado = ?, categoria_id = ?
+            SET descripcion = ?, desde = ?, hasta = ?, monto = ?, aportacion_mensual = ?, interes = ?, retencion = ?, interes_generado = ?, categoria_id = ?
             WHERE id = ?
-        `, [descripcionFinal, desde, hasta, monto, aportacion_mensual || null, interes || null, interesGenerado, catId, id]);
+        `, [descripcionFinal, desde, hasta, monto, aportacion_mensual || null, interes || null, retencion !== undefined ? (parseFloat(retencion) || 0) : 0, interesGenerado, catId, id]);
         
         res.json({ success: true });
     } catch (err) {

@@ -49,7 +49,20 @@ TRADUCCIONES.en = {
             seis_meses: '6 Months',
             un_anio: '1 Year',
             cinco_anios: '5 Years',
-            diez_anios: '10 Years'
+            diez_anios: '10 Years',
+            proximo_mes: 'Next month',
+            proximos_tres_meses: 'Next 3 months',
+            proximos_seis_meses: 'Next 6 months',
+            label_mes_actual: 'Current month',
+            label_ultimos_3_meses: 'Last 3 months',
+            label_ultimos_6_meses: 'Last 6 months',
+            label_ultimos_12_meses: 'Last 12 months',
+            label_ultimos_5_anios: 'Last 5 years',
+            label_ultimos_10_anios: 'Last 10 years',
+            label_proximo_mes: 'Next month',
+            label_proximos_3_meses: 'Next 3 months',
+            label_proximos_6_meses: 'Next 6 months',
+            label_periodo_seleccionado: 'Selected period'
         },
 
         // ===== RESUMEN =====
@@ -57,11 +70,21 @@ TRADUCCIONES.en = {
             totalIngresos: 'Total Income',
             totalGastos: 'Total Expenses',
             saldo: 'Balance',
+            saldoDisponible: 'Available balance',
             totalImpuestos: 'Total Taxes',
             impuestosPre: 'Pre',
             impuestosPost: 'Post',
             totalHucha: 'Total Piggy Bank',
             portfolioRendimiento: 'Portfolio Performance'
+        },
+
+        inicio: {
+            evolucionMensual: 'Monthly trend',
+            ingresosVsGastos: 'Income vs Expenses',
+            gastosPorCategoria: 'Expenses by category',
+            distribucionPeriodo: 'Period distribution',
+            sinDatosPeriodo: 'No data for this period',
+            graficoIngresosBrutos: 'Gross income'
         },
 
         // ===== TEMA =====
@@ -92,19 +115,45 @@ TRADUCCIONES.en = {
 
         // ===== NAVEGACIÓN =====
         nav: {
+            inicio: 'Home',
             categorias: 'Categories',
             gastos: 'Expenses',
             ingresos: 'Income',
             impuestos: 'Taxes',
             importacionBancaria: 'Import Bank',
+            importarBanco: 'Import Bank',
             dashboard: 'Dashboard',
             dashboardReal: 'Real Dashboard',
-            hucha: 'Real Piggy Bank'
+            hucha: 'Real Piggy Bank',
+            ajustes: 'Settings',
+            usuario: 'User',
+            navegacionPrincipal: 'Main navigation'
         },
 
         // ===== REAL DASHBOARD =====
         dashboardReal: {
-            titulo: 'Real Dashboard'
+                titulo: 'Real Dashboard'
+            },
+
+            // ===== SETTINGS =====
+            ajustes: {
+                titulo: 'Settings',
+                descripcion: 'Configure theme, language and working currency',
+                usuarioActivo: 'Active user',
+                cambiarUsuarioSidebar: 'You can switch users from the sidebar button.'
+        },
+
+        usuarios: {
+            seleccionaUsuario: 'Select user',
+            usuarios: 'Users',
+            entrar: 'Enter',
+            icono: 'Icon',
+            o: 'or',
+            nuevoUsuario: 'New user',
+            placeholderNombre: 'Name',
+            crear: 'Create',
+            refrescar: 'Refresh',
+            sinUsuario: 'No user'
         },
 
         // ===== IMPORTACIÓN BANCARIA =====
@@ -121,6 +170,9 @@ TRADUCCIONES.en = {
             campoImporte: 'Amount Column:',
             campoTipo: 'Transaction Type (Optional):',
             campoSaldo: 'Balance Column (Optional):',
+            formatoFechaPlaceholder: 'e.g.: DD/MM/YYYY',
+            opcionSelecciona: '-- Select --',
+            opcionNingunoAuto: '-- None (auto-detect) --',
             ayudaTipo: 'Positive amounts will be income, negative amounts will be expenses',
             vista_previa: 'Data Preview',
             confirmarMapeo: 'Confirm Mapping',
@@ -182,6 +234,9 @@ TRADUCCIONES.en = {
             cantidad: 'Amount',
             seleccionConceptos: 'Select Concepts',
             descripcionSeleccion: 'Select the concepts you want to include in the analysis',
+            seleccionarTodos: 'Select all',
+            deseleccionarTodos: 'Deselect all',
+            movimientos: 'Movements',
             continuar: 'Continue',
             errorCargandoArchivos: 'Error loading files',
             cargandoArchivo: 'Loading file...',
@@ -221,6 +276,8 @@ TRADUCCIONES.en = {
             desviacionAbrev: 'Std Dev',
             mediaTotal: 'Total Average',
             cuentasRemuneradas: 'Savings Accounts',
+            cuentasRemuneradasNeto: 'Savings Acc. (net)',
+            retencionCR: 'CR Withholding',
             impuestosIngresos: 'Taxes (income)',
             impuestosOtros: 'Taxes (other)',
             impuestosRetenciones: 'Tax Withholdings (income)',
@@ -276,6 +333,9 @@ TRADUCCIONES.en = {
             desde: 'From',
             hasta: 'To',
             monto: 'Amount',
+            ipc: 'CPI %',
+            montoAjustado: 'Adjusted amount',
+            ipcPlaceholder: '0.00',
             mostrarAntiguos: 'Show old',
             ocultarAntiguos: 'Hide old',
             fraccionar: 'Split',
@@ -314,7 +374,9 @@ TRADUCCIONES.en = {
             aportacionInicial: 'Initial Contribution',
             aportacionMensual: 'Monthly Contribution',
             interes: 'Interest (%)',
+            retencion: 'Withholding (%)',
             interesGenerado: 'Interest Generated',
+            interesNeto: 'Net Interest',
             mostrarAntiguos: 'Show old',
             ocultarAntiguos: 'Hide old',
             noHayIngresos: 'No income recorded',
@@ -373,6 +435,7 @@ TRADUCCIONES.en = {
             placeholderShares: '10',
             placeholderPrice: '150.00',
             placeholderInteres: '0.00',
+            placeholderRetencion: '0.00',
             placeholderAportacion: '0.00',
             confirmarEliminarPuntual: 'Delete this income?',
             confirmarEliminarMensual: 'Delete this monthly income?',

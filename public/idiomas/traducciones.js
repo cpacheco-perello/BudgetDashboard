@@ -102,6 +102,11 @@ const TRADUCCIONES = {
             titulo: 'Dashboard Real'
         },
 
+        ajustes: {
+            titulo: 'Ajustes',
+            descripcion: 'Configura tema, idioma y moneda de trabajo'
+        },
+
         // ===== IMPORTACIÓN BANCARIA =====
         importacion: {
             archivosGuardados: 'Archivos Guardados',
@@ -208,6 +213,8 @@ const TRADUCCIONES = {
             desviacionAbrev: 'Desv',
             mediaTotal: 'Media Total',
             cuentasRemuneradas: 'Cuentas Remuneradas',
+            cuentasRemuneradasNeto: 'Ctas. Rem. (neto)',
+            retencionCR: 'Retención CR',
             impuestosIngresos: 'Impuestos (ingresos)',
             impuestosOtros: 'Impuestos (otros)',
             impuestosRetenciones: 'Imp. Retenciones (ingresos)',
@@ -301,7 +308,9 @@ const TRADUCCIONES = {
             aportacionInicial: 'Aportación Inicial',
             aportacionMensual: 'Aportación Mensual',
             interes: 'Interés (%)',
+            retencion: 'Retención (%)',
             interesGenerado: 'Interés Generado',
+            interesNeto: 'Interés Neto',
             mostrarAntiguos: 'Mostrar antiguos',
             ocultarAntiguos: 'Ocultar antiguos',
             noHayIngresos: 'No hay ingresos registrados',
@@ -360,6 +369,7 @@ const TRADUCCIONES = {
             placeholderShares: '10',
             placeholderPrice: '150.00',
             placeholderInteres: '0.00',
+            placeholderRetencion: '0.00',
             placeholderAportacion: '0.00',
             confirmarEliminarPuntual: '¿Eliminar este ingreso?',
             confirmarEliminarMensual: '¿Eliminar este ingreso mensual?',
@@ -601,10 +611,15 @@ const TRADUCCIONES = {
             titulo: 'Painel Real'
         },
 
+            ajustes: {
+                titulo: 'Configurações',
+                descripcion: 'Configure o tema, idioma e moeda de trabalho'
+            },
+
         // ===== IMPORTACIÓN BANCARIA =====
         importacion: {
             archivosGuardados: 'Arquivos Salvos',
-            cargandoArchivos: 'Carregando arquivos salvos...',
+                cargandoArchivos: 'Carregando arquivos salvos...',
             titulo: 'Importar Transações Bancárias',
             descripcion: 'Faça upload de um arquivo Excel com suas transações bancárias',
             arrastrarArchivo: 'Arraste seu arquivo Excel aqui ou clique para selecionar',
@@ -711,6 +726,8 @@ const TRADUCCIONES = {
             desviacionAbrev: 'Desv',
             mediaTotal: 'Média Total',
             cuentasRemuneradas: 'Contas Poupança',
+            cuentasRemuneradasNeto: 'Contas Poup. (líq.)',
+            retencionCR: 'Retenção CR',
             impuestosIngresos: 'Impostos (receita)',
             impuestosOtros: 'Impostos (outros)',
             impuestosRetenciones: 'Retenções Fiscais (receita)',
@@ -804,7 +821,9 @@ const TRADUCCIONES = {
             aportacionInicial: 'Contribuição Inicial',
             aportacionMensual: 'Contribuição Mensal',
             interes: 'Juros (%)',
+            retencion: 'Retenção (%)',
             interesGenerado: 'Juros Gerados',
+            interesNeto: 'Juros Líquidos',
             mostrarAntiguos: 'Mostrar antigos',
             ocultarAntiguos: 'Ocultar antigos',
             noHayIngresos: 'Sem receitas registradas',
@@ -863,6 +882,7 @@ const TRADUCCIONES = {
             placeholderShares: '10',
             placeholderPrice: '150,00',
             placeholderInteres: '0,00',
+            placeholderRetencion: '0,00',
             placeholderAportacion: '0,00',
             confirmarEliminarPuntual: 'Eliminar esta receita?',
             confirmarEliminarMensual: 'Eliminar esta receita mensal?',
@@ -1092,6 +1112,11 @@ const TRADUCCIONES = {
             titulo: 'Tableau de Bord Réel'
         },
 
+            ajustes: {
+                titulo: 'Paramètres',
+                descripcion: 'Configurer le thème, la langue et la devise de travail'
+            },
+
         // ===== IMPORTACIÓN BANCARIA =====
         importacion: {
             archivosGuardados: 'Fichiers Sauvegardés',
@@ -1198,6 +1223,8 @@ const TRADUCCIONES = {
             desviacionAbrev: 'Éc',
             mediaTotal: 'Moyenne Totale',
             cuentasRemuneradas: 'Comptes d\'Épargne',
+            cuentasRemuneradasNeto: 'Comptes Ép. (net)',
+            retencionCR: 'Retenue CR',
             impuestosIngresos: 'Impôts (revenus)',
             impuestosOtros: 'Impôts (autres)',
             impuestosRetenciones: 'Retenues Fiscales (revenus)',
@@ -1290,7 +1317,9 @@ const TRADUCCIONES = {
             aportacionInicial: 'Contribution Initiale',
             aportacionMensual: 'Contribution Mensuelle',
             interes: 'Intérêt (%)',
+            retencion: 'Retenue (%)',
             interesGenerado: 'Intérêt Généré',
+            interesNeto: 'Intérêt Net',
             mostrarAntiguos: 'Afficher anciens',
             ocultarAntiguos: 'Masquer anciens',
             noHayIngresos: 'Aucun revenu enregistré',
@@ -1349,6 +1378,7 @@ const TRADUCCIONES = {
             placeholderShares: '10',
             placeholderPrice: '150,00',
             placeholderInteres: '0,00',
+            placeholderRetencion: '0,00',
             placeholderAportacion: '0,00',
             confirmarEliminarPuntual: 'Supprimer ce revenu?',
             confirmarEliminarMensual: 'Supprimer ce revenu mensuel?',
@@ -1578,6 +1608,11 @@ const TRADUCCIONES = {
             titulo: 'Benetako Panela'
         },
 
+            ajustes: {
+                titulo: 'Ezarpenak',
+                descripcion: 'Konfiguratu gaia, hizkuntza eta lan-moneta'
+            },
+
         // ===== IMPORTACIÓN BANCARIA =====
         importacion: {
             titulo: 'Banku Transakszioak Inportatu',
@@ -1682,6 +1717,8 @@ const TRADUCCIONES = {
             desviacionAbrev: 'Desb',
             mediaTotal: 'Batezbesteko Guztira',
             cuentasRemuneradas: 'Aurrezki Kontuak',
+            cuentasRemuneradasNeto: 'Aurrezki Kont. (gar.)',
+            retencionCR: 'Atxikipena CR',
             impuestosIngresos: 'Zergak (diru-sarrerak)',
             impuestosOtros: 'Zergak (beste)',
             impuestosRetenciones: 'Zerga Atxikipenak (diru-sarrerak)',
@@ -1775,7 +1812,9 @@ const TRADUCCIONES = {
             aportacionInicial: 'Hasierako Ekarpena',
             aportacionMensual: 'Hileroko Ekarpena',
             interes: 'Interesa (%)',
+            retencion: 'Atxikipena (%)',
             interesGenerado: 'Sortutako Interesa',
+            interesNeto: 'Interes Garbia',
             mostrarAntiguos: 'Zaharrak erakutsi',
             ocultarAntiguos: 'Zaharrak ezkutatu',
             noHayIngresos: 'Ez dago diru-sarrerarik erregistraturik',
@@ -1834,6 +1873,7 @@ const TRADUCCIONES = {
             placeholderShares: '10',
             placeholderPrice: '150,00',
             placeholderInteres: '0,00',
+            placeholderRetencion: '0,00',
             placeholderAportacion: '0,00',
             confirmarEliminarPuntual: 'Diru-sarrera hau ezabatu?',
             confirmarEliminarMensual: 'Hileroko diru-sarrera hau ezabatu?',

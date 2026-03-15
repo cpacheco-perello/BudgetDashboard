@@ -39,36 +39,45 @@ function calcularInteresGenerado(monto, aportacionMensual, interes, desde, hasta
  * Calcula intereses mensuales (mes a mes)
  */
 function calcularInteresesMensuales(monto, aportacionMensual, interes, desde, hasta) {
+    // Si hasta es null/undefined (cuenta aún activa), usar el mes actual como límite
+    const hastaEfectivo = hasta || (() => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    })();
     const [desdeY, desdeM] = desde.split('-').map(Number);
-    const [hastaY, hastaM] = hasta.split('-').map(Number);
+    const [hastaY, hastaM] = hastaEfectivo.split('-').map(Number);
     
     const mesesInteres = {};
     
-    // Si es un solo mes, solo calcula interés con la base
-    if (desde === hasta) {
-        mesesInteres[desde] = monto * (interes / 100) / 12;
+    // Si es un solo mes, solo calcula interés con la base y días reales del mes
+    if (desde === hastaEfectivo) {
+        const [y, m] = desde.split('-').map(Number);
+        const diasMes = new Date(y, m, 0).getDate();
+        mesesInteres[desde] = monto * (interes / 100) * (diasMes / 365);
         return mesesInteres;
     }
-    
+
     const desdeDate = new Date(desdeY, desdeM - 1, 1);
     const hastaDate = new Date(hastaY, hastaM, 0);
-    
+
     let saldo = monto;
     let current = new Date(desdeDate);
-    
-    // Primer mes: monto inicial genera interés
+
+    // Primer mes: monto inicial genera interés (días reales)
     const primerMes = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
-    mesesInteres[primerMes] = saldo * (interes / 100) / 12;
+    let diasPrimerMes = new Date(current.getFullYear(), current.getMonth() + 1, 0).getDate();
+    mesesInteres[primerMes] = saldo * (interes / 100) * (diasPrimerMes / 365);
     current.setMonth(current.getMonth() + 1);
-    
-    // Meses siguientes: aportación el día 1, luego genera interés
+
+    // Meses siguientes: aportación el día 1, luego genera interés (días reales)
     while (current <= hastaDate) {
         saldo += aportacionMensual || 0;
         const mesKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
-        mesesInteres[mesKey] = saldo * (interes / 100) / 12;
+        let diasMes = new Date(current.getFullYear(), current.getMonth() + 1, 0).getDate();
+        mesesInteres[mesKey] = saldo * (interes / 100) * (diasMes / 365);
         current.setMonth(current.getMonth() + 1);
     }
-    
+
     return mesesInteres;
 }
 
@@ -132,6 +141,38 @@ function generarArrayMeses(desde, hasta, initialValue = { total: 0 }) {
     }
     
     return meses;
+}
+
+function parseIpcDate(value) {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+    if (/^\d{4}-\d{2}$/.test(value)) {
+        const [y, m] = value.split('-').map(Number);
+        return new Date(y, m - 1, 1);
+    }
+    return new Date(value);
+}
+
+function contarAniosCompletos(desdeDate, hastaDate) {
+    if (!desdeDate || !hastaDate || Number.isNaN(desdeDate.getTime()) || Number.isNaN(hastaDate.getTime())) {
+        return 0;
+    }
+    if (hastaDate < desdeDate) return 0;
+    let years = hastaDate.getFullYear() - desdeDate.getFullYear();
+    const anniversary = new Date(desdeDate.getTime());
+    anniversary.setFullYear(desdeDate.getFullYear() + years);
+    if (anniversary > hastaDate) years -= 1;
+    return Math.max(0, years);
+}
+
+function calcularMontoIpc(monto, ipcPorcentaje, fechaBase, fechaObjetivo) {
+    const ipc = parseFloat(ipcPorcentaje);
+    if (!ipc || ipc <= 0) return monto;
+    const baseDate = parseIpcDate(fechaBase);
+    const targetDate = parseIpcDate(fechaObjetivo);
+    const years = contarAniosCompletos(baseDate, targetDate);
+    if (years <= 0) return monto;
+    return monto * Math.pow(1 + (ipc / 100), years);
 }
 
 /**
@@ -241,6 +282,9 @@ module.exports = {
     contarMesesDesde28,
     generarDescripcionRandom,
     generarArrayMeses,
+    calcularMontoIpc,
+    contarAniosCompletos,
+    parseIpcDate,
     esMensualActivo,
     calcularImpuestosDesdeRruto,
     agregarImpuestosPuntualesPorMes,

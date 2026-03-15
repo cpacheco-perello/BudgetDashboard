@@ -31,7 +31,7 @@ function cargarIngresosForm() {
         customColumns: {
             puntual: ['fecha', 'descripcion', 'monto', 'bruto', 'categoria'],
             mensual: ['desde', 'hasta', 'descripcion', 'monto', 'bruto', 'categoria'],
-            cuentaRemunerada: ['desde', 'hasta', 'descripcion', 'monto', 'aportacion_mensual', 'interes', 'interes_generado', 'categoria']
+            cuentaRemunerada: ['desde', 'hasta', 'descripcion', 'monto', 'aportacion_mensual', 'interes', 'retencion', 'interes_generado', 'interes_neto', 'categoria']
         },
         showOldFlag: 'showOldIngresos'
     });
@@ -163,6 +163,7 @@ function cargarIngresosForm() {
             const monto = parseFloat(document.getElementById('montoCuentaRemunerada').value);
             const aportacion_mensual = parseFloat(document.getElementById('aportacionMensualCR').value) || null;
             const interes = parseFloat(document.getElementById('interesCuentaRemunerada').value) || null;
+            const retencion = parseFloat(document.getElementById('retencionCuentaRemunerada').value) || 0;
             const selectCatCR = document.getElementById('categoriaCuentaRemunerada');
             const categoria_id = selectCatCR.value;
 
@@ -176,11 +177,16 @@ function cargarIngresosForm() {
             if (!validarMes(hasta)) return showAlert(ingresosManager.t('ingresos.formatoHasta'));
             if (desde > hasta) return showAlert(ingresosManager.t('ingresos.desdeNoMayorHasta'));
 
-            await fetch('/add/cuenta_remunerada', {
+            const resCR = await fetch('/add/cuenta_remunerada', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ desde, hasta, descripcion, monto, aportacion_mensual, interes, categoria_id })
+                body: JSON.stringify({ desde, hasta, descripcion, monto, aportacion_mensual, interes, retencion, categoria_id })
             });
+
+            if (!resCR.ok) {
+                const err = await resCR.json().catch(() => ({}));
+                return showAlert('Error al guardar: ' + (err.error || resCR.status));
+            }
 
             document.getElementById('desdeCuentaRemunerada').value = '';
             document.getElementById('hastaCuentaRemunerada').value = '';
@@ -188,6 +194,7 @@ function cargarIngresosForm() {
             document.getElementById('montoCuentaRemunerada').value = '';
             document.getElementById('aportacionMensualCR').value = '';
             document.getElementById('interesCuentaRemunerada').value = '';
+            document.getElementById('retencionCuentaRemunerada').value = '';
             
             ingresosManager.loadData();
             if (typeof cargarResumenPeriodos === 'function') cargarResumenPeriodos();
