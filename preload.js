@@ -7,6 +7,18 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 // Exponer API al renderer de forma segura
 contextBridge.exposeInMainWorld('electronAPI', {
+    // ============= VENTANA =============
+    platform: process.platform,
+    windowMinimize: () => ipcRenderer.invoke('window-minimize'),
+    windowMaximizeToggle: () => ipcRenderer.invoke('window-maximize-toggle'),
+    windowClose: () => ipcRenderer.invoke('window-close'),
+    windowIsMaximized: () => ipcRenderer.invoke('window-is-maximized'),
+    onWindowMaximizedChanged: (callback) => {
+        const listener = (_event, isMaximized) => callback(isMaximized);
+        ipcRenderer.on('window-maximized-changed', listener);
+        return () => ipcRenderer.removeListener('window-maximized-changed', listener);
+    },
+
     // ============= USUARIOS =============
     listUsers: () => ipcRenderer.invoke('list-users'),
     createUser: (data) => ipcRenderer.invoke('create-user', data),

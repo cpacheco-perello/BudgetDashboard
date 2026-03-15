@@ -2,7 +2,7 @@
  * IPC Handlers - Maneja todas las comunicaciones entre renderer y main process
  */
 
-const { ipcMain } = require('electron');
+const { ipcMain, BrowserWindow } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const db = require('../config/database');
@@ -84,6 +84,39 @@ function registerIpcHandlers() {
             console.warn('No se pudo limpiar caché de dashboardService:', e.message);
         }
     // ============= USUARIOS =============
+
+    // ============= WINDOW CONTROLS =============
+    ipcMain.handle('window-minimize', async (event) => {
+        const win = BrowserWindow.fromWebContents(event.sender);
+        if (!win) return { success: false };
+        win.minimize();
+        return { success: true };
+    });
+
+    ipcMain.handle('window-maximize-toggle', async (event) => {
+        const win = BrowserWindow.fromWebContents(event.sender);
+        if (!win) return { success: false, isMaximized: false };
+
+        if (win.isMaximized()) {
+            win.unmaximize();
+        } else {
+            win.maximize();
+        }
+
+        return { success: true, isMaximized: win.isMaximized() };
+    });
+
+    ipcMain.handle('window-close', async (event) => {
+        const win = BrowserWindow.fromWebContents(event.sender);
+        if (!win) return { success: false };
+        win.close();
+        return { success: true };
+    });
+
+    ipcMain.handle('window-is-maximized', async (event) => {
+        const win = BrowserWindow.fromWebContents(event.sender);
+        return { isMaximized: !!win && win.isMaximized() };
+    });
 
     ipcMain.handle('list-users', async () => {
         return { users: listUsers(), currentUser: getActiveUser() || null };

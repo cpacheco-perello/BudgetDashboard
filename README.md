@@ -22,6 +22,12 @@ A lightweight personal finance dashboard to track income, expenses, savings, and
 5. Import bank files from the Import tab if needed.
 6. Track assets and interest-bearing accounts for a complete view.
 
+## Update (Quick Guide)
+
+1. Data is stored under the `usuarios/` folder in the app directory.
+2. To update, copy the `usuarios/` folder to a new location, then after update the app replace or paste  `usuarios/` folder in the app directory.
+
+
 ## Data Storage
 
 - All data is stored locally, per user, under the usuarios/ folder.

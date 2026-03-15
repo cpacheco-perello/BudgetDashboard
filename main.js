@@ -15,6 +15,8 @@ async function startApp() {
         mainWindow = new BrowserWindow({
             width: 1200,
             height: 800,
+            titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
+            titleBarOverlay: false,
             autoHideMenuBar: electronApp.isPackaged,
             webPreferences: {
                 nodeIntegration: false,
@@ -32,6 +34,18 @@ async function startApp() {
 
         // Cargar el archivo HTML directamente
         mainWindow.loadFile(path.join(__dirname, 'public', 'index.html'));
+
+        mainWindow.on('maximize', () => {
+            if (mainWindow?.webContents && !mainWindow.webContents.isDestroyed()) {
+                mainWindow.webContents.send('window-maximized-changed', true);
+            }
+        });
+
+        mainWindow.on('unmaximize', () => {
+            if (mainWindow?.webContents && !mainWindow.webContents.isDestroyed()) {
+                mainWindow.webContents.send('window-maximized-changed', false);
+            }
+        });
 
         mainWindow.on('closed', () => {
             mainWindow = null;

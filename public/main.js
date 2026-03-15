@@ -21,6 +21,89 @@ const USER_ICON_OPTIONS = [
     { value: 'fa-user-clock', label: 'Clock' }
 ];
 
+function setMaximizeButtonState(isMaximized) {
+    const maximizeBtn = document.getElementById('windowMaximizeBtn');
+    if (!maximizeBtn) return;
+
+    if (isMaximized) {
+        maximizeBtn.innerHTML = '<i class="far fa-clone"></i>';
+        maximizeBtn.title = 'Restaurar';
+        maximizeBtn.setAttribute('aria-label', 'Restaurar');
+    } else {
+        maximizeBtn.innerHTML = '<i class="far fa-square"></i>';
+        maximizeBtn.title = 'Maximizar';
+        maximizeBtn.setAttribute('aria-label', 'Maximizar');
+    }
+}
+
+async function initWindowControls() {
+    const titlebar = document.getElementById('windowTitlebar');
+    const minimizeBtn = document.getElementById('windowMinimizeBtn');
+    const maximizeBtn = document.getElementById('windowMaximizeBtn');
+    const closeBtn = document.getElementById('windowCloseBtn');
+    const api = window.electronAPI;
+
+    if (!titlebar || !minimizeBtn || !maximizeBtn || !closeBtn) return;
+    if (!api || !api.windowMinimize || !api.windowMaximizeToggle || !api.windowClose) {
+        titlebar.style.display = 'none';
+        return;
+    }
+
+    if (api.platform === 'darwin') {
+        titlebar.style.display = 'none';
+        return;
+    }
+
+    minimizeBtn.addEventListener('click', async () => {
+        try {
+            await api.windowMinimize();
+        } catch (error) {
+            console.error('Error minimizando ventana:', error);
+        }
+    });
+
+    maximizeBtn.addEventListener('click', async () => {
+        try {
+            const result = await api.windowMaximizeToggle();
+            setMaximizeButtonState(!!result?.isMaximized);
+        } catch (error) {
+            console.error('Error maximizando/restaurando ventana:', error);
+        }
+    });
+
+    closeBtn.addEventListener('click', async () => {
+        try {
+            await api.windowClose();
+        } catch (error) {
+            console.error('Error cerrando ventana:', error);
+        }
+    });
+
+    titlebar.addEventListener('dblclick', async () => {
+        try {
+            const result = await api.windowMaximizeToggle();
+            setMaximizeButtonState(!!result?.isMaximized);
+        } catch (error) {
+            console.error('Error alternando maximize con doble click:', error);
+        }
+    });
+
+    if (api.windowIsMaximized) {
+        try {
+            const state = await api.windowIsMaximized();
+            setMaximizeButtonState(!!state?.isMaximized);
+        } catch (error) {
+            setMaximizeButtonState(false);
+        }
+    }
+
+    if (api.onWindowMaximizedChanged) {
+        api.onWindowMaximizedChanged((isMaximized) => {
+            setMaximizeButtonState(!!isMaximized);
+        });
+    }
+}
+
 function setUserLabel(name) {
     const label = document.getElementById('currentUserLabel');
     if (label) {
@@ -845,6 +928,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     setCurrency(monedaGuardada, { silent: true });
 
+    initWindowControls();
     initUserSelection();
 });
 

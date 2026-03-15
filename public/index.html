@@ -40,6 +40,19 @@
     </aside>
 
     <div class="app-body">
+        <div id="windowTitlebar" class="window-titlebar" aria-label="Controles de ventana">
+            <div class="window-controls" role="group" aria-label="Controles de ventana">
+                <button id="windowMinimizeBtn" class="window-control-btn" type="button" title="Minimizar" aria-label="Minimizar">
+                    <i class="fas fa-minus"></i>
+                </button>
+                <button id="windowMaximizeBtn" class="window-control-btn" type="button" title="Maximizar" aria-label="Maximizar">
+                    <i class="far fa-square"></i>
+                </button>
+                <button id="windowCloseBtn" class="window-control-btn window-control-close" type="button" title="Cerrar" aria-label="Cerrar">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </div>
+        </div>
         <main id="tab-content"></main>
     </div>
 </div>

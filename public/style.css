@@ -2810,6 +2810,55 @@ table tbody tr:hover .nombre-categoria {
     overflow-y: auto;
 }
 
+.window-titlebar {
+    position: sticky;
+    top: 0;
+    z-index: 130;
+    height: 34px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 0 4px;
+    background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-primary) 100%);
+    border-bottom: 1px solid transparent;
+    -webkit-app-region: drag;
+}
+
+.window-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    -webkit-app-region: no-drag;
+}
+
+.window-control-btn {
+    width: 30px;
+    height: 26px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--gray-700);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.window-control-btn:hover {
+    background: var(--gray-200);
+    color: var(--gray-900);
+}
+
+.window-control-close:hover {
+    background: var(--danger);
+    color: #ffffff;
+}
+
+.window-control-btn i {
+    font-size: 0.78rem;
+}
+
 main {
     max-width: none;
     margin: 0;
@@ -3124,6 +3173,10 @@ main {
         margin-left: 0;
         min-height: auto;
         padding-bottom: 78px;
+    }
+
+    .window-titlebar {
+        display: none;
     }
 
     .inicio-cards-grid {
