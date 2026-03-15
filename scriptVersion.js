@@ -124,7 +124,20 @@ async function askBumpType() {
 }
 
 function writeReleaseNotes(newFeatures, bugFixes) {
+  let staticInstructions = '';
+  if (fs.existsSync(releaseNotesPath)) {
+    try {
+      const existing = JSON.parse(fs.readFileSync(releaseNotesPath, 'utf8'));
+      if (typeof existing.Instructions === 'string') {
+        staticInstructions = existing.Instructions;
+      }
+    } catch {
+      staticInstructions = '';
+    }
+  }
+
   const content = {
+    Instructions: staticInstructions,
     newFeatures,
     bugFixes,
   };

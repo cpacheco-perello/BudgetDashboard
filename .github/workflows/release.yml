@@ -142,6 +142,13 @@ jobs:
           const lines = [];
           lines.push(`DashboardEconomic v${version}`);
           lines.push('');
+          lines.push('Instructions:');
+          if (typeof notes.Instructions === 'string' && notes.Instructions.trim()) {
+            lines.push(`- ${notes.Instructions.trim()}`);
+          } else {
+            lines.push('- No instructions provided');
+          }
+          lines.push('');
           lines.push('New features:');
           if (Array.isArray(notes.newFeatures) && notes.newFeatures.length > 0) {
             for (const item of notes.newFeatures) {
