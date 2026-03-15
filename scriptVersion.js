@@ -56,6 +56,40 @@ function incrementPatch(version) {
   return `${major}.${minor}.${patch}`;
 }
 
+function tagExistsLocal(tag) {
+  const result = spawnSync('git', ['rev-parse', '-q', '--verify', `refs/tags/${tag}`], {
+    stdio: 'ignore',
+    shell: false,
+  });
+
+  return result.status === 0;
+}
+
+function tagExistsRemote(tag) {
+  const result = spawnSync('git', ['ls-remote', '--tags', 'origin', `refs/tags/${tag}`], {
+    encoding: 'utf8',
+    shell: false,
+  });
+
+  if (result.error || result.status !== 0) {
+    return false;
+  }
+
+  return Boolean((result.stdout || '').trim());
+}
+
+function getNextAvailableVersion(currentVersion) {
+  let candidateVersion = incrementPatch(currentVersion);
+  let candidateTag = `v${candidateVersion}`;
+
+  while (tagExistsLocal(candidateTag) || tagExistsRemote(candidateTag)) {
+    candidateVersion = incrementPatch(candidateVersion);
+    candidateTag = `v${candidateVersion}`;
+  }
+
+  return candidateVersion;
+}
+
 function sleep(ms) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
@@ -99,7 +133,7 @@ function main() {
 
   const packageData = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
   const currentVersion = packageData.version;
-  const nextVersion = incrementPatch(currentVersion);
+  const nextVersion = getNextAvailableVersion(currentVersion);
   const tag = `v${nextVersion}`;
 
   packageData.version = nextVersion;
@@ -107,6 +141,9 @@ function main() {
 
   console.log(`Version actual: ${currentVersion}`);
   console.log(`Nueva version: ${nextVersion}`);
+  if (nextVersion !== incrementPatch(currentVersion)) {
+    console.log('Se detectaron tags existentes, se uso el siguiente patch disponible.');
+  }
 
   cleanPreviousBuilds();
 
