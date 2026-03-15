@@ -6,35 +6,15 @@ on:
     tags:
       - 'v*.*.*'
 
+permissions:
+  contents: write
+
 jobs:
   release-exe:
     runs-on: windows-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Bump version in package.json from tag
-        id: bump_version
-        shell: pwsh
-        run: |
-          $tag = $env:GITHUB_REF -replace 'refs/tags/v', ''
-          node -e "let pkg=require('./package.json');pkg.version='$tag';require('fs').writeFileSync('package.json',JSON.stringify(pkg,null,2));"
-          echo "Nueva versión en package.json: $tag"
-
-      - name: Commit version bump
-        shell: pwsh
-        run: |
-          $tag = $env:GITHUB_REF -replace 'refs/tags/v', ''
-          git config user.name cpacheco-perello
-          git config user.email cpacheco.perello@outlook.com
-          git add package.json
-          git commit -m "chore: bump version to $tag [skip ci]"
-          git push || echo "No se pudo hacer push (posiblemente por permisos en PRs de forks)"
 
       - name: Buscar el archivo .exe
         id: find_exe
