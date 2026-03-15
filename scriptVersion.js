@@ -48,9 +48,25 @@ function incrementPatch(version) {
 }
 
 function cleanPreviousBuilds() {
-  if (fs.existsSync(distPath)) {
-    console.log(`\nLimpiando builds anteriores en: ${distPath}`);
+  if (!fs.existsSync(distPath)) return;
+
+  console.log(`\nLimpiando builds anteriores en: ${distPath}`);
+  try {
     fs.rmSync(distPath, { recursive: true, force: true });
+  } catch (err) {
+    if (err.code === 'EBUSY' || err.code === 'EPERM') {
+      console.warn(`Aviso: algunos archivos en dist/ están bloqueados (${err.code}).`);
+      console.warn('Intentando cerrar procesos Electron que puedan estar usando esos archivos...');
+      spawnSync('taskkill', ['/F', '/IM', 'DashboardEconomic.exe', '/T'], { shell: false });
+      spawnSync('taskkill', ['/F', '/IM', 'electron.exe', '/T'], { shell: false });
+      try {
+        fs.rmSync(distPath, { recursive: true, force: true });
+      } catch {
+        console.warn('No se pudo limpiar dist/ completamente. Continuando de todos modos...');
+      }
+    } else {
+      throw err;
+    }
   }
 }
 

@@ -1,5 +1,4 @@
-name: Release Windows EXE Only
-
+name: Release multiplataforma
 
 on:
   push:
@@ -10,40 +9,89 @@ permissions:
   contents: write
 
 jobs:
-  release-exe:
+  build-windows:
     runs-on: windows-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
 
       - name: Build Windows installer
-        run: npm run dist -- --publish never
+        run: npm run dist -- --publish never --win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Buscar el archivo .exe
-        id: find_exe
-        run: |
-          $exe = Get-ChildItem -Path dist -Filter *.exe -Recurse | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-          if ($exe) {
-            echo "exe_path=$($exe.FullName)" >> $env:GITHUB_OUTPUT
-          } else {
-            echo "No se encontró el .exe en dist/"
-            exit 1
-          }
+      - name: Subir artefacto Windows
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: dist/*.exe
 
-      - name: Crear release en GitHub
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Build Linux packages
+        run: npm run dist -- --publish never --linux
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Subir artefacto Linux
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-packages
+          path: |
+            dist/*.AppImage
+            dist/*.deb
+
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Build macOS dmg
+        run: npm run dist -- --publish never --mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Subir artefacto macOS
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-dmg
+          path: dist/*.dmg
+
+  release:
+    needs: [build-windows, build-linux, build-mac]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar todos los artefactos
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Publicar Release con todos los instaladores
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ steps.find_exe.outputs.exe_path }}
+          files: artifacts/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
