@@ -2345,7 +2345,7 @@ async function guardarEnBaseDatos() {
 
         for (const res of respuestas) {
             const data = await res.json();
-            if (data.success || res.ok) {
+            if (data.success) {
                 exitosos += data.exitosos || 0;
                 fallidos += data.fallidos || 0;
             } else {

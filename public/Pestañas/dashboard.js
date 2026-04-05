@@ -120,16 +120,14 @@ function crearResumenPeriodo(dataTotales = []) {
         };
     }
 
-    const ingresosNetos = dataTotales.reduce((sum, m) => sum + (Number(m.ingresos) || 0), 0);
-    const cuentasRem = dataTotales.reduce((sum, m) => sum + (Number(m.cuentas_remuneradas) || 0), 0);
-    const impuestosIngresos = dataTotales.reduce((sum, m) => sum + (Number(m.impuestos_ingresos) || 0), 0);
-    const gastos = dataTotales.reduce((sum, m) => sum + (Number(m.gastos) || 0), 0);
-    const impuestosOtros = dataTotales.reduce((sum, m) => sum + (Number(m.impuestos_otros) || 0), 0);
+    const ingresosBrutos = dataTotales.reduce((sum, m) => sum + (Number(m.total_ingreso) || ((Number(m.ingresos) || 0) + (Number(m.impuestos_ingresos) || 0) + (Number(m.cuentas_remuneradas) || 0))), 0);
+    const impuestoRenta = dataTotales.reduce((sum, m) => sum + (Number(m.impuesto_renta) || (Number(m.impuestos_ingresos) || 0)), 0);
+    const impuestoOtros = dataTotales.reduce((sum, m) => sum + (Number(m.impuesto_otros) || (Number(m.impuestos_otros) || 0)), 0);
+    const gastos = dataTotales.reduce((sum, m) => sum + (Number(m.total_gastos) || (Number(m.gastos) || 0)), 0);
     const ahorros = dataTotales.reduce((sum, m) => sum + (Number(m.ahorros) || 0), 0);
 
-    const ingresosBrutos = ingresosNetos + cuentasRem + impuestosIngresos;
-    const gastosConImpuestos = gastos + impuestosOtros;
-    const ingresoNeto = ingresosNetos + cuentasRem - impuestosOtros;
+    const gastosConImpuestos = gastos + impuestoOtros;
+    const ingresoNeto = ingresosBrutos - impuestoRenta;
     const ratioAhorro = ingresosBrutos > 0 ? (ahorros / ingresosBrutos) * 100 : 0;
 
     return {
@@ -1036,7 +1034,7 @@ function actualizarIndicadorGastosDonut(mostrar, labelBudget, labelReal) {
 // ===== Función para obtener labels traducidos =====
 function obtenerLabelsTraducidos() {
     const textos = {
-        ingresos: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.ingresos') : 'Ingresos',
+        ingresos: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.totalIngresos') : 'Total Ingreso',
         gastos: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.gastos') : 'Gastos',
         ahorros: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.ahorros') : 'Ahorros',
         impuestosTotales: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('resumen.totalImpuestos') : 'Total Impuestos',
@@ -1052,8 +1050,8 @@ function obtenerLabelsTraducidos() {
         cuentasRemuneradas: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.cuentasRemuneradas') : 'Cuentas Remuneradas',
         cuentasRemuneradasNeto: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.cuentasRemuneradasNeto') : 'Ctas. Rem. (neto)',
         retencionCR: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.retencionCR') : 'Retención CR',
-        impuestosIngresos: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosIngresos') : 'Impuestos (ingresos)',
-        impuestosOtros: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosOtros') : 'Impuestos (otros)'
+        impuestosIngresos: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosIngresos') : 'Impuesto Renta',
+        impuestosOtros: typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosOtros') : 'Impuesto Otros'
     };
     return textos;
 }
@@ -1130,10 +1128,10 @@ function obtenerLabelsTraducidos() {
 
             const resumenAnterior = crearResumenPeriodo(dataTotalesPrev);
 
-            const totalIngresos = dataTotales.reduce((sum, m) => sum + (m.ingresos || 0), 0); // Suma ingresos netos
-            const totalGastos = dataTotales.reduce((sum, m) => sum + (m.gastos || 0), 0); // Suma gastos tabla
-            const totalCuentasRemuneradas = dataTotales.reduce((sum, m) => sum + (m.cuentas_remuneradas || 0), 0); // Suma intereses generados de cuentas remuneradas
-            const totalAhorros = dataTotales.reduce((sum, m) => sum + (m.ahorros || 0), 0); // Suma ahorros como (ingresos + cuentas_remuneradas) - gastos - impuestos_otros - retencion_cr
+            const totalIngresos = dataTotales.reduce((sum, m) => sum + (m.ingresos || 0), 0); // ingresos netos base
+            const totalGastos = dataTotales.reduce((sum, m) => sum + (m.total_gastos ?? m.gastos ?? 0), 0);
+            const totalCuentasRemuneradas = dataTotales.reduce((sum, m) => sum + (m.cuentas_remuneradas || 0), 0);
+            const totalAhorros = dataTotales.reduce((sum, m) => sum + (m.ahorros || 0), 0);
 
             const meses = dataTotales.map(m => m.mes);
             const ingresosMes = dataTotales.map(m => m.ingresos || 0);
@@ -1438,9 +1436,9 @@ function obtenerLabelsTraducidos() {
             const gastosConImpuestosMes = gastosMes.map((g, idx) => g + (impuestosStandaloneMes[idx] || 0));
             const ingresosBrutosMes = ingresosMes.map((ing, idx) => ing + (impuestosMes[idx] || 0));
             const ingresosTotalesMes = ingresosMes.map((ing, idx) => ing + (cuentasRemuneradasMes[idx] || 0) + (impuestosMes[idx] || 0));
-            const ingresoNetoMes = ingresosMes.map((ing, idx) => ing + (cuentasRemuneradasMes[idx] || 0) - (impuestosStandaloneMes[idx] || 0));
+            const ingresoNetoMes = ingresosTotalesMes.map((ingBruto, idx) => ingBruto - (impuestosMes[idx] || 0));
             const incomeBruto = totalIngresos + totalCuentasRemuneradas + totalImpuestosIngresos;
-            const incomeNeto = totalIngresos + totalCuentasRemuneradas - totalImpuestosStandalone;
+            const incomeNeto = incomeBruto - totalImpuestosIngresos;
             const totalGastosConImpuestos = totalGastos + totalImpuestosStandalone;
             const ratioAhorro = incomeBruto > 0 ? (totalAhorros / incomeBruto) * 100 : 0;
 
@@ -1492,8 +1490,8 @@ function obtenerLabelsTraducidos() {
 
             // ===== GRÁFICO INGRESOS (SERIES INGRESO) =====
             const tituloTotales = typeof gestorIdiomas !== 'undefined'
-                ? gestorIdiomas.obtenerTexto('dashboard.ingresos')
-                : 'Ingresos';
+                ? gestorIdiomas.obtenerTexto('dashboard.totalIngresos')
+                : 'Total Ingreso';
             const chartTotalesCanvas = document.getElementById('chartTotales');
             const chartTotalesCtx = chartTotalesCanvas?.getContext?.('2d');
             const crearGradienteTotales = (color, alphaTop, alphaBottom) => {
@@ -1672,11 +1670,11 @@ function obtenerLabelsTraducidos() {
             const porcentajeGastosNeto = incomeNeto > 0 ? (totalGastos / incomeNeto * 100) : 0;
 
             const labelIngresoBruto = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.ingresoBruto') : 'Ingreso Bruto';
-            const labelIngresoNeto = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.ingresoNeto') : 'Ingreso Neto';
+            const labelIngresoNeto = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.ingresoNeto') : 'Ingresos Netos';
             const labelAhorro = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.ahorros') : 'Ahorro';
             const labelGastos = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.gastos') : 'Gastos';
-            const labelImpRetenciones = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosRetenciones') : 'Imp. Retenciones';
-            const labelImpOtros = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosOtrosCorto') : 'Imp. Otros';
+            const labelImpRetenciones = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosIngresos') : 'Impuesto Renta';
+            const labelImpOtros = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosOtros') : 'Impuesto Otros';
             const labelRetencionCR = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.retencionCR') : 'Retención CR';
             const tituloPorcentajes = typeof gestorIdiomas !== 'undefined'
                 ? gestorIdiomas.obtenerTexto('dashboard.porcentajes')

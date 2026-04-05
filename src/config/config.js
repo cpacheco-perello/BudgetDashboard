@@ -8,10 +8,10 @@ module.exports = {
     // Límites
     BODY_LIMIT: '10mb',
     REQUEST_TIMEOUT: 30000,
-    QUERY_LIMIT: 500,
+    QUERY_LIMIT: Number(process.env.QUERY_LIMIT || 2000),
     
     // Cache
-    CACHE_DURATION: 0 * 60 * 1000, // 0.5 minutos
+    CACHE_DURATION: 60 * 1000, // 1 minuto
     EXCHANGE_RATE_CACHE: 60 * 60 * 1000, // 1 hora
     
     // Seguridad

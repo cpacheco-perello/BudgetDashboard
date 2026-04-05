@@ -48,11 +48,13 @@ window.API = {
         try {
             // Mapeo de URLs a canales IPC
             const result = await this._callIPC(url, method, body);
+            const isBusinessSuccess = typeof result?.success === 'boolean' ? result.success : true;
+            const status = isBusinessSuccess ? 200 : 400;
             
             // Crear un objeto Response compatible
             return {
-                ok: true,
-                status: 200,
+                ok: isBusinessSuccess,
+                status,
                 json: async () => result,
                 text: async () => JSON.stringify(result)
             };

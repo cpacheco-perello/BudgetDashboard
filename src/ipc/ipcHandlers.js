@@ -72,6 +72,55 @@ function getUploadsDir() {
     return paths.uploadsDir;
 }
 
+async function importBatchWithTransaction(service, datos) {
+    if (!Array.isArray(datos) || datos.length === 0) {
+        throw new Error('No hay datos para importar');
+    }
+
+    const resultados = [];
+    let exitosos = 0;
+    let fallidos = 0;
+
+    await dbRun(db, 'BEGIN TRANSACTION');
+    try {
+        for (const item of datos) {
+            try {
+                await service.add(item);
+                resultados.push({ ...item, ok: true });
+                exitosos += 1;
+            } catch (err) {
+                resultados.push({ ...item, ok: false, error: err.message });
+                fallidos += 1;
+                throw err;
+            }
+        }
+
+        await dbRun(db, 'COMMIT');
+        return {
+            success: true,
+            total: datos.length,
+            exitosos,
+            fallidos,
+            detalles: resultados
+        };
+    } catch (error) {
+        try {
+            await dbRun(db, 'ROLLBACK');
+        } catch (rollbackError) {
+            console.warn('No se pudo revertir la transacción de importación:', rollbackError.message);
+        }
+
+        return {
+            success: false,
+            total: datos.length,
+            exitosos,
+            fallidos: fallidos || Math.max(0, datos.length - exitosos),
+            error: error.message,
+            detalles: resultados
+        };
+    }
+}
+
 /**
  * Registrar todos los handlers IPC
  */
@@ -221,7 +270,7 @@ function registerIpcHandlers() {
 
     ipcMain.handle('delete-gasto-puntual', async (event, data) => {
         await gastosPuntualesService.delete(data.id);
-        return { ok: true };
+        return { success: true };
     });
 
     ipcMain.handle('update-gasto-puntual', async (event, data) => {
@@ -236,7 +285,7 @@ function registerIpcHandlers() {
 
     ipcMain.handle('delete-gasto-mensual', async (event, data) => {
         await gastosMensualesService.delete(data.id);
-        return { ok: true };
+        return { success: true };
     });
 
     ipcMain.handle('update-gasto-mensual', async (event, data) => {
@@ -253,7 +302,7 @@ function registerIpcHandlers() {
 
     ipcMain.handle('delete-ingreso-puntual', async (event, data) => {
         await ingresosPuntualesService.delete(data.id);
-        return { ok: true };
+        return { success: true };
     });
 
     ipcMain.handle('update-ingreso-puntual', async (event, data) => {
@@ -268,7 +317,7 @@ function registerIpcHandlers() {
 
     ipcMain.handle('delete-ingreso-mensual', async (event, data) => {
         await ingresosMensualesService.delete(data.id);
-        return { ok: true };
+        return { success: true };
     });
 
     ipcMain.handle('update-ingreso-mensual', async (event, data) => {
@@ -285,7 +334,7 @@ function registerIpcHandlers() {
 
     ipcMain.handle('delete-gasto-real', async (event, data) => {
         await gastosRealesService.delete(data.id);
-        return { ok: true };
+        return { success: true };
     });
 
     ipcMain.handle('update-gasto-real', async (event, data) => {
@@ -302,7 +351,7 @@ function registerIpcHandlers() {
 
     ipcMain.handle('delete-ingreso-real', async (event, data) => {
         await ingresosRealesService.delete(data.id);
-        return { ok: true };
+        return { success: true };
     });
 
     ipcMain.handle('update-ingreso-real', async (event, data) => {
@@ -313,127 +362,21 @@ function registerIpcHandlers() {
     // ============= IMPORT BANCO =============
     
     ipcMain.handle('import-gastos-puntuales', async (event, data) => {
-        const { datos } = data;
-        
-        if (!Array.isArray(datos) || datos.length === 0) {
-            throw new Error('No hay datos para importar');
-        }
-
-        const resultados = [];
-        let exitosos = 0;
-        let fallidos = 0;
-
-        for (const item of datos) {
-            try {
-                await gastosPuntualesService.add(item);
-                resultados.push({ ...item, ok: true });
-                exitosos++;
-            } catch (err) {
-                resultados.push({ ...item, ok: false, error: err.message });
-                fallidos++;
-            }
-        }
-
-        return {
-            success: true,
-            total: datos.length,
-            exitosos,
-            fallidos,
-            detalles: resultados
-        };
+        return importBatchWithTransaction(gastosPuntualesService, data?.datos);
     });
 
     ipcMain.handle('import-ingresos-puntuales', async (event, data) => {
-        const { datos } = data;
-        
-        if (!Array.isArray(datos) || datos.length === 0) {
-            throw new Error('No hay datos para importar');
-        }
-
-        const resultados = [];
-        let exitosos = 0;
-        let fallidos = 0;
-
-        for (const item of datos) {
-            try {
-                await ingresosPuntualesService.add(item);
-                resultados.push({ ...item, ok: true });
-                exitosos++;
-            } catch (err) {
-                resultados.push({ ...item, ok: false, error: err.message });
-                fallidos++;
-            }
-        }
-
-        return {
-            success: true,
-            total: datos.length,
-            exitosos,
-            fallidos,
-            detalles: resultados
-        };
+        return importBatchWithTransaction(ingresosPuntualesService, data?.datos);
     });
 
     // ============= IMPORT REAL (BANCO) =============
 
     ipcMain.handle('import-gastos-reales', async (event, data) => {
-        const { datos } = data;
-        if (!Array.isArray(datos) || datos.length === 0) {
-            throw new Error('No hay datos para importar');
-        }
-
-        const resultados = [];
-        let exitosos = 0;
-        let fallidos = 0;
-
-        for (const item of datos) {
-            try {
-                await gastosRealesService.add(item);
-                resultados.push({ ...item, ok: true });
-                exitosos++;
-            } catch (err) {
-                resultados.push({ ...item, ok: false, error: err.message });
-                fallidos++;
-            }
-        }
-
-        return {
-            success: true,
-            total: datos.length,
-            exitosos,
-            fallidos,
-            detalles: resultados
-        };
+        return importBatchWithTransaction(gastosRealesService, data?.datos);
     });
 
     ipcMain.handle('import-ingresos-reales', async (event, data) => {
-        const { datos } = data;
-        if (!Array.isArray(datos) || datos.length === 0) {
-            throw new Error('No hay datos para importar');
-        }
-
-        const resultados = [];
-        let exitosos = 0;
-        let fallidos = 0;
-
-        for (const item of datos) {
-            try {
-                await ingresosRealesService.add(item);
-                resultados.push({ ...item, ok: true });
-                exitosos++;
-            } catch (err) {
-                resultados.push({ ...item, ok: false, error: err.message });
-                fallidos++;
-            }
-        }
-
-        return {
-            success: true,
-            total: datos.length,
-            exitosos,
-            fallidos,
-            detalles: resultados
-        };
+        return importBatchWithTransaction(ingresosRealesService, data?.datos);
     });
 
     // ============= IMPUESTOS =============
@@ -445,7 +388,7 @@ function registerIpcHandlers() {
 
     ipcMain.handle('delete-impuesto-puntual', async (event, data) => {
         await impuestosPuntualesService.delete(data.id);
-        return { ok: true };
+        return { success: true };
     });
 
     ipcMain.handle('update-impuesto-puntual', async (event, data) => {
@@ -460,7 +403,7 @@ function registerIpcHandlers() {
 
     ipcMain.handle('delete-impuesto-mensual', async (event, data) => {
         await impuestosMensualesService.delete(data.id);
-        return { ok: true };
+        return { success: true };
     });
 
     ipcMain.handle('update-impuesto-mensual', async (event, data) => {

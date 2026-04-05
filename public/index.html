@@ -22,9 +22,10 @@
 
 <div class="app-layout">
     <aside class="sidebar" data-i18n-aria-label="nav.navegacionPrincipal" aria-label="Navegación principal">
-        <div class="sidebar-logo" aria-hidden="true">
-            <i class="fas fa-chart-line"></i>
-        </div>
+        
+        <button id="metricsInfoBtn" class="sidebar-info-btn" type="button" title="Cómo se calculan las métricas" aria-label="Cómo se calculan las métricas">
+            <i class="fas fa-circle-info"></i>
+        </button>
         <nav class="sidebar-nav">
             <button class="tablink active" data-tab="inicio" data-i18n-title="nav.inicio" data-i18n-aria-label="nav.inicio" title="Inicio" aria-label="Inicio"><i class="fas fa-house"></i></button>
             <button class="tablink" data-tab="dashboard" data-i18n-title="nav.dashboard" data-i18n-aria-label="nav.dashboard" title="Dashboard" aria-label="Dashboard"><i class="fas fa-tachometer-alt"></i></button>
@@ -90,6 +91,50 @@
     </div>
 </div>
 
+<!-- Panel explicativo de métricas -->
+<div id="metricsInfoOverlay" class="metrics-overlay hidden" aria-hidden="true">
+    <div class="metrics-card" role="dialog" aria-modal="true" aria-labelledby="metricsInfoTitle">
+        <div class="metrics-card-header">
+            <h2 id="metricsInfoTitle">Definición de métricas y gráficos</h2>
+            <button id="metricsInfoCloseBtn" class="metrics-close-btn" type="button" aria-label="Cerrar ayuda de métricas">
+                <i class="fas fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="metrics-card-body">
+            <p>
+                Este resumen explica exactamente qué muestra cada KPI y cómo se calcula, para que puedas validar los gráficos.
+            </p>
+
+            <h3>Fórmulas base</h3>
+            <ul>
+                <li><strong>Total Ingreso</strong>: Ingresos netos base + Impuesto Renta + Cuenta remunerada (interés bruto).</li>
+                <li><strong>Ingresos Netos</strong>: Total Ingreso - Impuesto Renta.</li>
+                <li><strong>Total Gastos + Impuestos (otros)</strong>: Gastos (mensuales + puntuales con IPC) + Impuesto Otros.</li>
+                <li><strong>Impuesto Renta</strong>: Diferencia bruto - neto de ingresos (incluye retención de cuenta remunerada).</li>
+                <li><strong>Impuesto Otros</strong>: Suma de la tabla de impuestos (puntuales y mensuales).</li>
+                <li><strong>Ahorro</strong>: Total Ingreso - Total Gastos - Impuesto Renta - Impuesto Otros.</li>
+            </ul>
+
+            <h3>Qué usa cada KPI</h3>
+            <ul>
+                <li><strong>KPI 1</strong>: Total Ingreso del período seleccionado.</li>
+                <li><strong>KPI 2</strong>: Total Gastos + Impuestos (otros).</li>
+                <li><strong>KPI 3</strong>: Ahorros del período.</li>
+                <li><strong>KPI 4</strong>: Ingresos Netos.</li>
+            </ul>
+
+            <h3>Qué muestran los gráficos principales</h3>
+            <ul>
+                <li><strong>Serie de ingresos</strong>: evolución del Total Ingreso por mes.</li>
+                <li><strong>Serie de gasto</strong>: evolución de Gastos + Impuesto Otros por mes.</li>
+                <li><strong>Serie de ahorro</strong>: evolución del ahorro mensual con la fórmula anterior.</li>
+                <li><strong>Distribuciones por categoría</strong>: reparto por categorías en el rango de fechas activo.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
 <!-- Sistema de modales personalizados -->
 <div id="customModal" class="custom-modal">
     <div class="custom-modal-content">
@@ -142,7 +187,14 @@
 <!-- Librería para leer Excel (local) -->
 <script src="libs/xlsx.full.min.js"></script>
 
-<!-- 6. Último: Main.js -->
+<!-- 8. Main dividido por modulos -->
+<script src="js/main/users-window.js"></script>
+<script src="js/main/finance-home.js"></script>
+<script src="js/main/table-filters.js"></script>
+<script src="js/main/periodos-resumen.js"></script>
+<script src="js/main/utilidades-globales.js"></script>
+
+<!-- 9. Ultimo: Main.js -->
 <script src="main.js"></script>
 
 </body>
