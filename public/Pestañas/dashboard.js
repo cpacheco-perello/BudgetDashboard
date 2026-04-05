@@ -30,6 +30,15 @@ const charts = {
     gastosMes: null
 };
 
+const kpiSparklines = {
+    ingresos: null,
+    gastos: null,
+    ahorros: null,
+    neto: null
+};
+
+const porcentajeReactRoots = {};
+
 const dashboardConfig = window.dashboardConfig || {};
 const endpoints = {
     ahorros: '/ahorros-mes',
@@ -63,6 +72,74 @@ const dashboardFeatures = {
 let dateRangeSlider = null;
 let sliderUpdateFromInputs = false;
 const DASHBOARD_RANGE_STORAGE_KEY = 'dashboardDateRange';
+const DASHBOARD_UI_PREFS_KEY = 'dashboardUiPrefsV1';
+
+function cargarPreferenciasDashboard() {
+    try {
+        const raw = localStorage.getItem(DASHBOARD_UI_PREFS_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return (parsed && typeof parsed === 'object') ? parsed : {};
+    } catch (_) {
+        return {};
+    }
+}
+
+function guardarPreferenciasDashboard(nextPrefs = {}) {
+    try {
+        const prev = cargarPreferenciasDashboard();
+        localStorage.setItem(DASHBOARD_UI_PREFS_KEY, JSON.stringify({ ...prev, ...nextPrefs }));
+    } catch (_) {
+        // Ignore storage errors.
+    }
+}
+
+function obtenerRangoComparativo(desde, hasta) {
+    const desdeDate = parsearFechaInput(desde);
+    const hastaDate = parsearFechaInput(hasta);
+    if (!desdeDate || !hastaDate || hastaDate < desdeDate) return null;
+
+    const msRange = hastaDate.getTime() - desdeDate.getTime();
+    const prevHasta = new Date(desdeDate.getTime() - 24 * 60 * 60 * 1000);
+    const prevDesde = new Date(prevHasta.getTime() - msRange);
+
+    return {
+        desde: formatearFechaInput(prevDesde),
+        hasta: formatearFechaInput(prevHasta)
+    };
+}
+
+function crearResumenPeriodo(dataTotales = []) {
+    if (!Array.isArray(dataTotales) || dataTotales.length === 0) {
+        return {
+            ingresosBrutos: 0,
+            gastosConImpuestos: 0,
+            ahorros: 0,
+            ingresoNeto: 0,
+            ratioAhorro: 0
+        };
+    }
+
+    const ingresosNetos = dataTotales.reduce((sum, m) => sum + (Number(m.ingresos) || 0), 0);
+    const cuentasRem = dataTotales.reduce((sum, m) => sum + (Number(m.cuentas_remuneradas) || 0), 0);
+    const impuestosIngresos = dataTotales.reduce((sum, m) => sum + (Number(m.impuestos_ingresos) || 0), 0);
+    const gastos = dataTotales.reduce((sum, m) => sum + (Number(m.gastos) || 0), 0);
+    const impuestosOtros = dataTotales.reduce((sum, m) => sum + (Number(m.impuestos_otros) || 0), 0);
+    const ahorros = dataTotales.reduce((sum, m) => sum + (Number(m.ahorros) || 0), 0);
+
+    const ingresosBrutos = ingresosNetos + cuentasRem + impuestosIngresos;
+    const gastosConImpuestos = gastos + impuestosOtros;
+    const ingresoNeto = ingresosNetos + cuentasRem - impuestosOtros;
+    const ratioAhorro = ingresosBrutos > 0 ? (ahorros / ingresosBrutos) * 100 : 0;
+
+    return {
+        ingresosBrutos,
+        gastosConImpuestos,
+        ahorros,
+        ingresoNeto,
+        ratioAhorro
+    };
+}
 
 // ===== USAR FORMATEO GLOBAL =====
 // Alias para mantener compatibilidad con código existente
@@ -339,7 +416,14 @@ function manejarEnterHasta(e) {
 function manejarCambioCategoria() {
     if (!dashboardFeatures.useCategorias || !dashboardFeatures.showGastosMes) return;
     console.log('📁 Categoría seleccionada:', filtroGastoCategoria.value);
+    guardarPreferenciasDashboard({ categoriaGasto: filtroGastoCategoria.value || '' });
     actualizarGraficoGastosMes();
+}
+
+function manejarCambioMostrarReales() {
+    const toggleRealEl = document.getElementById('dashboardToggleReal');
+    guardarPreferenciasDashboard({ mostrarReales: !!toggleRealEl?.checked });
+    actualizarDashboard();
 }
 
 // ===== FUNCIONES PARA CONFIGURAR LISTENERS =====
@@ -369,8 +453,8 @@ const setupDateListeners = () => {
     }
 
     if (toggleRealEl) {
-        toggleRealEl.removeEventListener('change', actualizarDashboard);
-        toggleRealEl.addEventListener('change', actualizarDashboard);
+        toggleRealEl.removeEventListener('change', manejarCambioMostrarReales);
+        toggleRealEl.addEventListener('change', manejarCambioMostrarReales);
     }
 };
 
@@ -393,6 +477,7 @@ const setupQuickPeriodListener = () => {
         if (!dashboardFeatures.useCategorias || !filtroGastoCategoria) {
             return;
         }
+        const uiPrefs = cargarPreferenciasDashboard();
         const desde = document.getElementById('dashDesde').value;
         const hasta = document.getElementById('dashHasta').value;
 
@@ -427,6 +512,11 @@ const setupQuickPeriodListener = () => {
                     filtroGastoCategoria.appendChild(opt);
                     obtenerColorCategoria(c, i);
                 });
+
+                if (uiPrefs?.categoriaGasto && gastosCategorias.includes(uiPrefs.categoriaGasto)) {
+                    filtroGastoCategoria.value = uiPrefs.categoriaGasto;
+                }
+
                 console.log('✅ Categorías cargadas:', gastosCategorias);
             } else {
                 console.warn('⚠️ No hay categorías de gastos');
@@ -439,8 +529,7 @@ const setupQuickPeriodListener = () => {
     // ===== DESTRUIR TODOS LOS GRÁFICOS EXISTENTES =====
     // Esto es necesario cuando se recarga el dashboard (ej: cambio de idioma)
     // Usar la API correcta de Chart.js para desregistrar gráficos
-    var canvasIds = ['chartTotales', 'chartPorcentajes', 'chartIngresos', 'chartAhorros', 
-                       'chartIngresosCat', 'chartGastosCat', 'chartGastosMes'];
+    var canvasIds = ['chartTotales', 'chartIngresosCat', 'chartGastosCat', 'chartGastosMes'];
     
     canvasIds.forEach(canvasId => {
         const canvas = document.getElementById(canvasId);
@@ -483,9 +572,7 @@ const setupQuickPeriodListener = () => {
 
     if (!dashboardFeatures.showTotals) hideChartCard('chartTotales');
     if (!dashboardFeatures.showPorcentajes) hideChartCard('chartPorcentajes');
-    if (!dashboardFeatures.showIngresos) hideChartCard('chartIngresos');
     if (!dashboardFeatures.showGastosMes) hideChartCard('chartGastosMes');
-    if (!dashboardFeatures.showAhorros) hideChartCard('chartAhorros');
     if (!dashboardFeatures.showIngresosCat) hideChartCard('chartIngresosCategoria');
     if (!dashboardFeatures.showGastosCat) hideChartCard('chartGastosCategoria');
     
@@ -598,7 +685,7 @@ function crearDataset(label, data, color, apilado = false) {
         backgroundColor: aclararColor(color, 0.7),
         borderColor: color,
         borderWidth: apilado ? 2 : 3,
-        borderRadius: 6,
+        borderRadius: 0,
         tension: 0.4,
         fill: !apilado
     };
@@ -609,6 +696,332 @@ function crearUpdateChartStats(datosOriginales, calcularFn) {
         const datos = calcularFn.call(this, datosOriginales);
         this.options.plugins.title.text = datos.titulo;
     };
+}
+
+function obtenerEstiloSparklinePorTendencia(data) {
+    if (!Array.isArray(data) || data.length < 2) {
+        return {
+            lineColor: 'rgba(148, 163, 184, 0.95)',
+            fillColor: 'rgba(148, 163, 184, 0.2)'
+        };
+    }
+
+    const primerValor = Number(data.find(v => Number.isFinite(v)) ?? 0);
+    const ultimoValor = Number([...data].reverse().find(v => Number.isFinite(v)) ?? primerValor);
+    const delta = ultimoValor - primerValor;
+
+    if (delta > 0) {
+        return {
+            lineColor: 'rgba(74, 222, 128, 0.98)',
+            fillColor: 'rgba(74, 222, 128, 0.22)'
+        };
+    }
+
+    if (delta < 0) {
+        return {
+            lineColor: 'rgba(248, 113, 113, 0.98)',
+            fillColor: 'rgba(248, 113, 113, 0.22)'
+        };
+    }
+
+    return {
+        lineColor: 'rgba(125, 211, 252, 0.98)',
+        fillColor: 'rgba(125, 211, 252, 0.22)'
+    };
+}
+
+function crearSparklineKpi(canvasId, chartKey, data) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas || typeof Chart === 'undefined') return;
+    const safeData = Array.isArray(data) && data.length > 0 ? data : [0, 0];
+    const trendStyle = obtenerEstiloSparklinePorTendencia(safeData);
+
+    if (kpiSparklines[chartKey]) {
+        try {
+            kpiSparklines[chartKey].destroy();
+        } catch (error) {
+            console.warn('⚠️ Error destruyendo sparkline KPI:', error);
+        }
+    }
+
+    kpiSparklines[chartKey] = new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels: safeData.map((_, idx) => idx + 1),
+            datasets: [{
+                data: safeData,
+                borderColor: trendStyle.lineColor,
+                backgroundColor: trendStyle.fillColor,
+                borderWidth: 2,
+                fill: true,
+                tension: 0.38,
+                pointRadius: 0,
+                pointHoverRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: false }
+            },
+            scales: {
+                x: { display: false },
+                y: { display: false }
+            },
+            elements: {
+                line: { capBezierPoints: true }
+            }
+        }
+    });
+}
+
+function limpiarSparklinesKpi() {
+    Object.keys(kpiSparklines).forEach((key) => {
+        if (kpiSparklines[key]) {
+            try {
+                kpiSparklines[key].destroy();
+            } catch (error) {
+                console.warn('⚠️ Error limpiando sparkline KPI:', error);
+            }
+            kpiSparklines[key] = null;
+        }
+    });
+}
+
+function escaparHtml(valor) {
+    return String(valor ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function renderCilindrosPorcentajes(containerId, config) {
+    const container = document.getElementById(containerId);
+    if (!container) return null;
+
+    if (typeof React === 'undefined' || typeof ReactDOM === 'undefined' || typeof ReactDOM.createRoot !== 'function') {
+        console.warn('⚠️ React/ReactDOM no disponibles para renderizar cilindros 3D');
+        container.innerHTML = '';
+        return {
+            destroy() {
+                container.innerHTML = '';
+            }
+        };
+    }
+
+    const h = React.createElement;
+
+    const titulo = String(config?.title || 'Porcentajes');
+    const columnas = Array.isArray(config?.columns) ? config.columns : [];
+    const legendItems = Array.isArray(config?.legend) ? config.legend : [];
+
+    const columnasNodes = columnas.map((col, colIdx) => {
+        const nombre = String(col.name || '');
+        const segmentos = Array.isArray(col.segments) ? col.segments : [];
+
+        const segmentosNodes = segmentos
+            .filter(seg => Number(seg.value) > 0)
+            .map((seg, segIdx) => {
+                const valor = Math.max(0, Math.min(100, Number(seg.value) || 0));
+                const color = String(seg.color || '#94a3b8');
+                const tooltip = `${String(seg.label || '')}: ${valor.toFixed(1)}%`;
+                return h(
+                    'div',
+                    {
+                        key: `${colIdx}-${segIdx}`,
+                        className: 'cylinder-seg',
+                        title: tooltip,
+                        style: {
+                            height: `${valor}%`,
+                            background: color
+                        }
+                    },
+                    valor >= 10
+                        ? h('span', { className: 'cylinder-seg-label' }, `${valor.toFixed(0)}%`)
+                        : null
+                );
+            });
+
+        return h(
+            'div',
+            { key: `col-${colIdx}`, className: 'cylinder-col' },
+            h('div', { className: 'cylinder-wrap' }, h('div', { className: 'cylinder-stack' }, segmentosNodes)),
+            h('div', { className: 'cylinder-name' }, nombre)
+        );
+    });
+
+    const legendNodes = legendItems.map((item, idx) =>
+        h(
+            'span',
+            { key: `legend-${idx}`, className: 'porcentajes-3d-legend-item' },
+            h('span', {
+                className: 'porcentajes-3d-legend-dot',
+                style: { background: String(item.color || '#94a3b8') }
+            }),
+            String(item.label || '')
+        )
+    );
+
+    const appNode = h(
+        React.Fragment,
+        null,
+        h('div', { className: 'porcentajes-3d-title' }, titulo),
+        h('div', { className: 'porcentajes-3d-grid' }, columnasNodes),
+        h('div', { className: 'porcentajes-3d-legend' }, legendNodes)
+    );
+
+    let root = porcentajeReactRoots[containerId];
+    if (!root) {
+        root = ReactDOM.createRoot(container);
+        porcentajeReactRoots[containerId] = root;
+    }
+    root.render(appNode);
+
+    return {
+        destroy() {
+            const existingRoot = porcentajeReactRoots[containerId];
+            if (existingRoot) {
+                existingRoot.unmount();
+                delete porcentajeReactRoots[containerId];
+            } else {
+                container.innerHTML = '';
+            }
+        }
+    };
+}
+
+function renderDashboardCategoriasLista(containerId, categorias, palette) {
+    const container = document.getElementById(containerId);
+    if (!container) return null;
+
+    const entries = Object.entries(categorias || {})
+        .map(([categoria, total]) => ({ categoria, total: Number(total) || 0 }))
+        .filter(item => item.total > 0)
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 8);
+
+    const total = entries.reduce((acc, item) => acc + item.total, 0);
+    if (entries.length === 0 || total <= 0) {
+        const emptyText = typeof gestorIdiomas !== 'undefined'
+            ? gestorIdiomas.obtenerTexto('inicio.sinDatosPeriodo')
+            : 'Sin datos para este período';
+        container.innerHTML = `<p class="inicio-empty">${escaparHtml(emptyText)}</p>`;
+        return {
+            destroy() {
+                container.innerHTML = '';
+            }
+        };
+    }
+
+    const colores = Array.isArray(palette) && palette.length > 0
+        ? palette
+        : ['#4f8ef7', '#3fcf77', '#f472b6', '#fbbf24', '#a78bfa', '#9ca3af'];
+
+    container.innerHTML = entries.map((item, idx) => {
+        const percentage = (item.total / total) * 100;
+        const color = colores[idx % colores.length];
+        return `
+            <div class="inicio-categoria-row">
+                <span class="inicio-categoria-name">${escaparHtml(item.categoria)}</span>
+                <div class="inicio-categoria-bar-wrap">
+                    <div class="inicio-categoria-bar" style="width:${Math.max(4, percentage)}%; background:${escaparHtml(color)};"></div>
+                </div>
+                <span class="inicio-categoria-pct">${percentage.toFixed(0)}%</span>
+            </div>
+        `;
+    }).join('');
+
+    return {
+        destroy() {
+            container.innerHTML = '';
+        }
+    };
+}
+
+function actualizarResumenKpis({ totalIngresos = 0, totalGastosConImpuestos = 0, totalAhorros = 0, ingresoNeto = 0, ratioAhorro = 0, desde = '', hasta = '', comparativa = null }) {
+    const kpiIngresos = document.getElementById('dashKpiIngresos');
+    const kpiGastos = document.getElementById('dashKpiGastos');
+    const kpiAhorros = document.getElementById('dashKpiAhorros');
+    const kpiNeto = document.getElementById('dashKpiNeto');
+    const kpiRatio = document.getElementById('dashKpiRatio');
+    const kpiPeriodoIngresos = document.getElementById('dashKpiPeriodoIngresos');
+    const kpiPeriodoGastos = document.getElementById('dashKpiPeriodoGastos');
+    const kpiPeriodoNeto = document.getElementById('dashKpiPeriodoNeto');
+    const kpiDeltaIngresos = document.getElementById('dashKpiDeltaIngresos');
+    const kpiDeltaGastos = document.getElementById('dashKpiDeltaGastos');
+    const kpiDeltaAhorros = document.getElementById('dashKpiDeltaAhorros');
+    const kpiDeltaNeto = document.getElementById('dashKpiDeltaNeto');
+
+    const desdeDate = parsearFechaInput(desde);
+    const hastaDate = parsearFechaInput(hasta);
+    const periodoTexto = (desdeDate && hastaDate)
+        ? `${formatearFechaDisplay(desdeDate)} - ${formatearFechaDisplay(hastaDate)}`
+        : 'Periodo activo';
+
+    if (kpiIngresos) kpiIngresos.textContent = formatearEuro(totalIngresos);
+    if (kpiGastos) kpiGastos.textContent = formatearEuro(totalGastosConImpuestos);
+    if (kpiAhorros) kpiAhorros.textContent = formatearEuro(totalAhorros);
+    if (kpiNeto) kpiNeto.textContent = formatearEuro(ingresoNeto);
+    if (kpiRatio) kpiRatio.textContent = `Ratio ahorro ${ratioAhorro.toFixed(1)}%`;
+    if (kpiPeriodoIngresos) kpiPeriodoIngresos.textContent = periodoTexto;
+    if (kpiPeriodoGastos) kpiPeriodoGastos.textContent = periodoTexto;
+    if (kpiPeriodoNeto) kpiPeriodoNeto.textContent = periodoTexto;
+
+    const formatDeltaEuro = (current, previous) => {
+        const delta = (Number(current) || 0) - (Number(previous) || 0);
+        const sign = delta > 0 ? '+' : '';
+        return `${sign}${formatearEuro(delta)}`;
+    };
+
+    const applyDelta = (el, text, delta) => {
+        if (!el) return;
+        el.textContent = text;
+        el.classList.remove('is-positive', 'is-negative', 'is-neutral');
+        if (delta > 0) el.classList.add('is-positive');
+        else if (delta < 0) el.classList.add('is-negative');
+        else el.classList.add('is-neutral');
+    };
+
+    if (comparativa && typeof comparativa === 'object') {
+        const labelVs = typeof gestorIdiomas !== 'undefined'
+            ? (gestorIdiomas.obtenerTexto('dashboard.vsPeriodoAnterior') || 'vs periodo anterior')
+            : 'vs periodo anterior';
+
+        const deltaIngresos = (Number(totalIngresos) || 0) - (Number(comparativa.totalIngresos) || 0);
+        const deltaGastos = (Number(totalGastosConImpuestos) || 0) - (Number(comparativa.totalGastosConImpuestos) || 0);
+        const deltaAhorros = (Number(totalAhorros) || 0) - (Number(comparativa.totalAhorros) || 0);
+        const deltaNeto = (Number(ingresoNeto) || 0) - (Number(comparativa.ingresoNeto) || 0);
+
+        applyDelta(kpiDeltaIngresos, `${labelVs}: ${formatDeltaEuro(totalIngresos, comparativa.totalIngresos)}`, deltaIngresos);
+        applyDelta(kpiDeltaGastos, `${labelVs}: ${formatDeltaEuro(totalGastosConImpuestos, comparativa.totalGastosConImpuestos)}`, deltaGastos);
+        applyDelta(kpiDeltaAhorros, `${labelVs}: ${formatDeltaEuro(totalAhorros, comparativa.totalAhorros)}`, deltaAhorros);
+        applyDelta(kpiDeltaNeto, `${labelVs}: ${formatDeltaEuro(ingresoNeto, comparativa.ingresoNeto)}`, deltaNeto);
+    } else {
+        const textoBase = typeof gestorIdiomas !== 'undefined'
+            ? (gestorIdiomas.obtenerTexto('dashboard.sinComparativa') || 'Sin comparativa')
+            : 'Sin comparativa';
+        applyDelta(kpiDeltaIngresos, textoBase, 0);
+        applyDelta(kpiDeltaGastos, textoBase, 0);
+        applyDelta(kpiDeltaAhorros, textoBase, 0);
+        applyDelta(kpiDeltaNeto, textoBase, 0);
+    }
+}
+
+function setDashboardLoadingState(isLoading) {
+    const dashboardContainer = document.getElementById('dashboard');
+    const loader = document.getElementById('dashboardLoader');
+
+    if (dashboardContainer) {
+        dashboardContainer.classList.toggle('is-loading', !!isLoading);
+    }
+    if (loader) {
+        loader.classList.toggle('hidden', !isLoading);
+    }
 }
 
 function actualizarIndicadorGastosDonut(mostrar, labelBudget, labelReal) {
@@ -650,7 +1063,11 @@ function obtenerLabelsTraducidos() {
 
         const desde = document.getElementById('dashDesde').value;
         const hasta = document.getElementById('dashHasta').value;
-        const catSel = filtroGastoCategoria ? filtroGastoCategoria.value : '';
+        const uiPrefs = cargarPreferenciasDashboard();
+        let catSel = filtroGastoCategoria ? filtroGastoCategoria.value : '';
+        if (!catSel && uiPrefs?.categoriaGasto) {
+            catSel = String(uiPrefs.categoriaGasto);
+        }
 
         if (!desde || !hasta) {
             const mensaje = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.seleccionaRango') : 'Por favor selecciona un rango de fechas';
@@ -669,18 +1086,17 @@ function obtenerLabelsTraducidos() {
         }
 
         console.log(`📊 Actualizando dashboard de ${desde} a ${hasta}`);
-        
-        // Mostrar loader
-        const loader = document.getElementById('dashboardLoader');
-        if (loader) {
-            loader.classList.remove('hidden');
-        }
+        setDashboardLoadingState(true);
 
         try {
             // ⚡ Paralelizar todas las llamadas fetch para mayor velocidad
             const showReales = document.getElementById('dashboardToggleReal')?.checked;
-            const [resTotales, resCat, resDashboard, resGastoMes, resImpuestosMes, resAhorrosReal, resGastosMesReal] = await Promise.all([
+            const rangoComparativo = obtenerRangoComparativo(desde, hasta);
+            const [resTotales, resTotalesPrev, resCat, resDashboard, resGastoMes, resImpuestosMes, resAhorrosReal, resGastosMesReal] = await Promise.all([
                 fetch(`${endpoints.ahorros}?desde=${desde}&hasta=${hasta}`),
+                rangoComparativo
+                    ? fetch(`${endpoints.ahorros}?desde=${rangoComparativo.desde}&hasta=${rangoComparativo.hasta}`)
+                    : Promise.resolve(null),
                 fetch(`${endpoints.categorias}?desde=${desde}&hasta=${hasta}`),
                 fetch(endpoints.dashboard),
                 fetch(`${endpoints.gastosMes}?desde=${desde}&hasta=${hasta}`),
@@ -694,8 +1110,9 @@ function obtenerLabelsTraducidos() {
             }
             
             // Parsear todas las respuestas en paralelo
-            const [dataTotales, dataCat, dataDashboard, dataGastoMes, dataImpuestosMes, dataAhorrosReal, dataGastosMesReal] = await Promise.all([
+            const [dataTotales, dataTotalesPrev, dataCat, dataDashboard, dataGastoMes, dataImpuestosMes, dataAhorrosReal, dataGastosMesReal] = await Promise.all([
                 resTotales.json(),
+                (resTotalesPrev && resTotalesPrev.ok) ? resTotalesPrev.json() : Promise.resolve([]),
                 resCat.json(),
                 resDashboard.json(),
                 resGastoMes.json(),
@@ -706,8 +1123,12 @@ function obtenerLabelsTraducidos() {
             
             if (!Array.isArray(dataTotales) || dataTotales.length === 0) {
                 console.warn('⚠️ No hay datos para este período');
+                actualizarResumenKpis({ desde, hasta });
+                limpiarSparklinesKpi();
                 return;
             }
+
+            const resumenAnterior = crearResumenPeriodo(dataTotalesPrev);
 
             const totalIngresos = dataTotales.reduce((sum, m) => sum + (m.ingresos || 0), 0); // Suma ingresos netos
             const totalGastos = dataTotales.reduce((sum, m) => sum + (m.gastos || 0), 0); // Suma gastos tabla
@@ -765,6 +1186,57 @@ function obtenerLabelsTraducidos() {
             const labelsMeses = dashboardFeatures.simpleGastos ? meses : Object.keys(dataGastoMes).sort();
             let datasetsMesCat = [];
 
+            if (filtroGastoCategoria) {
+                const textoTodas = typeof gestorIdiomas !== 'undefined'
+                    ? gestorIdiomas.obtenerTexto('dashboard.todasCategorias')
+                    : 'Todas las categorías';
+                const categoriasConDatos = new Set();
+
+                labelsMeses.forEach((mes) => {
+                    const mesData = dataGastoMes?.[mes] || {};
+                    Object.entries(mesData).forEach(([categoria, valor]) => {
+                        if (Number(valor) !== 0) {
+                            categoriasConDatos.add(categoria);
+                        }
+                    });
+
+                    if (showReales) {
+                        const mesRealData = dataGastosMesReal?.[mes] || {};
+                        Object.entries(mesRealData).forEach(([categoria, valor]) => {
+                            if (Number(valor) !== 0) {
+                                categoriasConDatos.add(categoria);
+                            }
+                        });
+                    }
+                });
+
+                const categoriasOrdenadas = Array.from(categoriasConDatos).sort((a, b) => a.localeCompare(b));
+                const categoriaSeleccionadaAnterior = catSel;
+                filtroGastoCategoria.innerHTML = `<option value="">${textoTodas}</option>`;
+
+                categoriasOrdenadas.forEach((categoria, idx) => {
+                    const opt = document.createElement('option');
+                    opt.value = categoria;
+                    opt.textContent = categoria === 'taxes'
+                        ? (typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosCategoria') : 'Impuestos')
+                        : categoria;
+                    filtroGastoCategoria.appendChild(opt);
+
+                    if (categoria === 'taxes') {
+                        coloresCategorias['taxes'] = temasGraficos.warning;
+                    } else {
+                        obtenerColorCategoria(categoria, idx);
+                    }
+                });
+
+                if (categoriaSeleccionadaAnterior && categoriasConDatos.has(categoriaSeleccionadaAnterior)) {
+                    filtroGastoCategoria.value = categoriaSeleccionadaAnterior;
+                } else {
+                    filtroGastoCategoria.value = '';
+                }
+                catSel = filtroGastoCategoria.value;
+            }
+
             // Verificar si existe "taxes" en los datos y agregarlo al select si no está
             const tieneImpuestos = labelsMeses.some(m => dataGastoMes[m]['taxes']);
             if(tieneImpuestos) {
@@ -791,7 +1263,7 @@ function obtenerLabelsTraducidos() {
                     backgroundColor: aclararColor(coloresCategorias[catSel], 0.7),
                     borderColor: coloresCategorias[catSel],
                     borderWidth: 2,
-                    borderRadius: 6,
+                    borderRadius: 0,
                     tension: 0.4,
                     stack: showReales ? 'main' : undefined
                 });
@@ -823,7 +1295,7 @@ function obtenerLabelsTraducidos() {
                         backgroundColor: aclararColor(color, 0.7),
                         borderColor: color,
                         borderWidth: 2,
-                        borderRadius: 6,
+                        borderRadius: 0,
                         tension: 0.4,
                         stack: showReales ? 'main' : undefined
                     });
@@ -846,7 +1318,7 @@ function obtenerLabelsTraducidos() {
                         backgroundColor: aclararColor(color, 0.45),
                         borderColor: color,
                         borderWidth: 2,
-                        borderRadius: 6,
+                        borderRadius: 0,
                         tension: 0.4,
                         stack: 'real'
                     });
@@ -870,7 +1342,7 @@ function obtenerLabelsTraducidos() {
                             backgroundColor: aclararColor(color, 0.45),
                             borderColor: color,
                             borderWidth: 2,
-                            borderRadius: 6,
+                            borderRadius: 0,
                             tension: 0.4,
                             stack: 'real'
                         });
@@ -890,26 +1362,40 @@ function obtenerLabelsTraducidos() {
             });
 
             // Opciones comunes para todos los gráficos
+            const css = getComputedStyle(document.documentElement);
+            const chartTextColor = (css.getPropertyValue('--text-secondary') || '#475569').trim();
+            const chartGridSoft = (css.getPropertyValue('--border-light') || '#e2e8f0').trim();
+
             const optComun = {
                 responsive: true,
                 maintainAspectRatio: true,
+                elements: {
+                    line: {
+                        tension: 0.38,
+                        borderWidth: 2.2
+                    },
+                    point: {
+                        radius: 2,
+                        hoverRadius: 4
+                    }
+                },
                 plugins: {
                     legend: { 
                         display: true, 
                         position: 'bottom',
                         labels: {
-                            color: '#333',
-                            font: { size: 12, weight: '600' },
-                            padding: 15,
+                            color: chartTextColor,
+                            font: { size: 11, weight: '600' },
+                            padding: 11,
                             usePointStyle: true
                         }
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        padding: 12,
-                        titleFont: { size: 13, weight: 'bold' },
-                        bodyFont: { size: 12 },
-                        borderColor: 'rgba(255, 255, 255, 0.3)',
+                        backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                        padding: 10,
+                        titleFont: { size: 12, weight: '700' },
+                        bodyFont: { size: 11 },
+                        borderColor: 'rgba(148, 163, 184, 0.45)',
                         borderWidth: 1,
                         callbacks: {
                             label: function(ctx) {
@@ -921,17 +1407,17 @@ function obtenerLabelsTraducidos() {
                 scales: {
                     y: {
                         ticks: { 
-                            color: '#666', 
+                            color: chartTextColor, 
                             font: { size: 11 },
                             callback: function(value) {
                                 return formatearEuro(value);
                             }
                         },
-                        grid: { color: 'rgba(0, 0, 0, 0.19)' }
+                        grid: { color: chartGridSoft }
                     },
                     x: {
-                        ticks: { color: '#666', font: { size: 11 } },
-                        grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                        ticks: { color: chartTextColor, font: { size: 11 } },
+                        grid: { color: 'rgba(148, 163, 184, 0.18)' }
                     }
                 }
             };
@@ -948,23 +1434,46 @@ function obtenerLabelsTraducidos() {
                 return sum + (dataGastoMes[mes]?.['taxes'] || 0);
             }, 0);
 
+            const impuestosStandaloneMes = meses.map(mes => dataGastoMes?.[mes]?.['taxes'] || 0);
+            const gastosConImpuestosMes = gastosMes.map((g, idx) => g + (impuestosStandaloneMes[idx] || 0));
+            const ingresosBrutosMes = ingresosMes.map((ing, idx) => ing + (impuestosMes[idx] || 0));
+            const ingresosTotalesMes = ingresosMes.map((ing, idx) => ing + (cuentasRemuneradasMes[idx] || 0) + (impuestosMes[idx] || 0));
+            const ingresoNetoMes = ingresosMes.map((ing, idx) => ing + (cuentasRemuneradasMes[idx] || 0) - (impuestosStandaloneMes[idx] || 0));
+            const incomeBruto = totalIngresos + totalCuentasRemuneradas + totalImpuestosIngresos;
+            const incomeNeto = totalIngresos + totalCuentasRemuneradas - totalImpuestosStandalone;
+            const totalGastosConImpuestos = totalGastos + totalImpuestosStandalone;
+            const ratioAhorro = incomeBruto > 0 ? (totalAhorros / incomeBruto) * 100 : 0;
+
+            guardarPreferenciasDashboard({
+                categoriaGasto: catSel || '',
+                mostrarReales: !!showReales
+            });
+
+            actualizarResumenKpis({
+                totalIngresos: incomeBruto,
+                totalGastosConImpuestos,
+                totalAhorros,
+                ingresoNeto: incomeNeto,
+                ratioAhorro,
+                desde,
+                hasta,
+                comparativa: {
+                    totalIngresos: resumenAnterior.ingresosBrutos,
+                    totalGastosConImpuestos: resumenAnterior.gastosConImpuestos,
+                    totalAhorros: resumenAnterior.ahorros,
+                    ingresoNeto: resumenAnterior.ingresoNeto,
+                    ratioAhorro: resumenAnterior.ratioAhorro
+                }
+            });
+
+            crearSparklineKpi('dashSparkIngresos', 'ingresos', ingresosTotalesMes);
+            crearSparklineKpi('dashSparkGastos', 'gastos', gastosConImpuestosMes);
+            crearSparklineKpi('dashSparkAhorros', 'ahorros', ahorrosMes);
+            crearSparklineKpi('dashSparkNeto', 'neto', ingresoNetoMes);
+
             const labelsTraducidos = obtenerLabelsTraducidos();
 
             if (dashboardFeatures.simpleMode) {
-                const mediaIngresos = calcularMedia(ingresosMes);
-                const desvIngresos = calcularDesviacion(ingresosMes);
-                const tituloIngresos = `${labelsTraducidos.media}: ${formatearEuro(mediaIngresos)}   |   ${labelsTraducidos.desviacion}: ${formatearEuro(desvIngresos)}`;
-
-                charts.ingresos = new Chart(document.getElementById('chartIngresos'), {
-                    type: 'bar',
-                    data: {
-                        labels: meses,
-                        datasets: [crearDataset(labelsTraducidos.ingresos + ' €', ingresosMes, temasGraficos.success, false)]
-                    },
-                    options: crearOpcionesGrafico(optComun, tituloIngresos, false)
-                });
-                window.chartsInstances.push(charts.ingresos);
-
                 const mediaGastos = calcularMedia(gastosMes);
                 const desvGastos = calcularDesviacion(gastosMes);
                 const tituloGastos = `${labelsTraducidos.media}: ${formatearEuro(mediaGastos)}   |   ${labelsTraducidos.desviacion}: ${formatearEuro(desvGastos)}`;
@@ -978,464 +1487,255 @@ function obtenerLabelsTraducidos() {
                     options: crearOpcionesGrafico(optComun, tituloGastos, false)
                 });
                 window.chartsInstances.push(charts.gastosMes);
-
-                const mediaAhorros = calcularMedia(ahorrosMes);
-                const desviacionAhorros = calcularDesviacion(ahorrosMes);
-                const tituloAhorros = `${labelsTraducidos.media}: ${formatearEuro(mediaAhorros)}   |   ${labelsTraducidos.desviacion}: ${formatearEuro(desviacionAhorros)}`;
-
-                charts.ahorros = new Chart(document.getElementById('chartAhorros'), {
-                    type: 'bar',
-                    data: {
-                        labels: meses,
-                        datasets: [crearDataset(labelsTraducidos.ahorros + ' €', ahorrosMes, temasGraficos.info, false)]
-                    },
-                    options: crearOpcionesGrafico(optComun, tituloAhorros, false)
-                });
-                window.chartsInstances.push(charts.ahorros);
-
-                if (loader) {
-                    loader.classList.add('hidden');
-                }
                 return;
             }
 
-            // ===== GRÁFICO TOTALES =====
-            
-            const labelIncomeBruto = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.incomeBruto') : 'Income Bruto';
-            const labelGastosImpOtros = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.gastosImpuestosOtros') : 'Gastos + Impuestos (otros)';
-            
+            // ===== GRÁFICO INGRESOS (SERIES INGRESO) =====
+            const tituloTotales = typeof gestorIdiomas !== 'undefined'
+                ? gestorIdiomas.obtenerTexto('dashboard.ingresos')
+                : 'Ingresos';
+            const chartTotalesCanvas = document.getElementById('chartTotales');
+            const chartTotalesCtx = chartTotalesCanvas?.getContext?.('2d');
+            const crearGradienteTotales = (color, alphaTop, alphaBottom) => {
+                if (!chartTotalesCtx || !chartTotalesCanvas) {
+                    return aclararColor(color, alphaTop);
+                }
+                const h = chartTotalesCanvas.clientHeight || chartTotalesCanvas.height || 320;
+                const gradient = chartTotalesCtx.createLinearGradient(0, 0, 0, h);
+                gradient.addColorStop(0, aclararColor(color, alphaTop));
+                gradient.addColorStop(1, aclararColor(color, alphaBottom));
+                return gradient;
+            };
+
             charts.totales = new Chart(document.getElementById('chartTotales'), {
-                type:'bar',
-                data:{
-                    labels:[labelIncomeBruto, labelGastosImpOtros, labelsTraducidos.ahorros],
-                    datasets:[
+                type: 'line',
+                data: {
+                    labels: meses,
+                    datasets: [
                         {
                             label: labelsTraducidos.ingresos,
-                            data:[totalIngresos, 0, 0],
-                            backgroundColor: temasGraficos.success,
+                            data: ingresosTotalesMes,
                             borderColor: temasGraficos.success,
-                            borderWidth: 2,
-                            borderRadius: 8,
-                            stack: showReales ? 'main' : undefined
+                            backgroundColor: crearGradienteTotales(temasGraficos.success, 0.24, 0.03),
+                            borderWidth: 2.2,
+                            fill: true,
+                            tension: 0.42,
+                            cubicInterpolationMode: 'monotone',
+                            pointRadius: 1.8,
+                            pointHoverRadius: 5,
+                            pointHitRadius: 12
                         },
                         {
                             label: labelsTraducidos.cuentasRemuneradasNeto,
-                            data:[totalCuentasRemuneradasNetas, 0, 0],
-                            backgroundColor: temasGraficos.primary,
+                            data: cuentasRemuneradasNetasMes,
                             borderColor: temasGraficos.primary,
-                            borderWidth: 2,
-                            borderRadius: 8,
-                            stack: showReales ? 'main' : undefined
+                            backgroundColor: crearGradienteTotales(temasGraficos.primary, 0.22, 0.03),
+                            borderWidth: 2.1,
+                            fill: true,
+                            tension: 0.42,
+                            cubicInterpolationMode: 'monotone',
+                            pointRadius: 1.8,
+                            pointHoverRadius: 5,
+                            pointHitRadius: 12
                         },
                         {
                             label: labelsTraducidos.retencionCR,
-                            data:[totalRetencionCR, 0, 0],
-                            backgroundColor: '#9b59b6',
+                            data: retencionCRMes,
                             borderColor: '#9b59b6',
-                            borderWidth: 2,
-                            borderRadius: 8,
-                            stack: showReales ? 'main' : undefined
+                            backgroundColor: 'rgba(155, 89, 182, 0.12)',
+                            borderWidth: 2.1,
+                            fill: false,
+                            tension: 0.4,
+                            cubicInterpolationMode: 'monotone',
+                            pointRadius: 1.8,
+                            pointHoverRadius: 4,
+                            borderDash: [4, 3]
                         },
                         {
                             label: labelsTraducidos.impuestosIngresos,
-                            data:[totalImpuestosIngresosNoCR, 0, 0],
-                            backgroundColor: temasGraficos.warning,
+                            data: impuestosIngresosNetMes,
                             borderColor: temasGraficos.warning,
-                            borderWidth: 2,
-                            borderRadius: 8,
-                            stack: showReales ? 'main' : undefined
-                        },
-                        {
-                            label: labelsTraducidos.gastos,
-                            data:[0, totalGastos, 0],
-                            backgroundColor: temasGraficos.danger,
-                            borderColor: temasGraficos.danger,
-                            borderWidth: 2,
-                            borderRadius: 8,
-                            stack: showReales ? 'main' : undefined
-                        },
-                        {
-                            label: labelsTraducidos.impuestosOtros,
-                            data:[0, totalImpuestosStandalone, 0],
-                            backgroundColor: '#e7a33c',
-                            borderColor: '#e7a33c',
-                            borderWidth: 2,
-                            borderRadius: 8,
-                            stack: showReales ? 'main' : undefined
+                            backgroundColor: aclararColor(temasGraficos.warning, 0.12),
+                            borderWidth: 2.1,
+                            fill: false,
+                            tension: 0.4,
+                            cubicInterpolationMode: 'monotone',
+                            pointRadius: 1.8,
+                            pointHoverRadius: 4,
+                            borderDash: [5, 4]
                         },
                         {
                             label: labelsTraducidos.ahorros,
-                            data:[0, 0, totalAhorros],
-                            backgroundColor: temasGraficos.info,
+                            data: ahorrosMes,
                             borderColor: temasGraficos.info,
-                            borderWidth: 2,
-                            borderRadius: 8,
-                            stack: showReales ? 'main' : undefined
-                        }
-                    ]
-                },
-                options:{ 
-                    ...optComun, 
-                    plugins:{ 
-                        ...optComun.plugins, 
-                        legend:{ display:true, position: 'bottom' }
-                    },
-                    scales: {
-                        ...optComun.scales,
-                        x: { ...optComun.scales.x, stacked: true },
-                        y: { ...optComun.scales.y, stacked: true }
-                    }
-                }
-            });
-            window.chartsInstances.push(charts.totales);
-
-            // ===== GRÁFICO DE PORCENTAJES =====
-            // incomeBruto = salario neto + impuestos salario + intereses CR brutos
-            //             = totalIngresos + totalImpuestosIngresosNoCR + totalCuentasRemuneradas
-            // Suma de segmentos de barra Bruto: ahorros + gastos + impOtros + impSalario + retencionCR = incomeBruto ✓
-            const incomeBruto = totalIngresos + totalCuentasRemuneradas + totalImpuestosIngresosNoCR;
-            const incomeNeto = totalIngresos + totalCuentasRemuneradas - totalImpuestosStandalone;
-
-            // Porcentajes Bruto
-            const porcentajeAhorroBruto           = incomeBruto > 0 ? (totalAhorros               / incomeBruto * 100) : 0;
-            const porcentajeGastosBruto           = incomeBruto > 0 ? (totalGastos                / incomeBruto * 100) : 0;
-            const porcentajeImpSalarioBruto       = incomeBruto > 0 ? (totalImpuestosIngresosNoCR / incomeBruto * 100) : 0;
-            const porcentajeRetencionCRBruto      = incomeBruto > 0 ? (totalRetencionCR           / incomeBruto * 100) : 0;
-            const porcentajeImpOtrosBruto         = incomeBruto > 0 ? (totalImpuestosStandalone   / incomeBruto * 100) : 0;
-
-            // Porcentajes Neto
-            const porcentajeAhorroNeto  = incomeNeto > 0 ? (totalAhorros / incomeNeto * 100) : 0;
-            const porcentajeGastosNeto  = incomeNeto > 0 ? (totalGastos  / incomeNeto * 100) : 0;
-
-            const labelIngresoBruto   = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.ingresoBruto')        : 'Ingreso Bruto';
-            const labelIngresoNeto    = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.ingresoNeto')         : 'Ingreso Neto';
-            const labelAhorro         = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.ahorros')            : 'Ahorro';
-            const labelGastos         = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.gastos')             : 'Gastos';
-            const labelImpRetenciones = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosRetenciones'): 'Imp. Retenciones';
-            const labelImpOtros       = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosOtrosCorto') : 'Imp. Otros';
-            const labelRetencionCR    = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.retencionCR')         : 'Retención CR';
-
-            // Guardar datos para el tooltip en el contexto del chart
-            // 0=Ahorro 1=Gastos 2=ImpSalario 3=RetencionCR 4=ImpOtros
-            const porcentajesData = {
-                totalAhorros,
-                totalGastos,
-                totalImpuestosIngresosNoCR,
-                totalRetencionCR,
-                totalImpuestosStandalone,
-                incomeBruto,
-                incomeNeto
-            };
-
-            charts.porcentajes = new Chart(document.getElementById('chartPorcentajes'), {
-                type: 'bar',
-                data: {
-                    labels: [labelIngresoBruto, labelIngresoNeto],
-                    datasets: [
-                        {
-                            label: labelAhorro,
-                            data: [porcentajeAhorroBruto, porcentajeAhorroNeto],
-                            backgroundColor: temasGraficos.info,
-                            borderColor: temasGraficos.info,
-                            borderWidth: 2,
-                            borderRadius: 8,
-                            stack: 'impuestosBrutos'
-                        },
-                        {
-                            label: labelGastos,
-                            data: [porcentajeGastosBruto, porcentajeGastosNeto],
-                            backgroundColor: temasGraficos.danger,
-                            borderColor: temasGraficos.danger,
-                            borderWidth: 2,
-                            borderRadius: 8,
-                            stack: 'impuestosBrutos'
-                        },
-                        {
-                            label: labelImpRetenciones,
-                            data: [porcentajeImpSalarioBruto, null], // solo en Bruto
-                            backgroundColor: temasGraficos.warning,
-                            borderColor: temasGraficos.warning,
-                            borderWidth: 2,
-                            borderRadius: 8,
-                            stack: 'impuestosBrutos'
-                        },
-                        {
-                            label: labelRetencionCR,
-                            data: [porcentajeRetencionCRBruto, null], // solo en Bruto
-                            backgroundColor: '#9b59b6',
-                            borderColor: '#9b59b6',
-                            borderWidth: 2,
-                            borderRadius: 8,
-                            stack: 'impuestosBrutos'
-                        },
-                        {
-                            label: labelImpOtros,
-                            data: [porcentajeImpOtrosBruto, null], // solo en Bruto
-                            backgroundColor: '#e7a33c',
-                            borderColor: '#e7a33c',
-                            borderWidth: 2,
-                            borderRadius: 8,
-                            stack: 'impuestosBrutos'
+                            backgroundColor: crearGradienteTotales(temasGraficos.info, 0.2, 0.03),
+                            borderWidth: 2.2,
+                            fill: true,
+                            tension: 0.42,
+                            cubicInterpolationMode: 'monotone',
+                            pointRadius: 1.8,
+                            pointHoverRadius: 5,
+                            pointHitRadius: 12
                         }
                     ]
                 },
                 options: {
-                    indexAxis: 'y', // Barras horizontales
                     responsive: true,
                     maintainAspectRatio: true,
                     plugins: {
-                        legend: { 
-                            display: true, 
-                            position: 'bottom',
+                        title: {
+                            display: false
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            align: 'center',
                             labels: {
-                                color: '#333',
-                                font: { size: 11, weight: '600' },
-                                padding: 10,
-                                usePointStyle: true
+                                usePointStyle: true,
+                                boxWidth: 8,
+                                color: chartTextColor,
+                                font: { size: 10, weight: '600' },
+                                padding: 9
                             }
                         },
                         tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            padding: 12,
-                            titleFont: { size: 13, weight: 'bold' },
-                            bodyFont: { size: 12 },
-                            borderColor: 'rgba(255, 255, 255, 0.3)',
-                            borderWidth: 1,
                             callbacks: {
                                 label: function(ctx) {
-                                    const label = ctx.dataset.label || '';
-                                    const porcentaje = ctx.parsed.x || 0;
-                                    const datos = ctx.chart.porcentajesData;
-                                    // 0=Ahorro 1=Gastos 2=ImpSalario 3=RetencionCR 4=ImpOtros
-                                    const montos = [
-                                        datos.totalAhorros,
-                                        datos.totalGastos,
-                                        datos.totalImpuestosIngresosNoCR,
-                                        datos.totalRetencionCR,
-                                        datos.totalImpuestosStandalone
-                                    ];
-                                    const monto = montos[ctx.datasetIndex] ?? 0;
-                                    return `${label}: ${porcentaje.toFixed(1)}% (${formatearEuro(monto)})`;
+                                    return `${ctx.dataset.label}: ${formatearEuro(ctx.raw || 0)}`;
                                 }
                             }
-                        },
-                        title: {
-                            display: true,
-                            font: { size: 11, weight: '600' },
-                            padding: { top: 5, bottom: 10 }
                         }
                     },
                     scales: {
-                        x: {
-                            stacked: true,
-                            min: 0,
-                            max: 100,
-                            ticks: { 
-                                color: '#666', 
-                                font: { size: 11 },
+                        y: {
+                            ticks: {
+                                color: chartTextColor,
+                                font: { size: 10 },
                                 callback: function(value) {
-                                    return value + '%';
+                                    return formatearEuro(value);
                                 }
                             },
-                            grid: { color: 'rgba(0, 0, 0, 0.1)' }
+                            grid: { color: chartGridSoft }
                         },
-                        y: {
-                            stacked: true,
-                            ticks: { 
-                                color: '#666', 
-                                font: { size: 11 }
-                            },
-                            grid: { display: false }
+                        x: {
+                            ticks: { color: chartTextColor, font: { size: 10 } },
+                            grid: { color: 'rgba(148, 163, 184, 0.18)' }
                         }
                     }
                 }
             });
-            // Asignar datos al chart para acceso desde callbacks
-            charts.porcentajes.porcentajesData = porcentajesData;
-            window.chartsInstances.push(charts.porcentajes);
-
-
-            // ===== GRÁFICO INGRESOS POR MES =====
-
-            // Media y varianza
-            const mediaIngresos = calcularMedia(ingresosMes);
-            const mediaCuentasRemuneradasNetas = calcularMedia(cuentasRemuneradasNetasMes);
-            const mediaRetencionCRMes = calcularMedia(retencionCRMes);
-            const mediaImpuestosIngresosNet = calcularMedia(impuestosIngresosNetMes);
-            const mediaTotalIngresos = mediaIngresos + mediaCuentasRemuneradasNetas + mediaRetencionCRMes + mediaImpuestosIngresosNet;
-            // Calcular desviación sobre la suma de los cuatro componentes
-            const sumaTotalPorMes = ingresosMes.map((ing, idx) => ing + cuentasRemuneradasNetasMes[idx] + retencionCRMes[idx] + impuestosIngresosNetMes[idx]);
-            const varianzaIngresos = calcularDesviacion(sumaTotalPorMes);
-
-            const tituloIngresos = `${labelsTraducidos.media}: ${formatearEuro(mediaTotalIngresos)} | ${labelsTraducidos.desviacion}: ${formatearEuro(varianzaIngresos)}`;
-            
-            const labelIngresosReales = typeof gestorIdiomas !== 'undefined'
-                ? gestorIdiomas.obtenerTexto('dashboard.ingresosReales')
-                : 'Ingresos Reales';
-
-            charts.ingresos = new Chart(document.getElementById('chartIngresos'), {
-                type: 'bar',
-                data: {
-                    labels: meses,
-                    datasets: [
-                        crearDataset(labelsTraducidos.ingresos + ' €', ingresosMes, temasGraficos.success, true),
-                        crearDataset(labelsTraducidos.cuentasRemuneradasNeto + ' €', cuentasRemuneradasNetasMes, temasGraficos.primary, true),
-                        crearDataset(labelsTraducidos.retencionCR + ' €', retencionCRMes, '#9b59b6', true),
-                        crearDataset(labelsTraducidos.impuestosCategoria + ' €', impuestosIngresosNetMes, temasGraficos.warning, true)
-                    ]
-                },
-                options: crearOpcionesGrafico(optComun, tituloIngresos, true)
-            });
 
             if (showReales) {
                 const realColor = temasGraficos.primaryDark || '#475569';
-                charts.ingresos.data.datasets.forEach(ds => ds.stack = 'main');
-                charts.ingresos.data.datasets.push({
-                    label: labelIngresosReales,
+                const labelIngresosRealesTop = typeof gestorIdiomas !== 'undefined'
+                    ? gestorIdiomas.obtenerTexto('dashboard.ingresosReales')
+                    : 'Ingresos Reales';
+                charts.totales.data.datasets.push({
+                    label: labelIngresosRealesTop,
                     data: ingresosRealesMes,
-                    backgroundColor: aclararColor(realColor, 0.6),
                     borderColor: realColor,
+                    backgroundColor: aclararColor(realColor, 0.12),
                     borderWidth: 2,
-                    borderRadius: 6,
-                    tension: 0.4,
-                    stack: 'real'
+                    fill: false,
+                    tension: 0.36,
+                    pointRadius: 1.8,
+                    borderDash: [7, 4]
                 });
-                charts.ingresos.update();
+
+                const labelAhorrosRealesTop = typeof gestorIdiomas !== 'undefined'
+                    ? gestorIdiomas.obtenerTexto('dashboard.ahorrosReales')
+                    : 'Ahorros Reales';
+                charts.totales.data.datasets.push({
+                    label: labelAhorrosRealesTop,
+                    data: ahorrosRealesMes,
+                    borderColor: temasGraficos.info,
+                    backgroundColor: aclararColor(temasGraficos.info, 0.1),
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.36,
+                    pointRadius: 1.8,
+                    borderDash: [3, 3]
+                });
+                charts.totales.update();
             }
-            
-            charts.ingresos.updateChartStats = function() {
-                const visibleIngresos = this.isDatasetVisible(0) ? ingresosMes : ingresosMes.map(() => 0);
-                const visibleCuentasNetas = this.isDatasetVisible(1) ? cuentasRemuneradasNetasMes : cuentasRemuneradasNetasMes.map(() => 0);
-                const visibleRetencionCR = this.isDatasetVisible(2) ? retencionCRMes : retencionCRMes.map(() => 0);
-                const visibleImpuestos = this.isDatasetVisible(3) ? impuestosIngresosNetMes : impuestosIngresosNetMes.map(() => 0);
-                
-                const sumaTotalVisiblePorMes = visibleIngresos.map((ing, idx) => ing + visibleCuentasNetas[idx] + visibleRetencionCR[idx] + visibleImpuestos[idx]);
-                const mediaTot = calcularMedia(visibleIngresos) + calcularMedia(visibleCuentasNetas) + calcularMedia(visibleRetencionCR) + calcularMedia(visibleImpuestos);
-                const desv = calcularDesviacion(sumaTotalVisiblePorMes);
-                
-                this.options.plugins.title.text = `${labelsTraducidos.mediaTotal}: ${formatearEuro(mediaTot)} | ${labelsTraducidos.desviacionAbrev}: ${formatearEuro(desv)}`;
-            };
-            
-            window.chartsInstances.push(charts.ingresos);
 
-// Calcular media y desviación
-const mediaAhorros = calcularMedia(ahorrosMes);
-const desviacionAhorros = calcularDesviacion(ahorrosMes);
+            window.chartsInstances.push(charts.totales);
 
-const tituloAhorros = `${labelsTraducidos.media}: ${formatearEuro(mediaAhorros)}   |   ${labelsTraducidos.desviacion}: ${formatearEuro(desviacionAhorros)}`;
+            // ===== GRÁFICO PORCENTAJES BRUTO/NETO (CILINDROS VERTICALES) =====
+            const porcentajeAhorroBruto = incomeBruto > 0 ? (totalAhorros / incomeBruto * 100) : 0;
+            const porcentajeGastosBruto = incomeBruto > 0 ? (totalGastos / incomeBruto * 100) : 0;
+            const porcentajeImpSalarioBruto = incomeBruto > 0 ? (totalImpuestosIngresosNoCR / incomeBruto * 100) : 0;
+            const porcentajeRetencionCRBruto = incomeBruto > 0 ? (totalRetencionCR / incomeBruto * 100) : 0;
+            const porcentajeImpOtrosBruto = incomeBruto > 0 ? (totalImpuestosStandalone / incomeBruto * 100) : 0;
 
-const labelAhorrosReales = typeof gestorIdiomas !== 'undefined'
-    ? gestorIdiomas.obtenerTexto('dashboard.ahorrosReales')
-    : 'Ahorros Reales';
+            const porcentajeAhorroNeto = incomeNeto > 0 ? (totalAhorros / incomeNeto * 100) : 0;
+            const porcentajeGastosNeto = incomeNeto > 0 ? (totalGastos / incomeNeto * 100) : 0;
 
-const datasetsAhorros = [crearDataset(labelsTraducidos.ahorros + ' €', ahorrosMes, temasGraficos.info, false)];
-if (showReales) {
-    const realColor = temasGraficos.primaryDark || '#475569';
-    datasetsAhorros.push({
-        label: labelAhorrosReales,
-        data: ahorrosRealesMes,
-        backgroundColor: aclararColor(realColor, 0.6),
-        borderColor: realColor,
-        borderWidth: 2,
-        borderRadius: 6,
-        tension: 0.4
-    });
-}
+            const labelIngresoBruto = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.ingresoBruto') : 'Ingreso Bruto';
+            const labelIngresoNeto = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.ingresoNeto') : 'Ingreso Neto';
+            const labelAhorro = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.ahorros') : 'Ahorro';
+            const labelGastos = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.gastos') : 'Gastos';
+            const labelImpRetenciones = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosRetenciones') : 'Imp. Retenciones';
+            const labelImpOtros = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.impuestosOtrosCorto') : 'Imp. Otros';
+            const labelRetencionCR = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.retencionCR') : 'Retención CR';
+            const tituloPorcentajes = typeof gestorIdiomas !== 'undefined'
+                ? gestorIdiomas.obtenerTexto('dashboard.porcentajes')
+                : 'Análisis de Porcentajes';
 
-charts.ahorros = new Chart(document.getElementById('chartAhorros'), {
-    type: 'bar',
-    data: {
-        labels: meses,
-        datasets: datasetsAhorros
-    },
-    options: crearOpcionesGrafico(optComun, tituloAhorros, false)
-});
-
-charts.ahorros.updateChartStats = function() {
-    const visibleAhorros = this.isDatasetVisible(0) ? ahorrosMes : [];
-    const mediaAh = calcularMedia(visibleAhorros);
-    const desvAh = calcularDesviacion(visibleAhorros);
-    this.options.plugins.title.text = `${labelsTraducidos.media}: ${formatearEuro(mediaAh)}   |   ${labelsTraducidos.desviacion}: ${formatearEuro(desvAh)}`;
-};
-
-            window.chartsInstances.push(charts.ahorros);
+            charts.porcentajes = renderCilindrosPorcentajes('chartPorcentajes', {
+                title: tituloPorcentajes,
+                columns: [
+                    {
+                        name: labelIngresoBruto,
+                        segments: [
+                            { label: labelGastos, value: porcentajeGastosBruto, color: temasGraficos.danger },
+                            { label: labelImpRetenciones, value: porcentajeImpSalarioBruto, color: temasGraficos.warning },
+                            { label: labelRetencionCR, value: porcentajeRetencionCRBruto, color: '#9b59b6' },
+                            { label: labelImpOtros, value: porcentajeImpOtrosBruto, color: '#e7a33c' },
+                            { label: labelAhorro, value: porcentajeAhorroBruto, color: temasGraficos.info }
+                        ]
+                    },
+                    {
+                        name: labelIngresoNeto,
+                        segments: [
+                            { label: labelGastos, value: porcentajeGastosNeto, color: temasGraficos.danger },
+                            { label: labelAhorro, value: porcentajeAhorroNeto, color: temasGraficos.info }
+                        ]
+                    }
+                ],
+                legend: [
+                    { label: labelAhorro, color: temasGraficos.info },
+                    { label: labelGastos, color: temasGraficos.danger },
+                    { label: labelImpRetenciones, color: temasGraficos.warning },
+                    { label: labelRetencionCR, color: '#9b59b6' },
+                    { label: labelImpOtros, color: '#e7a33c' }
+                ]
+            });
 
 
-            // ===== GRÁFICO INGRESOS POR CATEGORÍA DONUT =====
-            // Combinar ingresos y cuentas remuneradas en el mismo arco
+
+
+            // ===== LISTA INGRESOS POR CATEGORÍA (ESTILO HOME) =====
+            // Combinar ingresos y cuentas remuneradas en el mismo reparto
             const todasLasCategoriasIngresos = new Set([...catIngresos, ...Object.keys(cuentasRemuneradasPorCategoria)]);
             const valIngresosTotal = Array.from(todasLasCategoriasIngresos).map(cat => {
                 const ingresos = valIngresos.find((v,i) => catIngresos[i] === cat) || 0;
                 const cuentasRem = cuentasRemuneradasPorCategoria[cat] || 0;
                 return ingresos + cuentasRem;
             });
-            
-            // Crear tooltips personalizados para mostrar desglose
-            const ingresosPorCat = {};
-            const cuentasRemPorCat = {};
-            Array.from(todasLasCategoriasIngresos).forEach(cat => {
-                ingresosPorCat[cat] = valIngresos.find((v,i) => catIngresos[i] === cat) || 0;
-                cuentasRemPorCat[cat] = cuentasRemuneradasPorCategoria[cat] || 0;
+            const ingresosMap = {};
+            Array.from(todasLasCategoriasIngresos).forEach((cat, i) => {
+                ingresosMap[cat] = valIngresosTotal[i] || 0;
             });
-            
-            const labelTotalIngresos = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.totalIngresos') : 'Total Ingresos';
-            
-            charts.ingresosCat = new Chart(document.getElementById('chartIngresosCategoria'), {
-                type:'doughnut',
-                data:{
-                    labels:Array.from(todasLasCategoriasIngresos),
-                    datasets:[
-                        {
-                            label: labelTotalIngresos,
-                            data:valIngresosTotal, 
-                            backgroundColor: Array.from(todasLasCategoriasIngresos).map((c,i)=>obtenerColorCategoria(c,i)),
-                            borderColor: '#fff',
-                            borderWidth: 2
-                        }
-                    ]
-                },
-                options:{
-                    ...optComun,
-                    scales: { x: { display: false }, y: { display: false } },
-                    plugins:{
-                        ...optComun.plugins,
-                        legend:{ position:'bottom' },
-                        tooltip:{ 
-                            callbacks:{ 
-                                label:function(ctx){ 
-                                    const categoria = ctx.label;
-                                    const ingresos = ingresosPorCat[categoria] || 0;
-                                    const cuentasRem = cuentasRemPorCat[categoria] || 0;
-                                    const total = valIngresosTotal.reduce((a,b)=>a+b,0);
-                                    const perc=((ctx.raw/total)*100).toFixed(1);
-                                    
-                                    const textoTotal = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.total') : 'Total';
-                                    const textoIngresos = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.ingresos') : 'Ingresos';
-                                    const textoCuentasRem = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.cuentasRemuneradasAbrev') : 'Cuentas Rem';
-                                    
-                                    let tooltip = `${textoTotal}: ${formatearEuro(ctx.raw)} (${perc}%)`;
-                                    if (ingresos > 0) tooltip += `\n${textoIngresos}: ${formatearEuro(ingresos)}`;
-                                    if (cuentasRem > 0) tooltip += `\n${textoCuentasRem}: ${formatearEuro(cuentasRem)}`;
-                                    return tooltip;
-                                }
-                            }
-                        },
-                        datalabels: {
-                            color: '#fff',
-                            font: { weight: 'bold', size: 12 },
-                            formatter: (value, ctx) => {
-                                const total = valIngresosTotal.reduce((a,b)=>a+b,0);
-                                const perc = ((value / total) * 100).toFixed(1);
-                                return perc + '%';
-                            }
-                        }
-                    }
-                },
-                plugins: [ChartDataLabels]
-            });
+
+            charts.ingresosCat = renderDashboardCategoriasLista(
+                'chartIngresosCategoria',
+                ingresosMap,
+                Array.from(todasLasCategoriasIngresos).map((c, i) => obtenerColorCategoria(c, i))
+            );
             window.chartsInstances.push(charts.ingresosCat);
 
-            // ===== GRÁFICO GASTOS POR CATEGORÍA DONUT =====
+            // ===== LISTA GASTOS POR CATEGORÍA (ESTILO HOME) =====
             const gastosRealesPorCategoria = {};
             if (showReales && dataGastosMesReal) {
                 Object.values(dataGastosMesReal).forEach((mesData) => {
@@ -1464,67 +1764,18 @@ charts.ahorros.updateChartStats = function() {
                 ? gestorIdiomas.obtenerTexto('dashboard.gastosReales')
                 : 'Gastos Reales';
 
-            const datasetsGastosDonut = [{
-                label: labelGastosBudget,
-                data: gastosBudgetData,
-                backgroundColor: gastosLabels.map((c, i) => obtenerColorCategoria(c, i)),
-                borderColor: '#fff',
-                borderWidth: 0,
-                spacing: 0,
-                radius: '100%',
-                cutout: showReales ? '30%' : '55%'
-            }];
-
-            if (showReales) {
-                datasetsGastosDonut.push({
-                    label: labelGastosReal,
-                    data: gastosRealData,
-                    backgroundColor: gastosLabels.map((c, i) => aclararColor(obtenerColorCategoria(c, i), 0.55)),
-                    borderColor: '#fff',
-                    borderWidth: 0,
-                    spacing: 0,
-                    radius: '100%',
-                    cutout: '0%'
-                });
-            }
-
-            charts.gastosCat = new Chart(document.getElementById('chartGastosCategoria'), {
-                type:'doughnut',
-                data:{
-                    labels: gastosLabels,
-                    datasets: datasetsGastosDonut
-                },
-                options:{
-                    ...optComun,
-                    scales: { x: { display: false }, y: { display: false } },
-                    plugins:{
-                        ...optComun.plugins,
-                        legend:{ position:'bottom' },
-                        tooltip:{ 
-                            callbacks:{ 
-                                label:function(ctx){ 
-                                    const total = ctx.dataset.data.reduce((a,b)=>a+b,0); 
-                                    const perc = total > 0 ? ((ctx.raw/total)*100).toFixed(1) : '0.0';
-                                    const prefijo = ctx.dataset.label ? `${ctx.dataset.label} - ` : '';
-                                    return `${prefijo}${ctx.label}: ${formatearEuro(ctx.raw)} (${perc}%)`; 
-                                }
-                            }
-                        },
-                        datalabels: {
-                            color: '#fff',
-                            font: { weight: 'bold', size: 12 },
-                            formatter: (value, ctx) => {
-                                if (ctx.datasetIndex !== 0) return '';
-                                const total = ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0);
-                                const perc = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
-                                return perc + '%';
-                            }
-                        }
-                    }
-                },
-                plugins: [ChartDataLabels]
+            const gastosMap = {};
+            gastosLabels.forEach((cat, idx) => {
+                const budget = gastosBudgetData[idx] || 0;
+                const real = gastosRealData[idx] || 0;
+                gastosMap[cat] = showReales ? Math.max(budget, real) : budget;
             });
-            actualizarIndicadorGastosDonut(showReales, labelGastosBudget, labelGastosReal);
+
+            charts.gastosCat = renderDashboardCategoriasLista(
+                'chartGastosCategoria',
+                gastosMap,
+                gastosLabels.map((c, i) => obtenerColorCategoria(c, i))
+            );
             window.chartsInstances.push(charts.gastosCat);
 
 
@@ -1540,20 +1791,58 @@ charts.ahorros.updateChartStats = function() {
             const varianzaGastosMes = calcularDesviacion(totalesMes);
 
             const tituloGastosMes = `${labelsTraducidos.mediaMensualTotal}: ${formatearEuro(mediaGastosMes)}   |   ${labelsTraducidos.desviacion}: ${formatearEuro(varianzaGastosMes)}`;
+            const usarBarrasApiladas = true;
+            const datasetsGastosGrafico = datasetsMesCat.map((ds) => ({
+                ...ds,
+                type: 'bar',
+                tension: 0,
+                pointRadius: 0,
+                borderDash: [],
+                borderSkipped: false,
+                barPercentage: 0.82,
+                categoryPercentage: 0.72,
+                order: 2
+            }));
+
+            const textoTotalMes = typeof gestorIdiomas !== 'undefined'
+                ? gestorIdiomas.obtenerTexto('dashboard.totalMes')
+                : '';
+            const labelTotalMesLinea = (textoTotalMes && textoTotalMes !== 'dashboard.totalMes')
+                ? textoTotalMes
+                : 'Total mes';
+            datasetsGastosGrafico.push({
+                label: labelTotalMesLinea,
+                data: totalesMes,
+                type: 'line',
+                borderColor: '#0f172a',
+                backgroundColor: 'rgba(15, 23, 42, 0)',
+                borderWidth: 2.2,
+                tension: 0.35,
+                fill: false,
+                pointRadius: 2,
+                pointHoverRadius: 4,
+                pointBackgroundColor: '#0f172a',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 1,
+                order: 1,
+                isOverlayTotalMes: true
+            });
+            const opcionesGastosMes = crearOpcionesGrafico(optComun, tituloGastosMes, usarBarrasApiladas, false);
             
             charts.gastosMes = new Chart(document.getElementById('chartGastosMes'), {
                 type: 'bar',
                 data: { 
                     labels: labelsMeses, 
-                    datasets: datasetsMesCat 
+                    datasets: datasetsGastosGrafico 
                 },
-                options: crearOpcionesGrafico(optComun, tituloGastosMes, true)
+                options: opcionesGastosMes
             });
 
 charts.gastosMes.updateChartStats = function() {
     const totalesMesBis = labelsMeses.map((mes, idx) => {
         return this.data.datasets.reduce((sum, ds, dsIdx) => {
-            return sum + (this.isDatasetVisible(dsIdx) ? (ds.data[idx] || 0) : 0);
+            if (!this.isDatasetVisible(dsIdx) || ds.isOverlayTotalMes) return sum;
+            return sum + (ds.data[idx] || 0);
         }, 0);
     });
     
@@ -1564,18 +1853,12 @@ charts.gastosMes.updateChartStats = function() {
 
             console.log('✅ Dashboard actualizado correctamente');
             window.chartsInstances.push(charts.gastosMes);
-            
-            // Ocultar loader
-            if (loader) {
-                loader.classList.add('hidden');
-            }
         } catch (error) {
             console.error('❌ Error actualizando dashboard:', error);
-            
-            // Ocultar loader en caso de error
-            if (loader) {
-                loader.classList.add('hidden');
-            }
+            actualizarResumenKpis({ desde, hasta });
+            limpiarSparklinesKpi();
+        } finally {
+            setDashboardLoadingState(false);
         }
     }
     
@@ -1583,12 +1866,18 @@ charts.gastosMes.updateChartStats = function() {
     const unAnioAtras = new Date(hoy.getFullYear()-1, hoy.getMonth(), hoy.getDate());
 
     const rangoGuardado = cargarRangoSeleccionado();
+    const uiPrefs = cargarPreferenciasDashboard();
     if (rangoGuardado?.desde && rangoGuardado?.hasta) {
         document.getElementById('dashDesde').value = rangoGuardado.desde;
         document.getElementById('dashHasta').value = rangoGuardado.hasta;
     } else {
         document.getElementById('dashDesde').value = '';
         document.getElementById('dashHasta').value = '';
+    }
+
+    const dashboardToggleReal = document.getElementById('dashboardToggleReal');
+    if (dashboardToggleReal) {
+        dashboardToggleReal.checked = !!uiPrefs?.mostrarReales;
     }
 
     initDateRangeSlider();
@@ -1634,7 +1923,7 @@ charts.gastosMes.updateChartStats = function() {
                     backgroundColor: aclararColor(coloresCategorias[catSel], 0.7),
                     borderColor: coloresCategorias[catSel],
                     borderWidth: 2,
-                    borderRadius: 6,
+                    borderRadius: 0,
                     tension: 0.4,
                     stack: showReales ? 'main' : undefined
                 });
@@ -1666,7 +1955,7 @@ charts.gastosMes.updateChartStats = function() {
                         backgroundColor: aclararColor(color, 0.7),
                         borderColor: color,
                         borderWidth: 2,
-                        borderRadius: 6,
+                        borderRadius: 0,
                         tension: 0.4,
                         stack: showReales ? 'main' : undefined
                     });
@@ -1689,7 +1978,7 @@ charts.gastosMes.updateChartStats = function() {
                         backgroundColor: aclararColor(color, 0.45),
                         borderColor: color,
                         borderWidth: 2,
-                        borderRadius: 6,
+                        borderRadius: 0,
                         tension: 0.4,
                         stack: 'real'
                     });
@@ -1713,7 +2002,7 @@ charts.gastosMes.updateChartStats = function() {
                             backgroundColor: aclararColor(color, 0.45),
                             borderColor: color,
                             borderWidth: 2,
-                            borderRadius: 6,
+                            borderRadius: 0,
                             tension: 0.4,
                             stack: 'real'
                         });
@@ -1736,20 +2025,56 @@ charts.gastosMes.updateChartStats = function() {
             });
             const mediaGastosMes = calcularMedia(totalesMes);
             const varianzaGastosMes = calcularDesviacion(totalesMes);
+            const usarBarrasApiladas = true;
+            const datasetsGastosGrafico = datasetsMesCat.map((ds) => ({
+                ...ds,
+                type: 'bar',
+                tension: 0,
+                pointRadius: 0,
+                borderDash: [],
+                borderSkipped: false,
+                barPercentage: 0.82,
+                categoryPercentage: 0.72,
+                order: 2
+            }));
+
+            const textoTotalMes = typeof gestorIdiomas !== 'undefined'
+                ? gestorIdiomas.obtenerTexto('dashboard.totalMes')
+                : '';
+            const labelTotalMesLinea = (textoTotalMes && textoTotalMes !== 'dashboard.totalMes')
+                ? textoTotalMes
+                : 'Total mes';
+            datasetsGastosGrafico.push({
+                label: labelTotalMesLinea,
+                data: totalesMes,
+                type: 'line',
+                borderColor: '#0f172a',
+                backgroundColor: 'rgba(15, 23, 42, 0)',
+                borderWidth: 2.2,
+                tension: 0.35,
+                fill: false,
+                pointRadius: 2,
+                pointHoverRadius: 4,
+                pointBackgroundColor: '#0f172a',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 1,
+                order: 1,
+                isOverlayTotalMes: true
+            });
 
             // Recrear gráfico
             charts.gastosMes = new Chart(document.getElementById('chartGastosMes'), {
                 type: 'bar',
                 data:{ 
                     labels: labelsMeses, 
-                    datasets: datasetsMesCat 
+                    datasets: datasetsGastosGrafico 
                 },
                 options:{ 
                     responsive: true,
                     maintainAspectRatio: true,
                     scales: {
-                        x: { stacked: true },
-                        y: { stacked: true }
+                        x: { stacked: usarBarrasApiladas },
+                        y: { stacked: usarBarrasApiladas }
                     },
                     plugins: {
                         legend: { 

@@ -22,6 +22,7 @@ const yahooFinanceRoutes = require('./routes/yahooFinance');
 const dashboardRoutes = require('./routes/dashboard');
 const importacionBancariaRoutes = require('./routes/importacionBancaria');
 const realesRoutes = require('./routes/reales');
+const subHuchaRoutes = require('./routes/subHucha');
 
 const app = express();
 
@@ -46,6 +47,7 @@ app.use(yahooFinanceRoutes);
 app.use(dashboardRoutes);
 app.use(importacionBancariaRoutes);
 app.use(realesRoutes);
+app.use(subHuchaRoutes);
 
 // ================ MANEJO DE ERRORES ================
 app.use(errorHandler);

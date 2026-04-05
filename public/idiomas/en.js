@@ -75,7 +75,8 @@ TRADUCCIONES.en = {
             impuestosPre: 'Pre',
             impuestosPost: 'Post',
             totalHucha: 'Total Piggy Bank',
-            portfolioRendimiento: 'Portfolio Performance'
+            portfolioRendimiento: 'Portfolio Performance',
+            portfolioValorTotal: 'Total value'
         },
 
         inicio: {
@@ -110,7 +111,20 @@ TRADUCCIONES.en = {
             concepto: 'Concept',
             cantidad: 'Amount',
             placeholderConcepto: 'Concept...',
-            placeholderCantidad: '0.00'
+            placeholderCantidad: '0.00',
+            principal: 'Main Piggy Bank'
+        },
+        subHucha: {
+            titulo: 'Secondary savings',
+            nombre: 'Name',
+            aportacionInicial: 'Initial deposit',
+            aportacionMensual: 'Monthly deposit',
+            saldoActual: 'Current balance',
+            placeholderNombre: 'Savings name...',
+            aportacionesPuntuales: 'One-time deposits',
+            hucha: 'Savings pot',
+            camposRequeridos: 'Name, from and to are required',
+            camposPuntualRequeridos: 'Pot, date and amount are required'
         },
 
         // ===== NAVEGACIÓN =====
@@ -221,6 +235,7 @@ TRADUCCIONES.en = {
             errorColumnasRequeridas: 'Please select all required columns: Date, Concept, and Amount.',
             errorRangoFechas: 'Please select a date range',
             errorSinDatosRango: 'No data found in the selected date range',
+            fechasDisponibles: 'Available dates',
             exitoGraficos: 'Charts updated successfully',
             errorGraficoCategoria: 'Error generating category chart',
             errorGraficoIngresoVsGasto: 'Error generating Income vs Expense chart',
@@ -296,6 +311,7 @@ TRADUCCIONES.en = {
             errorHastaMenorDesde: 'End date cannot be earlier than start date',
             seleccionaRango: 'Please select a date range',
             refrescarResumen: 'Refresh summary',
+            vsPeriodoAnterior: 'vs previous period',
             mostrarReales: 'Show real',
             ingresosReales: 'Real Income',
             gastosReales: 'Real Expenses',

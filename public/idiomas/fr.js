@@ -74,7 +74,8 @@ TRADUCCIONES.fr = {
             impuestosPre: 'Pré',
             impuestosPost: 'Post',
             totalHucha: 'Total Tirelire',
-            portfolioRendimiento: 'Performance du Portefeuille'
+            portfolioRendimiento: 'Performance du Portefeuille',
+            portfolioValorTotal: 'Valeur totale'
         },
 
         inicio: {
@@ -109,7 +110,20 @@ TRADUCCIONES.fr = {
             concepto: 'Concept',
             cantidad: 'Montant',
             placeholderConcepto: 'Concept...',
-            placeholderCantidad: '0,00'
+            placeholderCantidad: '0,00',
+            principal: 'Tirelire Principale'
+        },
+        subHucha: {
+            titulo: 'Tirelires secondaires',
+            nombre: 'Nom',
+            aportacionInicial: 'Apport initial',
+            aportacionMensual: 'Apport mensuel',
+            saldoActual: 'Solde actuel',
+            placeholderNombre: 'Nom de la tirelire...',
+            aportacionesPuntuales: 'Apports ponctuels',
+            hucha: 'Tirelire',
+            camposRequeridos: 'Nom, depuis et jusqu\'à sont requis',
+            camposPuntualRequeridos: 'Tirelire, date et montant sont requis'
         },
 
         // ===== NAVEGACIÓN =====
@@ -231,6 +245,7 @@ TRADUCCIONES.fr = {
             errorColumnasRequeridas: 'Veuillez sélectionner toutes les colonnes requises: Date, Concept et Montant.',
             errorRangoFechas: 'Veuillez sélectionner une plage de dates',
             errorSinDatosRango: 'Aucune donnée trouvée dans la plage de dates sélectionnée',
+            fechasDisponibles: 'Dates disponibles',
             exitoGraficos: 'Graphiques mis à jour avec succès',
             errorGraficoCategoria: 'Erreur lors de la génération du graphique des catégories',
             errorGraficoIngresoVsGasto: 'Erreur lors de la génération du graphique Revenus vs Dépenses',
@@ -296,6 +311,7 @@ TRADUCCIONES.fr = {
             errorHastaMenorDesde: 'La date "à" ne peut pas être antérieure à "de"',
             seleccionaRango: 'Veuillez sélectionner une plage de dates',
             refrescarResumen: 'Actualiser le résumé',
+            vsPeriodoAnterior: 'vs période précédente',
             mostrarReales: 'Afficher reels',
             ingresosReales: 'Revenus reels',
             gastosReales: 'Depenses reelles',

@@ -75,7 +75,8 @@ TRADUCCIONES.ca = {
             impuestosPre: 'Pre',
             impuestosPost: 'Post',
             totalHucha: 'Total guardiola',
-            portfolioRendimiento: 'Rendiment del portafoli'
+            portfolioRendimiento: 'Rendiment del portafoli',
+            portfolioValorTotal: 'Valor total'
         },
 
         inicio: {
@@ -110,7 +111,20 @@ TRADUCCIONES.ca = {
             concepto: 'Concepte',
             cantidad: 'Quantitat',
             placeholderConcepto: 'Concepte...',
-            placeholderCantidad: '0.00'
+            placeholderCantidad: '0.00',
+            principal: 'Guardiola Principal'
+        },
+        subHucha: {
+            titulo: 'Guardioles secundàries',
+            nombre: 'Nom',
+            aportacionInicial: 'Aportació inicial',
+            aportacionMensual: 'Aportació mensual',
+            saldoActual: 'Saldo actual',
+            placeholderNombre: 'Nom de la guardiola...',
+            aportacionesPuntuales: 'Aportacions puntuals',
+            hucha: 'Guardiola',
+            camposRequeridos: 'Nom, des de i fins a són obligatoris',
+            camposPuntualRequeridos: 'Guardiola, data i import són obligatoris'
         },
 
         // ===== NAVEGACIÓ =====
@@ -221,6 +235,7 @@ TRADUCCIONES.ca = {
             errorColumnasRequeridas: 'Si us plau, selecciona totes les columnes requerides: Data, Concepte i Import.',
             errorRangoFechas: 'Si us plau selecciona un rang de dates',
             errorSinDatosRango: 'No hi ha dades en el rang de dates seleccionat',
+            fechasDisponibles: 'Dates disponibles',
             exitoGraficos: 'Gràfics actualitzats correctament',
             errorGraficoCategoria: 'Error en generar el gràfic de categories',
             errorGraficoIngresoVsGasto: 'Error en generar el gràfic d\'Ingressos vs Despeses',
@@ -296,6 +311,7 @@ TRADUCCIONES.ca = {
             errorHastaMenorDesde: 'La data "fins a" no pot ser menor que "des de"',
             seleccionaRango: 'Si us plau selecciona un rang de dates',
             refrescarResumen: 'Refrescar resum',
+            vsPeriodoAnterior: 'vs període anterior',
             mostrarReales: 'Mostrar reals',
             ingresosReales: 'Ingressos reals',
             gastosReales: 'Despeses reals',

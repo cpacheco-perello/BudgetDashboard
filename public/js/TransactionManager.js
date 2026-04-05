@@ -223,15 +223,27 @@ class TransactionManager {
         const confirmed = await showConfirm(this.t('formularios.confirmarEliminar', '¿Eliminar este elemento?'));
         if (!confirmed) return;
 
-        const endpoint = this.endpoints.delete[type];
-        await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id })
-        });
+        try {
+            const endpoint = this.endpoints.delete[type];
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
 
-        await this.loadData();
-        if (typeof cargarResumenPeriodos === 'function') cargarResumenPeriodos();
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+            await this.loadData();
+            if (typeof cargarResumenPeriodos === 'function') cargarResumenPeriodos();
+            if (typeof notifySuccess === 'function') {
+                notifySuccess(this.t('mensajes.elementoEliminado', 'Elemento eliminado'));
+            }
+        } catch (error) {
+            console.error('Error eliminando elemento:', error);
+            if (typeof notifyError === 'function') {
+                notifyError(this.t('mensajes.errorEliminando', 'Error eliminando datos'));
+            }
+        }
     }
 
     // ===== EDITAR INLINE =====
@@ -313,9 +325,19 @@ class TransactionManager {
                 }
             }
 
-            await this.updateItem(id, newData, type);
-            await this.loadData();
-            if (typeof cargarResumenPeriodos === 'function') cargarResumenPeriodos();
+            try {
+                await this.updateItem(id, newData, type);
+                await this.loadData();
+                if (typeof cargarResumenPeriodos === 'function') cargarResumenPeriodos();
+                if (typeof notifySuccess === 'function') {
+                    notifySuccess(this.t('mensajes.elementoActualizado', 'Cambios guardados'));
+                }
+            } catch (error) {
+                console.error('Error actualizando elemento:', error);
+                if (typeof notifyError === 'function') {
+                    notifyError(this.t('mensajes.errorGuardando', 'Error guardando datos'));
+                }
+            }
         };
 
         // Evento cancelar
@@ -390,11 +412,15 @@ class TransactionManager {
             ? `/update/${this.entityNameSingular}_mensual`
             : `/update/cuenta_remunerada`);
 
-        await fetch(endpoint, {
+        const res = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id, ...data })
         });
+
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+        }
     }
 
     // ===== TRADUCCIONES =====

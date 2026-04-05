@@ -26,6 +26,30 @@ const showAlert = (mensaje, tipo = 'info') => {
     alert(mensaje);
 };
 
+const showInfoToast = (mensaje) => {
+    if (typeof window.notifyInfo === 'function') {
+        window.notifyInfo(mensaje);
+        return;
+    }
+    showAlert(mensaje, 'info');
+};
+
+const showSuccessToast = (mensaje) => {
+    if (typeof window.notifySuccess === 'function') {
+        window.notifySuccess(mensaje);
+        return;
+    }
+    showAlert(mensaje, 'success');
+};
+
+const showErrorToast = (mensaje) => {
+    if (typeof window.notifyError === 'function') {
+        window.notifyError(mensaje);
+        return;
+    }
+    showAlert(mensaje, 'error');
+};
+
 // Función helper para obtener traducciones dinámicamente
 function obtenerTraduccion(clave) {
     try {
@@ -52,6 +76,11 @@ function t(clave) {
     return obtenerTraduccion(clave);
 }
 
+function tt(clave, fallback) {
+    const value = t(clave);
+    return value && value !== clave ? value : fallback;
+}
+
 
 // Usar variable global window para persistir datos entre cambios de pestaña
 if (!window.estadoImportacion) {
@@ -60,6 +89,9 @@ if (!window.estadoImportacion) {
         nombreArchivoOrigen: null,
         datosRaw: [],
         datosMapados: [],
+        datosMapadosValidos: [],
+        datosMapadosInvalidos: [],
+        datosAnalisisActual: [],
         columnas: [],
         mapeo: { fecha: null, concepto: null, importe: null, tipo: null },
         formatoFecha: 'DD/MM/YYYY',
@@ -67,11 +99,350 @@ if (!window.estadoImportacion) {
         archivoNuevo: true, // Flag para saber si es un archivo nuevo o cargado
         archivoId: null, // ID del archivo si fue cargado desde guardados
         conceptosSeleccionados: [], // Conceptos que el usuario ha seleccionado
-        tableFilter: 'gasto'
+        categoriasPorConcepto: {},
+        metaConceptosCategorias: {},
+        tableFilter: 'gasto',
+        seccionActual: 'archivos',
+        archivoGuardado: false,
+        presetSeleccionado: null
     };
 }
 
 let estadoImportacion = window.estadoImportacion;
+
+const IMPORT_PRESETS_KEY = 'importacionBancaria.presets.v1';
+    const IMPORT_CONCEPT_REVIEW_KEY = 'importacionBancaria.conceptCategoryReview.v1';
+const WIZARD_STEPS = ['archivos', 'upload', 'mapeo', 'seleccionConceptos', 'seleccionCategorias', 'analisis'];
+
+function actualizarWizard(seccionActual) {
+    const steps = document.querySelectorAll('#importWizard .wizard-step');
+    const idxActual = WIZARD_STEPS.indexOf(seccionActual);
+    steps.forEach((stepEl) => {
+        const stepKey = stepEl.dataset.step;
+        const idx = WIZARD_STEPS.indexOf(stepKey);
+        stepEl.classList.toggle('active', stepKey === seccionActual);
+        stepEl.classList.toggle('done', idx >= 0 && idx < idxActual);
+    });
+}
+
+function actualizarProgreso(porcentaje, texto) {
+    const fileProgress = document.getElementById('fileProgress');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    if (!fileProgress || !progressFill || !progressText) return;
+
+    const clamped = Math.max(0, Math.min(100, Number(porcentaje) || 0));
+    fileProgress.style.display = 'block';
+    progressFill.style.width = `${clamped}%`;
+    progressText.textContent = texto ? `${texto} (${clamped.toFixed(0)}%)` : `${clamped.toFixed(0)}%`;
+}
+
+function alternarLoadingAnalisis(visible) {
+    const loading = document.getElementById('analisisLoading');
+    if (!loading) return;
+    loading.style.display = visible ? 'block' : 'none';
+}
+
+function actualizarKpisAnalisis(datos = []) {
+    const kpiIngresos = document.getElementById('kpiImportacionIngresos');
+    const kpiGastos = document.getElementById('kpiImportacionGastos');
+    const kpiNeto = document.getElementById('kpiImportacionNeto');
+    const kpiMovimientos = document.getElementById('kpiImportacionMovimientos');
+    if (!kpiIngresos || !kpiGastos || !kpiNeto || !kpiMovimientos) return;
+
+    const totalIngresos = datos
+        .filter((d) => d.tipo === 'ingreso')
+        .reduce((acc, d) => acc + (Number(d.importe) || 0), 0);
+
+    const totalGastos = datos
+        .filter((d) => d.tipo === 'gasto')
+        .reduce((acc, d) => acc + (Number(d.importe) || 0), 0);
+
+    const neto = totalIngresos - totalGastos;
+    const format = (value) => window.formatCurrency
+        ? window.formatCurrency(value)
+        : `€${Number(value || 0).toFixed(2)}`;
+
+    kpiIngresos.textContent = format(totalIngresos);
+    kpiGastos.textContent = format(totalGastos);
+    kpiNeto.textContent = format(neto);
+    kpiMovimientos.textContent = String(datos.length);
+}
+
+function parseImporte(valor) {
+    if (valor == null || valor === '') return NaN;
+    if (typeof valor === 'number') return Number.isFinite(valor) ? valor : NaN;
+
+    let texto = String(valor).trim();
+    if (!texto) return NaN;
+
+    const textoLower = texto.toLowerCase();
+    let negativo = false;
+    if (texto.includes('(') && texto.includes(')')) negativo = true;
+    if (texto.includes('-')) negativo = true;
+    if (/\b(debe|cargo|debito|debit|retirada|salida)\b/i.test(textoLower)) negativo = true;
+    if (/\b(haber|abono|credito|credit|ingreso|entrada)\b/i.test(textoLower)) negativo = false;
+
+    texto = texto
+        .replace(/\s+/g, '')
+        .replace(/[€$£]/g, '')
+        .replace(/[()]/g, '')
+        .replace(/[^\d,.-]/g, '');
+
+    if (!texto) return NaN;
+
+    const lastComma = texto.lastIndexOf(',');
+    const lastDot = texto.lastIndexOf('.');
+
+    if (lastComma > -1 && lastDot > -1) {
+        if (lastComma > lastDot) {
+            texto = texto.replace(/\./g, '').replace(',', '.');
+        } else {
+            texto = texto.replace(/,/g, '');
+        }
+    } else if (lastComma > -1) {
+        texto = texto.replace(',', '.');
+    }
+
+    const numero = Number(texto);
+    if (!Number.isFinite(numero)) return NaN;
+    return negativo ? -Math.abs(numero) : numero;
+}
+
+function inferirTipo(valorTipo, importe) {
+    const texto = normalizarTexto(valorTipo);
+    if (texto) {
+        if (/\b(ingreso|abono|haber|credito|credit|deposito|entrada|in)\b/.test(texto)) {
+            return 'ingreso';
+        }
+        if (/\b(gasto|cargo|debe|debito|debit|retirada|salida|out)\b/.test(texto)) {
+            return 'gasto';
+        }
+    }
+    return Number(importe) >= 0 ? 'ingreso' : 'gasto';
+}
+
+function actualizarPanelValidacion() {
+    const panel = document.getElementById('validacionMapeo');
+    const totalEl = document.getElementById('validacionTotal');
+    const validasEl = document.getElementById('validacionValidas');
+    const invalidasEl = document.getElementById('validacionInvalidas');
+    const bodyErrores = document.getElementById('validacionErroresBody');
+    if (!panel || !totalEl || !validasEl || !invalidasEl || !bodyErrores) return;
+
+    const total = estadoImportacion.datosRaw.length;
+    const validas = estadoImportacion.datosMapadosValidos.length;
+    const invalidas = estadoImportacion.datosMapadosInvalidos.length;
+
+    totalEl.textContent = String(total);
+    validasEl.textContent = String(validas);
+    invalidasEl.textContent = String(invalidas);
+
+    bodyErrores.innerHTML = '';
+    if (invalidas === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td colspan="4">Sin errores de validacion</td>';
+        bodyErrores.appendChild(tr);
+    } else {
+        estadoImportacion.datosMapadosInvalidos.slice(0, 100).forEach((item) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item.fila || '-'}</td>
+                <td>${item.concepto || '-'}</td>
+                <td>${item.importeOriginal ?? '-'}</td>
+                <td>${item.errores.join('; ')}</td>
+            `;
+            bodyErrores.appendChild(tr);
+        });
+    }
+
+    panel.style.display = 'block';
+}
+
+function obtenerPresetsMapeo() {
+    try {
+        return JSON.parse(localStorage.getItem(IMPORT_PRESETS_KEY) || '[]');
+    } catch (_) {
+        return [];
+    }
+}
+
+function guardarPresetsMapeo(presets) {
+    localStorage.setItem(IMPORT_PRESETS_KEY, JSON.stringify(Array.isArray(presets) ? presets : []));
+}
+
+function cargarRevisionConceptoCategoria() {
+    try {
+        const data = JSON.parse(localStorage.getItem(IMPORT_CONCEPT_REVIEW_KEY) || '{}');
+        return (data && typeof data === 'object') ? data : {};
+    } catch (_) {
+        return {};
+    }
+}
+
+function guardarRevisionConceptoCategoria(data) {
+    localStorage.setItem(IMPORT_CONCEPT_REVIEW_KEY, JSON.stringify(data && typeof data === 'object' ? data : {}));
+}
+
+function persistirRevisionConceptoCategoria(categoriasSeleccionadas = {}) {
+    const revision = cargarRevisionConceptoCategoria();
+
+    Object.entries(categoriasSeleccionadas).forEach(([conceptoKey, categoriaId]) => {
+        const meta = estadoImportacion.metaConceptosCategorias?.[conceptoKey];
+        if (!meta || !meta.tipo || !categoriaId) return;
+
+        if (!revision[meta.tipo]) revision[meta.tipo] = {};
+        revision[meta.tipo][conceptoKey] = Number(categoriaId);
+    });
+
+    guardarRevisionConceptoCategoria(revision);
+}
+
+function obtenerRangoFechasDesdeRaw() {
+    const colFecha = document.getElementById('selectFecha')?.value;
+    if (!colFecha || !Array.isArray(estadoImportacion.datosRaw) || estadoImportacion.datosRaw.length === 0) {
+        return null;
+    }
+
+    const formato = document.getElementById('formatoFecha')?.value || estadoImportacion.formatoFecha || 'DD/MM/YYYY';
+    const fechas = estadoImportacion.datosRaw
+        .map((row) => parseDate(row[colFecha], formato))
+        .filter((d) => d instanceof Date && !Number.isNaN(d.getTime()))
+        .sort((a, b) => a - b);
+
+    if (!fechas.length) return null;
+    return { min: fechas[0], max: fechas[fechas.length - 1], total: fechas.length };
+}
+
+function aplicarRangoFechasAnalisis(minDate, maxDate, force = false) {
+    if (!(minDate instanceof Date) || Number.isNaN(minDate.getTime())) return;
+    if (!(maxDate instanceof Date) || Number.isNaN(maxDate.getTime())) return;
+
+    const desdeInput = document.getElementById('analisisDesde');
+    const hastaInput = document.getElementById('analisisHasta');
+    if (!desdeInput || !hastaInput) return;
+
+    const minISO = minDate.toISOString().split('T')[0];
+    const maxISO = maxDate.toISOString().split('T')[0];
+    desdeInput.min = minISO;
+    desdeInput.max = maxISO;
+    hastaInput.min = minISO;
+    hastaInput.max = maxISO;
+
+    const desdeActual = desdeInput.value;
+    const hastaActual = hastaInput.value;
+    const fueraDesde = !desdeActual || desdeActual < minISO || desdeActual > maxISO;
+    const fueraHasta = !hastaActual || hastaActual < minISO || hastaActual > maxISO;
+
+    if (force || fueraDesde) desdeInput.value = minISO;
+    if (force || fueraHasta) hastaInput.value = maxISO;
+}
+
+function obtenerFingerprintColumnas(columnas = []) {
+    return (columnas || []).map((c) => normalizarTexto(c)).sort().join('|');
+}
+
+function poblarSelectPresets() {
+    const select = document.getElementById('selectPresetMapeo');
+    if (!select) return;
+
+    const presets = obtenerPresetsMapeo();
+    const fingerprint = obtenerFingerprintColumnas(estadoImportacion.columnas);
+
+    select.innerHTML = '<option value="">-- Sin preset --</option>';
+    presets
+        .filter((p) => p && p.fingerprint === fingerprint)
+        .forEach((preset) => {
+            const option = document.createElement('option');
+            option.value = preset.id;
+            option.textContent = preset.nombre;
+            select.appendChild(option);
+        });
+}
+
+function aplicarPresetMapeo(presetId) {
+    const presets = obtenerPresetsMapeo();
+    const preset = presets.find((p) => p.id === presetId);
+    if (!preset) return;
+
+    const map = preset.mapeo || {};
+    const setValueIfExists = (id, val) => {
+        const el = document.getElementById(id);
+        if (!el || val == null) return;
+        if (Array.from(el.options).some((opt) => opt.value === val)) {
+            el.value = val;
+        }
+    };
+
+    setValueIfExists('selectFecha', map.fecha);
+    setValueIfExists('selectConcepto', map.concepto);
+    setValueIfExists('selectImporte', map.importe);
+    setValueIfExists('selectTipo', map.tipo);
+    setValueIfExists('selectSaldo', map.saldo);
+
+    const formato = document.getElementById('formatoFecha');
+    if (formato && preset.formatoFecha) formato.value = preset.formatoFecha;
+
+    estadoImportacion.presetSeleccionado = preset.id;
+    mostrarPreview();
+}
+
+async function guardarPresetActual() {
+    if (!validarMapeo()) {
+        showAlert('⚠️ Debes completar un mapeo válido antes de guardar preset', 'warning');
+        return;
+    }
+
+    const nombre = window.prompt('Nombre del preset de mapeo:', estadoImportacion.presetSeleccionado || 'Preset banco');
+    if (!nombre) return;
+
+    const presets = obtenerPresetsMapeo();
+    const id = `${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
+
+    const preset = {
+        id,
+        nombre: nombre.trim(),
+        fingerprint: obtenerFingerprintColumnas(estadoImportacion.columnas),
+        mapeo: {
+            fecha: document.getElementById('selectFecha')?.value || null,
+            concepto: document.getElementById('selectConcepto')?.value || null,
+            importe: document.getElementById('selectImporte')?.value || null,
+            tipo: document.getElementById('selectTipo')?.value || null,
+            saldo: document.getElementById('selectSaldo')?.value || null
+        },
+        formatoFecha: document.getElementById('formatoFecha')?.value || 'DD/MM/YYYY',
+        createdAt: new Date().toISOString()
+    };
+
+    presets.push(preset);
+    guardarPresetsMapeo(presets);
+    poblarSelectPresets();
+    const select = document.getElementById('selectPresetMapeo');
+    if (select) select.value = id;
+    estadoImportacion.presetSeleccionado = id;
+
+    if (typeof window.notifySuccess === 'function') {
+        window.notifySuccess('Preset guardado');
+    }
+}
+
+async function eliminarPresetSeleccionado() {
+    const select = document.getElementById('selectPresetMapeo');
+    if (!select || !select.value) return;
+
+    const confirmed = typeof window.showConfirm === 'function'
+        ? await window.showConfirm('¿Eliminar este preset de mapeo?', 'Confirmar')
+        : window.confirm('¿Eliminar este preset de mapeo?');
+    if (!confirmed) return;
+
+    const presets = obtenerPresetsMapeo().filter((p) => p.id !== select.value);
+    guardarPresetsMapeo(presets);
+    estadoImportacion.presetSeleccionado = null;
+    poblarSelectPresets();
+    if (typeof window.notifyInfo === 'function') {
+        window.notifyInfo('Preset eliminado');
+    }
+}
 
 function cargarImportacionBancaria() {
     console.log('📊 Cargando pestaña de Importación Bancaria');
@@ -110,6 +481,8 @@ function cargarImportacionBancaria() {
         console.log('📤 Mostrando sección de archivos');
         mostrarSeccion('archivos');
     }
+
+    actualizarWizard(estadoImportacion.seccionActual || 'archivos');
 }
 
 function setupEventListeners() {
@@ -129,6 +502,15 @@ function setupEventListeners() {
     const btnDeseleccionarTodos = document.getElementById('btnDeseleccionarTodos');
     const btnGuardarEnBD = document.getElementById('btnGuardarEnBD');
     const tablaConceptosToggle = document.getElementById('tablaConceptosToggle');
+    const selectPresetMapeo = document.getElementById('selectPresetMapeo');
+    const btnGuardarPresetMapeo = document.getElementById('btnGuardarPresetMapeo');
+    const btnEliminarPresetMapeo = document.getElementById('btnEliminarPresetMapeo');
+    const btnDescargarErroresValidacion = document.getElementById('btnDescargarErroresValidacion');
+    const previewFilterInput = document.getElementById('previewFilterInput');
+    const conceptoSearchInput = document.getElementById('conceptoSearchInput');
+    const conceptoSortSelect = document.getElementById('conceptoSortSelect');
+    const btnAplicarCategoriaMasiva = document.getElementById('btnAplicarCategoriaMasiva');
+    const listadoArchivos = document.getElementById('listadoArchivos');
 
     // Validar que los elementos existan
     if (!uploadArea || !fileInput) {
@@ -163,11 +545,51 @@ function setupEventListeners() {
     if (btnMapear) {
         btnMapear.addEventListener('click', () => {
             if (validarMapeo()) {
-                procesarDatosConMapeo();
-                mostrarSeleccionConceptos();
+                const hayValidos = procesarDatosConMapeo();
+                if (hayValidos) {
+                    mostrarSeleccionConceptos();
+                } else {
+                    showAlert('⚠️ No hay filas validas para continuar. Revisa el panel de validacion.', 'warning');
+                }
             }
         });
     }
+
+    if (selectPresetMapeo) {
+        selectPresetMapeo.addEventListener('change', () => {
+            if (selectPresetMapeo.value) {
+                aplicarPresetMapeo(selectPresetMapeo.value);
+            }
+        });
+    }
+
+    if (btnGuardarPresetMapeo) {
+        btnGuardarPresetMapeo.addEventListener('click', guardarPresetActual);
+    }
+
+    if (btnEliminarPresetMapeo) {
+        btnEliminarPresetMapeo.addEventListener('click', eliminarPresetSeleccionado);
+    }
+
+    if (btnDescargarErroresValidacion) {
+        btnDescargarErroresValidacion.addEventListener('click', descargarErroresValidacion);
+    }
+
+    if (previewFilterInput) {
+        previewFilterInput.addEventListener('input', mostrarPreview);
+    }
+
+    ['selectFecha', 'selectConcepto', 'selectImporte', 'selectTipo', 'selectSaldo', 'formatoFecha']
+        .map((id) => document.getElementById(id))
+        .filter(Boolean)
+        .forEach((el) => {
+            el.addEventListener('change', () => {
+                estadoImportacion.presetSeleccionado = null;
+                const presetSelect = document.getElementById('selectPresetMapeo');
+                if (presetSelect) presetSelect.value = '';
+                mostrarPreview();
+            });
+        });
 
     if (btnCancelarMapeo) {
         btnCancelarMapeo.addEventListener('click', () => {
@@ -203,11 +625,15 @@ function setupEventListeners() {
     const btnVolverAnalisis = document.getElementById('btnVolverAnalisis');
     
     if (btnConfirmarCategorias) {
-        btnConfirmarCategorias.addEventListener('click', guardarEnBaseDatos);
+        btnConfirmarCategorias.addEventListener('click', confirmarCategoriasYContinuar);
     }
     
     if (btnVolverAnalisis) {
-        btnVolverAnalisis.addEventListener('click', () => mostrarSeccion('analisis'));
+        btnVolverAnalisis.addEventListener('click', () => mostrarSeccion('seleccionConceptos'));
+    }
+
+    if (btnAplicarCategoriaMasiva) {
+        btnAplicarCategoriaMasiva.addEventListener('click', aplicarCategoriaMasiva);
     }
 
     // Botones de archivos guardados
@@ -229,12 +655,30 @@ function setupEventListeners() {
         });
     }
 
+    if (listadoArchivos) {
+        listadoArchivos.addEventListener('click', async (event) => {
+            const button = event.target.closest('button[data-action][data-id]');
+            if (!button) return;
+
+            const id = button.dataset.id;
+            const nombre = button.dataset.nombre || '';
+            if (!id) return;
+
+            if (button.dataset.action === 'cargar') {
+                await cargarArchivoGuardado(id);
+            } else if (button.dataset.action === 'descargar') {
+                await descargarArchivo(id);
+            } else if (button.dataset.action === 'eliminar') {
+                await eliminarArchivo(id, nombre);
+            }
+        });
+    }
+
     // Botones de selección de conceptos
     if (btnConfirmarConceptos) {
         btnConfirmarConceptos.addEventListener('click', () => {
             aplicarSeleccionConceptos();
-            actualizarAnalisis();
-            mostrarSeccion('analisis');
+            mostrarSeleccionCategorias();
         });
     }
 
@@ -247,12 +691,31 @@ function setupEventListeners() {
     if (btnSeleccionarTodos) {
         btnSeleccionarTodos.addEventListener('click', () => {
             document.querySelectorAll('.concepto-item input[type="checkbox"]').forEach(cb => cb.checked = true);
+            actualizarConceptosSeleccionadosDesdeUI();
         });
     }
 
     if (btnDeseleccionarTodos) {
         btnDeseleccionarTodos.addEventListener('click', () => {
             document.querySelectorAll('.concepto-item input[type="checkbox"]').forEach(cb => cb.checked = false);
+            actualizarConceptosSeleccionadosDesdeUI();
+        });
+    }
+
+    if (conceptoSearchInput) {
+        conceptoSearchInput.addEventListener('input', renderListaConceptos);
+    }
+
+    if (conceptoSortSelect) {
+        conceptoSortSelect.addEventListener('change', renderListaConceptos);
+    }
+
+    const listaConceptos = document.getElementById('listaConceptos');
+    if (listaConceptos) {
+        listaConceptos.addEventListener('change', (event) => {
+            const checkbox = event.target.closest('input[type="checkbox"][data-concepto]');
+            if (!checkbox) return;
+            actualizarConceptosSeleccionadosDesdeUI();
         });
     }
 
@@ -295,8 +758,7 @@ function handleFileSelect(file) {
     estadoImportacion.archivoId = null;
 
     // Mostrar progreso
-    document.getElementById('fileProgress').style.display = 'block';
-    document.getElementById('progressText').textContent = 'Procesando archivo...';
+    actualizarProgreso(10, 'Procesando archivo');
 
     // Validar que el archivo sea Excel o CSV
     const esExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
@@ -320,6 +782,7 @@ function leerExcel(file) {
     const reader = new FileReader();
     reader.onload = (e) => {
         try {
+            actualizarProgreso(40, 'Leyendo Excel');
             const data = e.target.result;
             // Usamos XLSX que debe estar cargado globalmente
             if (typeof XLSX === 'undefined') {
@@ -333,6 +796,7 @@ function leerExcel(file) {
             const limpieza = limpiarColumnasImportacion(jsonData);
             estadoImportacion.datosRaw = limpieza.datos;
             estadoImportacion.columnas = limpieza.columnas;
+            actualizarProgreso(85, 'Preparando mapeo');
 
             console.log('✅ Excel procesado. Columnas encontradas:', estadoImportacion.columnas);
             mostrarMapeoColumnas();
@@ -349,6 +813,7 @@ function leerCSV(file) {
     const reader = new FileReader();
     reader.onload = (e) => {
         try {
+            actualizarProgreso(40, 'Leyendo CSV');
             const csv = e.target.result;
             const lineas = csv.trim().split('\n').filter(l => l.trim());
             
@@ -417,6 +882,7 @@ function leerCSV(file) {
             const limpieza = limpiarColumnasImportacion(jsonData, headers);
             estadoImportacion.datosRaw = limpieza.datos;
             estadoImportacion.columnas = limpieza.columnas;
+            actualizarProgreso(85, 'Preparando mapeo');
 
             console.log('✅ CSV procesado. Columnas encontradas:', estadoImportacion.columnas);
             mostrarMapeoColumnas();
@@ -449,7 +915,11 @@ function limpiarColumnasImportacion(datos, headers = null) {
 }
 
 function mostrarMapeoColumnas() {
-    document.getElementById('fileProgress').style.display = 'none';
+    actualizarProgreso(100, 'Archivo procesado');
+    setTimeout(() => {
+        const fileProgress = document.getElementById('fileProgress');
+        if (fileProgress) fileProgress.style.display = 'none';
+    }, 300);
     
     // Llenar selects - validar que existan
     const selects = ['selectFecha', 'selectConcepto', 'selectImporte', 'selectTipo', 'selectSaldo'];
@@ -474,6 +944,18 @@ function mostrarMapeoColumnas() {
 
     // Auto-seleccionar basado en palabras clave
     autoDetectarColumnas();
+    poblarSelectPresets();
+
+    const selectPreset = document.getElementById('selectPresetMapeo');
+    if (selectPreset) {
+        if (estadoImportacion.presetSeleccionado && Array.from(selectPreset.options).some((opt) => opt.value === estadoImportacion.presetSeleccionado)) {
+            selectPreset.value = estadoImportacion.presetSeleccionado;
+            aplicarPresetMapeo(estadoImportacion.presetSeleccionado);
+        } else if (selectPreset.options.length === 2) {
+            selectPreset.value = selectPreset.options[1].value;
+            aplicarPresetMapeo(selectPreset.value);
+        }
+    }
 
     // Mostrar preview
     mostrarPreview();
@@ -535,6 +1017,12 @@ function restaurarMapeoColumnas() {
         formatoFecha.value = estadoImportacion.formatoFecha;
     }
 
+    poblarSelectPresets();
+    const selectPreset = document.getElementById('selectPresetMapeo');
+    if (selectPreset && estadoImportacion.presetSeleccionado) {
+        selectPreset.value = estadoImportacion.presetSeleccionado;
+    }
+
     // Mostrar preview
     mostrarPreview();
 
@@ -587,25 +1075,69 @@ function mostrarPreview() {
     previewBody.innerHTML = '';
 
     // Headers
+    const columnasMapeadas = new Set([
+        document.getElementById('selectFecha')?.value,
+        document.getElementById('selectConcepto')?.value,
+        document.getElementById('selectImporte')?.value,
+        document.getElementById('selectTipo')?.value,
+        document.getElementById('selectSaldo')?.value
+    ].filter(Boolean));
+
     estadoImportacion.columnas.forEach(col => {
         const th = document.createElement('th');
         th.textContent = col;
+        if (columnasMapeadas.has(col)) {
+            th.classList.add('mapped-col');
+        }
         previewHeader.appendChild(th);
     });
 
-    // Primeras 5 filas
-    const filasPreview = estadoImportacion.datosRaw.slice(0, 5);
+    const filtro = normalizarTexto(document.getElementById('previewFilterInput')?.value || '');
+    const filasFuente = filtro
+        ? estadoImportacion.datosRaw.filter((row) => estadoImportacion.columnas.some((col) => normalizarTexto(row[col]).includes(filtro)))
+        : estadoImportacion.datosRaw;
+
+    // Primeras filas
+    const filasPreview = filasFuente.slice(0, 8);
     filasPreview.forEach(row => {
         const tr = document.createElement('tr');
+        const fechaCol = document.getElementById('selectFecha')?.value;
+        const conceptoCol = document.getElementById('selectConcepto')?.value;
+        const importeCol = document.getElementById('selectImporte')?.value;
+        const formatoFecha = document.getElementById('formatoFecha')?.value || estadoImportacion.formatoFecha || 'DD/MM/YYYY';
+
+        if (fechaCol || conceptoCol || importeCol) {
+            const fecha = fechaCol ? parseDate(row[fechaCol], formatoFecha) : new Date();
+            const concepto = conceptoCol ? String(row[conceptoCol] || '').trim() : 'ok';
+            const importe = importeCol ? parseImporte(row[importeCol]) : 1;
+            if (!fecha || !concepto || !Number.isFinite(importe) || importe === 0) {
+                tr.classList.add('preview-invalid');
+            }
+        }
+
         estadoImportacion.columnas.forEach(col => {
             const td = document.createElement('td');
             td.textContent = row[col] || '';
+            if (columnasMapeadas.has(col)) {
+                td.classList.add('mapped-col');
+            }
             tr.appendChild(td);
         });
         previewBody.appendChild(tr);
     });
 
-    previewInfo.textContent = `Se mostran las primeras ${filasPreview.length} de ${estadoImportacion.datosRaw.length} filas`;
+    const rangoFechas = obtenerRangoFechasDesdeRaw();
+    if (rangoFechas) {
+        aplicarRangoFechasAnalisis(rangoFechas.min, rangoFechas.max, false);
+    }
+
+    const baseInfo = tt('importacion.previewMostrando', 'Mostrando');
+    const baseFilas = tt('importacion.filas', 'filas');
+    const baseFiltradas = tt('importacion.filtradas', 'filtradas');
+    const rangoTexto = rangoFechas
+        ? ` · ${tt('importacion.fechasDisponibles', 'Fechas disponibles')}: ${rangoFechas.min.toLocaleDateString()} - ${rangoFechas.max.toLocaleDateString()}`
+        : '';
+    previewInfo.textContent = `${baseInfo} ${filasPreview.length}/${filasFuente.length} ${baseFilas}${filtro ? ` ${baseFiltradas}` : ''}${rangoTexto}`;
     console.log('✅ Preview mostrado con', filasPreview.length, 'filas');
 }
 
@@ -644,68 +1176,158 @@ function procesarDatosConMapeo() {
     };
     estadoImportacion.formatoFecha = document.getElementById('formatoFecha').value || 'DD/MM/YYYY';
 
-    estadoImportacion.datosMapados = estadoImportacion.datosRaw.map(row => {
-        const fecha = parseDate(row[estadoImportacion.mapeo.fecha], estadoImportacion.formatoFecha);
-        const importe = parseFloat(row[estadoImportacion.mapeo.importe].toString().replace(',', '.')) || 0;
+    const validos = [];
+    const invalidos = [];
 
-        return {
+    estadoImportacion.datosRaw.forEach((row, index) => {
+        const fecha = parseDate(row[estadoImportacion.mapeo.fecha], estadoImportacion.formatoFecha);
+        const concepto = String(row[estadoImportacion.mapeo.concepto] || '').trim();
+        const importeOriginal = row[estadoImportacion.mapeo.importe];
+        const importeNumerico = parseImporte(importeOriginal);
+        const tipoRaw = estadoImportacion.mapeo.tipo ? row[estadoImportacion.mapeo.tipo] : null;
+        const tipo = inferirTipo(tipoRaw, importeNumerico);
+
+        const errores = [];
+        if (!fecha) errores.push('Fecha invalida');
+        if (!concepto) errores.push('Concepto vacio');
+        if (!Number.isFinite(importeNumerico)) errores.push('Importe invalido');
+        if (Number.isFinite(importeNumerico) && importeNumerico === 0) errores.push('Importe cero');
+
+        if (errores.length > 0) {
+            invalidos.push({
+                fila: index + 2,
+                concepto: concepto || '-',
+                importeOriginal,
+                errores
+            });
+            return;
+        }
+
+        validos.push({
             fecha,
-            concepto: row[estadoImportacion.mapeo.concepto],
-            importe: Math.abs(importe),
-            tipo: importe >= 0 ? 'ingreso' : 'gasto'
-        };
+            concepto,
+            importe: Math.abs(importeNumerico),
+            tipo
+        });
     });
 
-    console.log('✅ Datos procesados:', estadoImportacion.datosMapados.length, 'movimientos');
+    estadoImportacion.datosMapadosValidos = validos;
+    estadoImportacion.datosMapadosInvalidos = invalidos;
+    estadoImportacion.datosMapados = validos;
+    estadoImportacion.datosAnalisisActual = [];
+
+    if (validos.length > 0) {
+        const fechas = validos
+            .map((d) => d.fecha)
+            .filter((d) => d instanceof Date && !Number.isNaN(d.getTime()))
+            .sort((a, b) => a - b);
+        if (fechas.length) {
+            aplicarRangoFechasAnalisis(fechas[0], fechas[fechas.length - 1], true);
+        }
+    }
+
+    actualizarPanelValidacion();
+    console.log('✅ Datos procesados:', validos.length, 'validos,', invalidos.length, 'invalidos');
+
+    return validos.length > 0;
 }
 
 function parseDate(dateStr, formato) {
-    if (!dateStr) return null;
-    
-    // Intentar parsear
-    let date = null;
-    
-    // Validar que dateStr sea una cadena
-    if (typeof dateStr !== 'string') {
-        dateStr = String(dateStr || '');
-    }
-    
-    if (formato.includes('DD/MM/YYYY')) {
-        const partes = dateStr.split('/');
-        if (partes.length === 3) {
-            date = new Date(partes[2], partes[1] - 1, partes[0]);
-        }
-    } else if (formato.includes('MM/DD/YYYY')) {
-        const partes = dateStr.split('/');
-        if (partes.length === 3) {
-            date = new Date(partes[2], partes[0] - 1, partes[1]);
-        }
-    } else if (formato.includes('YYYY-MM-DD')) {
-        date = new Date(dateStr);
-    } else {
-        date = new Date(dateStr);
+    if (dateStr == null || dateStr === '') return null;
+
+    if (dateStr instanceof Date) {
+        return Number.isNaN(dateStr.getTime()) ? null : dateStr;
     }
 
-    if (!date || isNaN(date)) {
-        const fallback = new Date(dateStr);
-        if (!isNaN(fallback)) {
-            date = fallback;
+    if (typeof dateStr === 'number' && Number.isFinite(dateStr)) {
+        if (dateStr > 10000 && dateStr < 100000) {
+            const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+            const date = new Date(excelEpoch.getTime() + Math.round(dateStr) * 86400000);
+            return Number.isNaN(date.getTime()) ? null : date;
+        }
+        const date = new Date(dateStr);
+        return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    const raw = String(dateStr).trim();
+    if (!raw) return null;
+
+    if (/^\d{5}(\.\d+)?$/.test(raw)) {
+        const serial = Number(raw);
+        const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+        const date = new Date(excelEpoch.getTime() + Math.round(serial) * 86400000);
+        return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    const match = raw.match(/^(\d{1,4})[\/\-.](\d{1,2})[\/\-.](\d{1,4})$/);
+    if (match) {
+        const a = Number(match[1]);
+        const b = Number(match[2]);
+        const c = Number(match[3]);
+
+        let day;
+        let month;
+        let year;
+
+        if (String(a).length === 4) {
+            year = a;
+            month = b;
+            day = c;
+        } else if ((formato || '').includes('MM/DD')) {
+            month = a;
+            day = b;
+            year = c;
+        } else {
+            day = a;
+            month = b;
+            year = c;
+        }
+
+        const date = new Date(year, month - 1, day);
+        if (
+            !Number.isNaN(date.getTime())
+            && date.getFullYear() === year
+            && date.getMonth() === month - 1
+            && date.getDate() === day
+        ) {
+            return date;
         }
     }
 
-    return date && !isNaN(date) ? date : null;
+    const fallback = new Date(raw);
+    return Number.isNaN(fallback.getTime()) ? null : fallback;
 }
 
 function mostrarSeleccionConceptos() {
+    renderListaConceptos(false);
+    mostrarSeccion('seleccionConceptos');
+    console.log('✅ Selección de conceptos mostrada');
+}
+
+function actualizarConceptosSeleccionadosDesdeUI() {
+    const checkboxes = document.querySelectorAll('.concepto-item input[type="checkbox"][data-concepto]');
+    if (!checkboxes.length) return;
+
+    estadoImportacion.conceptosSeleccionados = Array.from(checkboxes)
+        .filter((cb) => cb.checked)
+        .map((cb) => cb.dataset.concepto);
+}
+
+function renderListaConceptos(forzarTodosSeleccionados = false) {
     const listaConceptos = document.getElementById('listaConceptos');
-    if (!listaConceptos) {
-        console.error('❌ Lista de conceptos no encontrada');
-        return;
+    if (!listaConceptos) return;
+
+    if (!forzarTodosSeleccionados) {
+        actualizarConceptosSeleccionadosDesdeUI();
     }
 
-    // Agrupar conceptos únicos con estadísticas
+    const searchInput = document.getElementById('conceptoSearchInput');
+    const sortSelect = document.getElementById('conceptoSortSelect');
+    const filtro = normalizarTexto(searchInput?.value || '');
+    const sortBy = sortSelect?.value || 'impacto';
+
     const conceptosMap = {};
-    estadoImportacion.datosMapados.forEach(d => {
+    estadoImportacion.datosMapados.forEach((d) => {
         const concepto = d.concepto || 'Sin concepto';
         if (!conceptosMap[concepto]) {
             conceptosMap[concepto] = {
@@ -715,7 +1337,7 @@ function mostrarSeleccionConceptos() {
                 totalGasto: 0
             };
         }
-        conceptosMap[concepto].count++;
+        conceptosMap[concepto].count += 1;
         if (d.tipo === 'ingreso') {
             conceptosMap[concepto].totalIngreso += d.importe;
         } else {
@@ -723,22 +1345,47 @@ function mostrarSeleccionConceptos() {
         }
     });
 
-    // Ordenar por cantidad de movimientos
-    const conceptos = Object.values(conceptosMap).sort((a, b) => b.count - a.count);
+    let conceptos = Object.values(conceptosMap);
+    if (filtro) {
+        conceptos = conceptos.filter((c) => normalizarTexto(c.nombre).includes(filtro));
+    }
 
-    // Generar HTML
+    conceptos.sort((a, b) => {
+        if (sortBy === 'alfabetico') return a.nombre.localeCompare(b.nombre, 'es');
+        if (sortBy === 'movimientos') return b.count - a.count;
+        const impactoA = Math.max(a.totalIngreso, a.totalGasto);
+        const impactoB = Math.max(b.totalIngreso, b.totalGasto);
+        return impactoB - impactoA;
+    });
+
+    const selectedSet = new Set(
+        (forzarTodosSeleccionados || estadoImportacion.conceptosSeleccionados.length === 0)
+            ? Object.keys(conceptosMap)
+            : estadoImportacion.conceptosSeleccionados
+    );
+
     listaConceptos.innerHTML = '';
-    conceptos.forEach(concepto => {
+    if (conceptos.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'color-secondary';
+        empty.textContent = tt('importacion.sinConceptosFiltro', 'Sin conceptos que coincidan con el filtro');
+        listaConceptos.appendChild(empty);
+        return;
+    }
+
+    conceptos.forEach((concepto) => {
         const div = document.createElement('div');
         div.className = 'concepto-item';
-        
+
         const tipo = concepto.totalIngreso > concepto.totalGasto ? 'ingreso' : 'gasto';
-        const total = concepto.totalIngreso > 0 ? concepto.totalIngreso : concepto.totalGasto;
-        
+        const total = Math.max(concepto.totalIngreso, concepto.totalGasto);
+        const checked = selectedSet.has(concepto.nombre);
+        const conceptoEscapado = escapeHtml(concepto.nombre);
+
         div.innerHTML = `
-            <input type="checkbox" checked data-concepto="${concepto.nombre}">
+            <input type="checkbox" ${checked ? 'checked' : ''} data-concepto="${conceptoEscapado}">
             <div class="concepto-texto">
-                <span class="concepto-nombre">${concepto.nombre}</span>
+                <span class="concepto-nombre">${conceptoEscapado}</span>
                 <div class="concepto-info">
                     <span class="concepto-badge badge-${tipo}">${tipo === 'ingreso' ? 'Ingreso' : 'Gasto'}</span>
                     <span>${concepto.count} movimientos</span>
@@ -749,19 +1396,38 @@ function mostrarSeleccionConceptos() {
         listaConceptos.appendChild(div);
     });
 
-    mostrarSeccion('seleccionConceptos');
-    console.log('✅ Selección de conceptos mostrada:', conceptos.length, 'conceptos únicos');
+    actualizarConceptosSeleccionadosDesdeUI();
 }
 
 function aplicarSeleccionConceptos() {
-    const checkboxes = document.querySelectorAll('.concepto-item input[type="checkbox"]');
-    const conceptosSeleccionados = Array.from(checkboxes)
-        .filter(cb => cb.checked)
-        .map(cb => cb.dataset.concepto);
+    actualizarConceptosSeleccionadosDesdeUI();
+    console.log('✅ Conceptos seleccionados:', estadoImportacion.conceptosSeleccionados.length);
+}
 
-    estadoImportacion.conceptosSeleccionados = conceptosSeleccionados;
-    
-    console.log('✅ Conceptos seleccionados:', conceptosSeleccionados.length);
+function aplicarCategoriaMasiva() {
+    const masivo = document.getElementById('categoriaMasivaSelect');
+    if (!masivo || !masivo.value) {
+        showAlert('⚠️ Selecciona una categoria masiva antes de aplicar', 'warning');
+        return;
+    }
+
+    const selects = document.querySelectorAll('.categoria-select');
+    let aplicados = 0;
+    selects.forEach((select) => {
+        if (Array.from(select.options).some((opt) => opt.value === masivo.value)) {
+            select.value = masivo.value;
+            aplicados += 1;
+        }
+    });
+
+    if (aplicados === 0) {
+        showAlert('⚠️ La categoria seleccionada no aplica a los conceptos visibles', 'warning');
+        return;
+    }
+
+    if (typeof window.notifyInfo === 'function') {
+        window.notifyInfo(`Categoria aplicada en ${aplicados} conceptos`);
+    }
 }
 
 
@@ -771,9 +1437,12 @@ function actualizarAnalisis() {
     const desdeInput = document.getElementById('analisisDesde').value;
     const hastaInput = document.getElementById('analisisHasta').value;
 
+    alternarLoadingAnalisis(true);
+
     if (!desdeInput || !hastaInput) {
         console.warn('Rango de fechas no establecido');
         showAlert('⚠️ ' + t('importacion.errorRangoFechas'), 'info');
+        alternarLoadingAnalisis(false);
         return;
     }
 
@@ -804,8 +1473,14 @@ function actualizarAnalisis() {
 
     if (datosFilterados.length === 0) {
         showAlert('⚠️ ' + t('importacion.errorSinDatosRango'), 'info');
+        estadoImportacion.datosAnalisisActual = [];
+        actualizarKpisAnalisis([]);
+        alternarLoadingAnalisis(false);
         return;
     }
+
+    estadoImportacion.datosAnalisisActual = datosFilterados;
+    actualizarKpisAnalisis(datosFilterados);
 
     generarGraficoCategoria(datosFilterados);
     generarGraficoIngresoVsGasto(datosFilterados);
@@ -825,6 +1500,8 @@ function actualizarAnalisis() {
             console.log('⏭️ Archivo cargado desde servidor, NO se guarda automáticamente para evitar duplicados');
         }
     }
+
+    alternarLoadingAnalisis(false);
 }
 
 function generarGraficoCategoria(datos) {
@@ -993,8 +1670,8 @@ function generarGraficoEvolucionSaldo(datos, datosRaw, columnasSaldo) {
                 datosPorFecha[fechaKey] = { saldo: null };
             }
             // Usar el último saldo del día (el más reciente)
-            const saldoValor = parseFloat(d[columnasSaldo]?.toString().replace(',', '.')) || 0;
-            if (saldoValor !== 0) {
+            const saldoValor = parseImporte(d[columnasSaldo]);
+            if (Number.isFinite(saldoValor) && saldoValor !== 0) {
                 datosPorFecha[fechaKey].saldo = saldoValor;
             }
         });
@@ -1110,29 +1787,81 @@ function generarGraficoMovimientosPorMes(datos) {
 
 function exportarDatos() {
     console.log('💾 Exportando datos...');
+    const dataset = (estadoImportacion.datosAnalisisActual && estadoImportacion.datosAnalisisActual.length > 0)
+        ? estadoImportacion.datosAnalisisActual
+        : estadoImportacion.datosMapados;
+
+    if (!dataset || dataset.length === 0) {
+        showAlert('⚠️ No hay datos para exportar', 'warning');
+        return;
+    }
+
+    const csvCell = (value) => {
+        const text = String(value ?? '');
+        return `"${text.replace(/"/g, '""')}"`;
+    };
+
+    const formatearFechaCsv = (fecha) => {
+        if (!fecha) return '';
+        const date = (fecha instanceof Date) ? fecha : new Date(fecha);
+        if (Number.isNaN(date.getTime())) return '';
+        return date.toISOString().split('T')[0];
+    };
     
     // Crear CSV
     const headers = ['Fecha', 'Concepto', 'Importe', 'Tipo'];
-    const rows = estadoImportacion.datosMapados.map(d => [
-        d.fecha ? d.fecha.toISOString().split('T')[0] : '',
+    const rows = dataset.map(d => [
+        formatearFechaCsv(d.fecha),
         d.concepto,
         d.importe,
         d.tipo
     ]);
 
-    let csv = headers.join(',') + '\n';
+    let csv = headers.map(csvCell).join(',') + '\n';
     rows.forEach(row => {
-        csv += row.map(cell => `"${cell}"`).join(',') + '\n';
+        csv += row.map(csvCell).join(',') + '\n';
     });
 
     // Descargar
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `analisis_bancario_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `analisis_bancario_${formatearFechaCsv(new Date())}.csv`;
     link.click();
+    URL.revokeObjectURL(link.href);
 
     // Aviso de éxito eliminado por requerimiento
+}
+
+function descargarErroresValidacion() {
+    const errores = Array.isArray(estadoImportacion.datosMapadosInvalidos)
+        ? estadoImportacion.datosMapadosInvalidos
+        : [];
+
+    if (!errores.length) {
+        showInfoToast('No hay errores de validación para exportar');
+        return;
+    }
+
+    const csvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    const headers = ['Fila', 'Concepto', 'Importe', 'Errores'];
+
+    let csv = headers.map(csvCell).join(',') + '\n';
+    errores.forEach((item) => {
+        csv += [
+            item.fila || '',
+            item.concepto || '',
+            item.importeOriginal ?? '',
+            Array.isArray(item.errores) ? item.errores.join('; ') : ''
+        ].map(csvCell).join(',') + '\n';
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `importacion_errores_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
 }
 
 async function mostrarSeleccionCategorias() {
@@ -1153,6 +1882,22 @@ async function mostrarSeleccionCategorias() {
             gastos: crearMapaConceptosGuardados(dashboardData, 'gasto'),
             ingresos: crearMapaConceptosGuardados(dashboardData, 'ingreso')
         };
+
+        const categoriaMasivaSelect = document.getElementById('categoriaMasivaSelect');
+        if (categoriaMasivaSelect) {
+            categoriaMasivaSelect.innerHTML = '<option value="">-- Selecciona --</option>';
+            const categoriasMasivas = [
+                ...(Array.isArray(categorias.gastos) ? categorias.gastos.map((c) => ({ ...c, tipo: 'Gasto' })) : []),
+                ...(Array.isArray(categorias.ingresos) ? categorias.ingresos.map((c) => ({ ...c, tipo: 'Ingreso' })) : [])
+            ];
+
+            categoriasMasivas.forEach((cat) => {
+                const option = document.createElement('option');
+                option.value = String(cat.id);
+                option.textContent = `[${cat.tipo}] ${cat.nombre}`;
+                categoriaMasivaSelect.appendChild(option);
+            });
+        }
         
         const tablaCuerpo = document.getElementById('tablaCategoriasBodies');
 
@@ -1166,6 +1911,7 @@ async function mostrarSeleccionCategorias() {
 
         // Crear mapa de conceptos únicos normalizados (categoria por concepto, no por importe)
         const conceptosMap = {};
+        estadoImportacion.metaConceptosCategorias = {};
         conceptosFiltrados.forEach((d, idx) => {
             const conceptoRaw = d.concepto || 'Sin concepto';
             const conceptoKey = normalizarTexto(conceptoRaw) || 'sin-concepto';
@@ -1180,7 +1926,13 @@ async function mostrarSeleccionCategorias() {
             }
             conceptosMap[conceptoKey].montoTotal += d.importe || 0;
             conceptosMap[conceptoKey].cantidad += 1;
+            estadoImportacion.metaConceptosCategorias[conceptoKey] = {
+                tipo: d.tipo,
+                concepto: conceptoRaw
+            };
         });
+
+        const revisionGuardada = cargarRevisionConceptoCategoria();
 
         // Crear filas de la tabla
         Object.entries(conceptosMap).forEach(([conceptoKey, datos]) => {
@@ -1229,17 +1981,23 @@ async function mostrarSeleccionCategorias() {
                     select.appendChild(option);
                 });
 
-                // 1) Si ya existe el concepto en tablas, usar su categoría
+                // 1) Si hay revisión previa guardada del usuario, priorizarla
+                const sugeridaRevision = revisionGuardada?.[datos.tipo]?.[conceptoKey];
+                if (sugeridaRevision && catSource.some((c) => Number(c.id) === Number(sugeridaRevision))) {
+                    categoriasAutodetectada = Number(sugeridaRevision);
+                }
+
+                // 2) Si ya existe el concepto en tablas, usar su categoría
                 const mapaTipo = datos.tipo === 'ingreso' ? mapaGuardados.ingresos : mapaGuardados.gastos;
                 const guardado = mapaTipo.get(conceptoKey);
-                if (guardado) {
+                if (!categoriasAutodetectada && guardado) {
                     const catGuardada = catSource.find(c => normalizarTexto(c.nombre) === normalizarTexto(guardado));
                     if (catGuardada) {
                         categoriasAutodetectada = catGuardada.id;
                     }
                 }
 
-                // 2) Detección automática si no hay categoría guardada
+                // 3) Detección automática si no hay categoría guardada/revisada
                 if (!categoriasAutodetectada) {
                     categoriasAutodetectada = detectarCategoriaAutomatica(datos.concepto, catSource);
                 }
@@ -1265,6 +2023,39 @@ async function mostrarSeleccionCategorias() {
         console.error('❌ Error cargando categorías:', error);
         showAlert(`❌ Error al cargar categorías: ${error.message}`, 'error');
     }
+}
+
+function obtenerCategoriasSeleccionadasDesdeTabla() {
+    const categoriasSeleccionadas = {};
+    const sinSeleccionar = [];
+    const selects = document.querySelectorAll('.categoria-select');
+
+    selects.forEach((select) => {
+        const concepto = select.dataset.concepto;
+        const categoria = select.value;
+
+        if (!categoria) {
+            sinSeleccionar.push(concepto);
+        } else {
+            categoriasSeleccionadas[concepto] = parseInt(categoria, 10);
+        }
+    });
+
+    return { categoriasSeleccionadas, sinSeleccionar };
+}
+
+function confirmarCategoriasYContinuar() {
+    const { categoriasSeleccionadas, sinSeleccionar } = obtenerCategoriasSeleccionadasDesdeTabla();
+    if (sinSeleccionar.length > 0) {
+        showAlert('⚠️ Por favor selecciona categoría para todos los conceptos', 'warning');
+        return;
+    }
+
+    estadoImportacion.categoriasPorConcepto = categoriasSeleccionadas;
+    persistirRevisionConceptoCategoria(categoriasSeleccionadas);
+
+    actualizarAnalisis();
+    mostrarSeccion('analisis');
 }
 
 function prepararCategorias(categorias) {
@@ -1467,26 +2258,19 @@ async function guardarEnBaseDatos() {
     }
 
     // Obtener categorías seleccionadas por concepto
-    const categoriasSeleccionadas = {};
-    const sinSeleccionar = [];
-    const selects = document.querySelectorAll('.categoria-select');
-    
-    selects.forEach(select => {
-        const concepto = select.dataset.concepto;
-        const categoria = select.value;
-        
-        if (!categoria) {
-            sinSeleccionar.push(concepto);
-        } else {
-            categoriasSeleccionadas[concepto] = parseInt(categoria);
-        }
-    });
+    let { categoriasSeleccionadas, sinSeleccionar } = obtenerCategoriasSeleccionadasDesdeTabla();
+    if (!Object.keys(categoriasSeleccionadas).length && estadoImportacion.categoriasPorConcepto) {
+        categoriasSeleccionadas = { ...estadoImportacion.categoriasPorConcepto };
+        sinSeleccionar = [];
+    }
 
     // Validar que todas las categorías estén seleccionadas
     if (sinSeleccionar.length > 0) {
         showAlert('⚠️ Por favor selecciona categoría para todos los conceptos', 'warning');
         return;
     }
+
+    persistirRevisionConceptoCategoria(categoriasSeleccionadas);
 
     // Separar en gastos e ingresos con sus categorías
     const datosGastos = [];
@@ -1636,6 +2420,7 @@ function mostrarSeccion(seccion) {
     
     // Guardar la sección actual para cuando se vuelva a abrir la pestaña
     estadoImportacion.seccionActual = seccion;
+    actualizarWizard(seccion);
     console.log('📍 Sección guardada:', seccion);
 }
 
@@ -1655,6 +2440,9 @@ function resetearImportacion() {
         nombreArchivoOrigen: null,
         datosRaw: [],
         datosMapados: [],
+        datosMapadosValidos: [],
+        datosMapadosInvalidos: [],
+        datosAnalisisActual: [],
         columnas: [],
         mapeo: { fecha: null, concepto: null, importe: null, tipo: null },
         formatoFecha: 'DD/MM/YYYY',
@@ -1664,13 +2452,19 @@ function resetearImportacion() {
         archivoId: null,
         archivoGuardado: false,
         conceptosSeleccionados: [],
-        tableFilter: 'gasto'
+        categoriasPorConcepto: {},
+        metaConceptosCategorias: {},
+        tableFilter: 'gasto',
+        presetSeleccionado: null
     };
     
     // Actualizar referencia global
     window.estadoImportacion = estadoImportacion;
     
     document.getElementById('fileInput').value = '';
+    const validacion = document.getElementById('validacionMapeo');
+    if (validacion) validacion.style.display = 'none';
+    actualizarWizard('upload');
     console.log('✅ Importación reseteada');
 }
 
@@ -1693,6 +2487,8 @@ async function cargarListadoArchivos() {
 
         const listadoArchivos = document.getElementById('listadoArchivos');
         
+        if (!listadoArchivos) return;
+
         if (!data.archivos || data.archivos.length === 0) {
             listadoArchivos.innerHTML = `<p style="text-align: center; color: var(--text-secondary);">${t('importacion.noArchivos')}</p>`;
             return;
@@ -1713,6 +2509,15 @@ async function cargarListadoArchivos() {
     }
 }
 
+function escapeHtml(texto) {
+    return String(texto || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function crearElementoArchivo(archivo) {
     const div = document.createElement('div');
     div.className = 'archivo-item';
@@ -1730,7 +2535,7 @@ function crearElementoArchivo(archivo) {
     div.innerHTML = `
         <div class="archivo-info">
             <div class="archivo-nombre">
-                <i class="fas fa-file-excel"></i> ${archivo.nombre}
+                <i class="fas fa-file-excel"></i> ${escapeHtml(archivo.nombre)}
             </div>
             <div class="archivo-detalles">
                 <span class="archivo-fecha">
@@ -1742,13 +2547,13 @@ function crearElementoArchivo(archivo) {
             </div>
         </div>
         <div class="archivo-acciones">
-            <button class="btn-archivo btn-cargar" onclick="cargarArchivoGuardado('${archivo.id}')">
+            <button class="btn-archivo btn-cargar" data-action="cargar" data-id="${escapeHtml(archivo.id)}" data-nombre="${escapeHtml(archivo.nombre)}">
                 <i class="fas fa-upload"></i> ${t('importacion.btnCargar')}
             </button>
-            <button class="btn-archivo btn-descargar" onclick="descargarArchivo('${archivo.id}')">
+            <button class="btn-archivo btn-descargar" data-action="descargar" data-id="${escapeHtml(archivo.id)}" data-nombre="${escapeHtml(archivo.nombre)}">
                 <i class="fas fa-download"></i> ${t('importacion.btnDescargar')}
             </button>
-            <button class="btn-archivo btn-eliminar" onclick="eliminarArchivo('${archivo.id}', '${archivo.nombre}')">
+            <button class="btn-archivo btn-eliminar" data-action="eliminar" data-id="${escapeHtml(archivo.id)}" data-nombre="${escapeHtml(archivo.nombre)}">
                 <i class="fas fa-trash"></i> ${t('importacion.btnEliminar')}
             </button>
         </div>
@@ -1760,13 +2565,13 @@ function crearElementoArchivo(archivo) {
 async function cargarArchivoGuardado(archivoId) {
     try {
         console.log('📖 Cargando archivo guardado:', archivoId);
-        showAlert('⏳ ' + t('importacion.cargandoArchivo'), 'info');
+        showInfoToast('⏳ ' + t('importacion.cargandoArchivo'));
         
         const response = await fetch(`/api/importacion/contenido/${archivoId}`);
         const data = await response.json();
 
         if (!data.success) {
-            showAlert('❌ ' + t('importacion.errorCargandoArchivo') + ': ' + data.error, 'error');
+            showErrorToast('❌ ' + t('importacion.errorCargandoArchivo') + ': ' + data.error);
             return;
         }
 
@@ -1808,7 +2613,7 @@ async function cargarArchivoGuardado(archivoId) {
         // Aviso de éxito eliminado por requerimiento
     } catch (error) {
         console.error('❌ Error cargando archivo:', error);
-        showAlert('❌ ' + t('importacion.errorCargandoArchivo') + ': ' + error.message, 'error');
+        showErrorToast('❌ ' + t('importacion.errorCargandoArchivo') + ': ' + error.message);
     }
 }
 
@@ -1832,7 +2637,7 @@ async function eliminarArchivo(archivoId, nombreArchivo) {
 
     try {
         console.log('🗑️ Eliminando archivo:', archivoId);
-        showAlert('⏳ ' + t('importacion.eliminandoArchivo'), 'info');
+        showInfoToast('⏳ ' + t('importacion.eliminandoArchivo'));
 
         const response = await fetch(`/api/importacion/eliminar/${archivoId}`, {
             method: 'DELETE'
@@ -1841,18 +2646,19 @@ async function eliminarArchivo(archivoId, nombreArchivo) {
         const data = await response.json();
 
         if (!data.success) {
-            showAlert('❌ ' + t('importacion.errorEliminandoArchivo') + ': ' + data.error, 'error');
+            showErrorToast('❌ ' + t('importacion.errorEliminandoArchivo') + ': ' + data.error);
             return;
         }
 
         console.log('✅ Archivo eliminado');
+        showSuccessToast('✅ ' + tt('importacion.archivoEliminado', 'Archivo eliminado'));
         // Aviso de éxito eliminado por requerimiento
         
         // Recargar listado
         await cargarListadoArchivos();
     } catch (error) {
         console.error('❌ Error eliminando archivo:', error);
-        showAlert('❌ ' + t('importacion.errorEliminandoArchivo') + ': ' + error.message, 'error');
+        showErrorToast('❌ ' + t('importacion.errorEliminandoArchivo') + ': ' + error.message);
     }
 }
 
@@ -1864,7 +2670,7 @@ async function guardarDatosEnServidor(nombre) {
 
     try {
         console.log('💾 Guardando archivo en servidor:', nombre);
-        showAlert('⏳ ' + t('importacion.guardandoArchivo'), 'info');
+        showInfoToast('⏳ ' + t('importacion.guardandoArchivo'));
 
         // Convertir datos a CSV
         const csv = convertirDatosACSV(estadoImportacion.datosRaw);
@@ -1918,7 +2724,7 @@ async function guardarArchivoActual(nombre) {
 
     try {
         console.log('💾 Guardando archivo actual...');
-        showAlert('⏳ ' + t('importacion.guardandoArchivo'), 'info');
+        showInfoToast('⏳ ' + t('importacion.guardandoArchivo'));
 
         // Convertir datos a CSV
         const csv = convertirDatosACSV(estadoImportacion.datosRaw);
@@ -1937,7 +2743,7 @@ async function guardarArchivoActual(nombre) {
         const data = await response.json();
 
         if (!data.success) {
-            showAlert('❌ ' + t('importacion.errorGuardandoArchivo') + ': ' + data.error, 'error');
+            showErrorToast('❌ ' + t('importacion.errorGuardandoArchivo') + ': ' + data.error);
             return;
         }
 
@@ -1948,7 +2754,7 @@ async function guardarArchivoActual(nombre) {
         await cargarListadoArchivos();
     } catch (error) {
         console.error('❌ Error guardando archivo:', error);
-        showAlert('❌ ' + t('importacion.errorGuardandoArchivo') + ': ' + error.message, 'error');
+        showErrorToast('❌ ' + t('importacion.errorGuardandoArchivo') + ': ' + error.message);
     }
 }
 

@@ -74,7 +74,8 @@ TRADUCCIONES.pt =  {
             impuestosPre: 'Pré',
             impuestosPost: 'Pós',
             totalHucha: 'Total Cofrinho',
-            portfolioRendimiento: 'Desempenho do Portfólio'
+            portfolioRendimiento: 'Desempenho do Portfólio',
+            portfolioValorTotal: 'Valor total'
         },
 
         inicio: {
@@ -109,7 +110,20 @@ TRADUCCIONES.pt =  {
             concepto: 'Conceito',
             cantidad: 'Quantidade',
             placeholderConcepto: 'Conceito...',
-            placeholderCantidad: '0,00'
+            placeholderCantidad: '0,00',
+            principal: 'Mealheiro Principal'
+        },
+        subHucha: {
+            titulo: 'Mealheiros secundários',
+            nombre: 'Nome',
+            aportacionInicial: 'Depósito inicial',
+            aportacionMensual: 'Depósito mensal',
+            saldoActual: 'Saldo atual',
+            placeholderNombre: 'Nome do mealheiro...',
+            aportacionesPuntuales: 'Depósitos pontuais',
+            hucha: 'Mealheiro',
+            camposRequeridos: 'Nome, desde e até são obrigatórios',
+            camposPuntualRequeridos: 'Mealheiro, data e montante são obrigatórios'
         },
 
         // ===== NAVEGACIÓN =====
@@ -231,6 +245,7 @@ TRADUCCIONES.pt =  {
             errorColumnasRequeridas: 'Por favor, selecione todas as colunas obrigatórias: Data, Conceito e Valor.',
             errorRangoFechas: 'Por favor, selecione um intervalo de datas',
             errorSinDatosRango: 'Nenhum dado encontrado no intervalo de datas selecionado',
+            fechasDisponibles: 'Datas disponíveis',
             exitoGraficos: 'Gráficos atualizados com sucesso',
             errorGraficoCategoria: 'Erro ao gerar gráfico de categorias',
             errorGraficoIngresoVsGasto: 'Erro ao gerar gráfico de Receitas vs Despesas',
@@ -299,6 +314,7 @@ TRADUCCIONES.pt =  {
             errorHastaMenorDesde: 'A data "até" não pode ser anterior à "de"',
             seleccionaRango: 'Por favor selecione um intervalo de datas',
             refrescarResumen: 'Atualizar resumo',
+            vsPeriodoAnterior: 'vs período anterior',
             mostrarReales: 'Mostrar reais',
             ingresosReales: 'Receitas Reais',
             gastosReales: 'Despesas Reais',

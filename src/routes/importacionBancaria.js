@@ -45,6 +45,42 @@ const upload = multer({
     limits: { fileSize: 10 * 1024 * 1024 } // 10MB máximo
 });
 
+function resolverRutaSeguraArchivo(fileId) {
+    const uploadsDir = getUploadsDir();
+    if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const id = String(fileId || '').trim();
+    if (!id || id.includes('\0')) {
+        return { error: 'Identificador de archivo inválido', status: 400 };
+    }
+
+    if (id.includes('/') || id.includes('\\') || id.includes('..')) {
+        return { error: 'Identificador de archivo inválido', status: 400 };
+    }
+
+    const rutaArchivo = path.join(uploadsDir, id);
+    if (!fs.existsSync(rutaArchivo)) {
+        return { error: 'Archivo no encontrado', status: 404 };
+    }
+
+    const stat = fs.statSync(rutaArchivo);
+    if (!stat.isFile()) {
+        return { error: 'Recurso inválido', status: 400 };
+    }
+
+    const realUploadsDir = fs.realpathSync(uploadsDir);
+    const realPath = fs.realpathSync(rutaArchivo);
+    const relative = path.relative(realUploadsDir, realPath);
+
+    if (relative.startsWith('..') || path.isAbsolute(relative)) {
+        return { error: 'Acceso denegado', status: 403 };
+    }
+
+    return { rutaArchivo, realPath, realUploadsDir };
+}
+
 /**
  * POST /api/importacion/guardar
  * Guarda un archivo importado
@@ -151,20 +187,11 @@ router.get('/api/importacion/listar', (req, res) => {
  */
 router.get('/api/importacion/descargar/:id', (req, res) => {
     try {
-        const uploadsDir = getUploadsDir();
-        const rutaArchivo = path.join(uploadsDir, req.params.id);
-
-        // Validar que el archivo existe y está en la carpeta correcta
-        const realPath = fs.realpathSync(rutaArchivo);
-        const realUploadsDir = fs.realpathSync(uploadsDir);
-        
-        if (!realPath.startsWith(realUploadsDir)) {
-            return res.status(403).json({ error: 'Acceso denegado' });
+        const validacion = resolverRutaSeguraArchivo(req.params.id);
+        if (validacion.error) {
+            return res.status(validacion.status).json({ error: validacion.error });
         }
-        
-        if (!fs.existsSync(rutaArchivo)) {
-            return res.status(404).json({ error: 'Archivo no encontrado' });
-        }
+        const { rutaArchivo } = validacion;
 
         // Extraer nombre sin timestamp si existe
         let nombreDescarga = req.params.id;
@@ -190,20 +217,11 @@ router.get('/api/importacion/descargar/:id', (req, res) => {
  */
 router.delete('/api/importacion/eliminar/:id', (req, res) => {
     try {
-        const uploadsDir = getUploadsDir();
-        const rutaArchivo = path.join(uploadsDir, req.params.id);
-
-        // Validar que el archivo existe y está en la carpeta correcta
-        const realPath = fs.realpathSync(rutaArchivo);
-        const realUploadsDir = fs.realpathSync(uploadsDir);
-        
-        if (!realPath.startsWith(realUploadsDir)) {
-            return res.status(403).json({ error: 'Acceso denegado' });
+        const validacion = resolverRutaSeguraArchivo(req.params.id);
+        if (validacion.error) {
+            return res.status(validacion.status).json({ error: validacion.error });
         }
-        
-        if (!fs.existsSync(rutaArchivo)) {
-            return res.status(404).json({ error: 'Archivo no encontrado' });
-        }
+        const { rutaArchivo } = validacion;
 
         fs.unlinkSync(rutaArchivo);
         console.log('🗑️ Archivo eliminado:', req.params.id);
@@ -220,20 +238,11 @@ router.delete('/api/importacion/eliminar/:id', (req, res) => {
  */
 router.get('/api/importacion/contenido/:id', (req, res) => {
     try {
-        const uploadsDir = getUploadsDir();
-        const rutaArchivo = path.join(uploadsDir, req.params.id);
-
-        // Validar seguridad
-        const realPath = fs.realpathSync(rutaArchivo);
-        const realUploadsDir = fs.realpathSync(uploadsDir);
-        
-        if (!realPath.startsWith(realUploadsDir)) {
-            return res.status(403).json({ error: 'Acceso denegado' });
+        const validacion = resolverRutaSeguraArchivo(req.params.id);
+        if (validacion.error) {
+            return res.status(validacion.status).json({ error: validacion.error });
         }
-        
-        if (!fs.existsSync(rutaArchivo)) {
-            return res.status(404).json({ error: 'Archivo no encontrado' });
-        }
+        const { rutaArchivo } = validacion;
 
         const contenido = fs.readFileSync(rutaArchivo, 'base64');
         const tipo = path.extname(rutaArchivo).toLowerCase();

@@ -11,7 +11,11 @@
   <div id="tabImpuestosPuntuales" class="subtab" style="display:block;">
     <h3 data-i18n="taxes.agregarPuntual">Impuestos Puntuales</h3>
     <div class="mb-8">
-      <button id="toggleImpuestosPuntualesAntiguos" class="small-btn" data-i18n="gastos.mostrarAntiguos">Mostrar antiguos</button>
+      <label class="switch">
+        <input type="checkbox" id="toggleImpuestosPuntualesAntiguos" />
+        <span class="slider"></span>
+        <span class="switch-label" id="labelToggleImpuestosPuntualesAntiguos" data-i18n="gastos.mostrarAntiguos">Mostrar antiguos</span>
+      </label>
     </div>
     <table id="tabla-impuestos-puntuales" class="tabla-dinâmica">
       <thead>
@@ -28,7 +32,8 @@
           <td>
             <div class="input-euro">
               <span>€</span>
-              <input type="number" id="monto-impuesto-p" step="0.01" data-i18n-placeholder="formularios.placeholderMonto">
+              <input type="number" id="monto-impuesto-p" step="0.01"
+                data-i18n-placeholder="formularios.placeholderMonto">
             </div>
           </td>
           <td><select id="cat-impuesto-p"></select></td>
@@ -43,7 +48,11 @@
   <div id="tabImpuestosMensuales" class="subtab display-none">
     <h3 data-i18n="taxes.agregarMensual">Impuestos Mensuales</h3>
     <div class="mb-8">
-      <button id="toggleImpuestosMensualesAntiguos" class="small-btn" data-i18n="impuestos.mostrarAntiguos">Mostrar antiguos</button>
+      <label class="switch">
+        <input type="checkbox" id="toggleImpuestosMensualesAntiguos" />
+        <span class="slider"></span>
+        <span class="switch-label" id="labelToggleImpuestosMensualesAntiguos" data-i18n="impuestos.mostrarAntiguos">Mostrar antiguos</span>
+      </label>
     </div>
     <table id="tabla-impuestos-mensuales" class="tabla-dinâmica">
       <thead>
@@ -60,31 +69,18 @@
           <td>
             <div class="input-euro">
               <span>€</span>
-              <input type="number" id="monto-impuesto-m" step="0.01" data-i18n-placeholder="formularios.placeholderMonto">
+              <input type="number" id="monto-impuesto-m" step="0.01"
+                data-i18n-placeholder="formularios.placeholderMonto">
             </div>
           </td>
           <td><select id="cat-impuesto-m"></select></td>
           <td>
-            <input 
-              type="text" 
-              id="desde-impuesto-m" 
-              data-i18n-placeholder="formularios.placeholderYYYYMM" 
-              maxlength="7"
-              pattern="\\d{4}-\\d{2}"
-              data-i18n-title="formularios.formatoYYYYMM"
-              title="Formato: YYYY-MM"
-            >
+            <input type="text" id="desde-impuesto-m" data-i18n-placeholder="formularios.placeholderYYYYMM" maxlength="7"
+              pattern="\\d{4}-\\d{2}" data-i18n-title="formularios.formatoYYYYMM" title="Formato: YYYY-MM">
           </td>
           <td>
-            <input 
-              type="text" 
-              id="hasta-impuesto-m" 
-              data-i18n-placeholder="formularios.placeholderYYYYMM" 
-              maxlength="7"
-              pattern="\\d{4}-\\d{2}"
-              data-i18n-title="formularios.formatoYYYYMM"
-              title="Formato: YYYY-MM"
-            >
+            <input type="text" id="hasta-impuesto-m" data-i18n-placeholder="formularios.placeholderYYYYMM" maxlength="7"
+              pattern="\\d{4}-\\d{2}" data-i18n-title="formularios.formatoYYYYMM" title="Formato: YYYY-MM">
           </td>
           <td><button id="btnAgregarImpuestoMensual"><i class="fas fa-plus"></i></button></td>
         </tr>
@@ -94,5 +90,3 @@
   </div>
 
 </section>
-
-

@@ -74,7 +74,8 @@ TRADUCCIONES.eu = {
             impuestosPre: 'Aurre',
             impuestosPost: 'Ondo',
             totalHucha: 'Kutxa Osoa',
-            portfolioRendimiento: 'Portafolio Errendimendua'
+            portfolioRendimiento: 'Portafolio Errendimendua',
+            portfolioValorTotal: 'Balio osoa'
         },
 
         inicio: {
@@ -109,7 +110,20 @@ TRADUCCIONES.eu = {
             concepto: 'Kontzeptua',
             cantidad: 'Kopurua',
             placeholderConcepto: 'Kontzeptua...',
-            placeholderCantidad: '0,00'
+            placeholderCantidad: '0,00',
+            principal: 'Aurrezki Nagusia'
+        },
+        subHucha: {
+            titulo: 'Bigarren mailako aurrezkiak',
+            nombre: 'Izena',
+            aportacionInicial: 'Hasierako ekarpena',
+            aportacionMensual: 'Hileko ekarpena',
+            saldoActual: 'Gaur egungo saldoa',
+            placeholderNombre: 'Aurrezki izena...',
+            aportacionesPuntuales: 'Ekarpen puntualak',
+            hucha: 'Aurrezkia',
+            camposRequeridos: 'Izena, noiztik eta noiz arte beharrezkoak dira',
+            camposPuntualRequeridos: 'Aurrezkia, data eta zenbatekoa beharrezkoak dira'
         },
 
         // ===== NAVEGACIÓN =====
@@ -229,6 +243,7 @@ TRADUCCIONES.eu = {
             errorColumnasRequeridas: 'Mesedez, hautatu beharrezko zutabeak: Data, Kontzeptua eta Zenbatekoa.',
             errorRangoFechas: 'Mesedez, hautatu data-tarte bat',
             errorSinDatosRango: 'Ez dago daturik aukeratutako data-tartean',
+            fechasDisponibles: 'Data erabilgarriak',
             exitoGraficos: 'Grafikoak arrakastaz eguneratu dira',
             errorGraficoCategoria: 'Akatsa kategoria grafikoa sortzean',
             errorGraficoIngresoVsGasto: 'Akatsa Diru-sarrerak vs Gastuak grafikoa sortzean',
@@ -293,6 +308,7 @@ TRADUCCIONES.eu = {
             errorHastaMenorDesde: '"Noizera" data ezin da "noiztik" baino lehenagokoa izan',
             seleccionaRango: 'Mesedez hautatu data tartea',
             refrescarResumen: 'Laburpena freskatu',
+            vsPeriodoAnterior: 'aurreko aldiarekin alderatuta',
             mostrarReales: 'Errealak erakutsi',
             ingresosReales: 'Diru-sarrera Errealak',
             gastosReales: 'Gastu Errealak',

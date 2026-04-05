@@ -64,7 +64,8 @@ function cargarGastosForm() {
         const desc = document.getElementById('descGasto').value;
         const monto = parseFloat(document.getElementById('montoGasto').value);
         const fraccionar = document.getElementById('fraccionarGasto')?.checked;
-        const partes = parseInt(document.getElementById('partesGasto')?.value || '1', 10) || 1;
+        const partesRaw = parseInt(document.getElementById('partesGasto')?.value || '2', 10) || 2;
+        const partes = fraccionar ? Math.max(2, partesRaw) : 1;
         const selectCatP = document.getElementById('categoriaGasto');
 
         // Validaciones
@@ -126,12 +127,18 @@ function cargarGastosForm() {
         document.getElementById('descGasto').value = '';
         document.getElementById('montoGasto').value = '';
         const chk = document.getElementById('fraccionarGasto');
-        if (chk) chk.checked = false;
+        if (chk) {
+            chk.checked = false;
+            chk.dispatchEvent(new Event('change'));
+        }
         const partsInput = document.getElementById('partesGasto');
-        if (partsInput) partsInput.value = '1';
+        if (partsInput) partsInput.value = '2';
         
         gastosManager.loadData();
         if (typeof cargarResumenPeriodos === 'function') cargarResumenPeriodos();
+        if (typeof notifySuccess === 'function') {
+            notifySuccess(gastosManager.t('mensajes.elementoCreado', 'Gasto guardado'));
+        }
     };
 
     // ===== LÓGICA ESPECÍFICA: AGREGAR GASTO REAL =====
@@ -163,6 +170,9 @@ function cargarGastosForm() {
 
         gastosRealesManager.loadData();
         if (typeof cargarResumenPeriodos === 'function') cargarResumenPeriodos();
+        if (typeof notifySuccess === 'function') {
+            notifySuccess(gastosRealesManager.t('mensajes.elementoCreado', 'Gasto real guardado'));
+        }
     };
 
     // ===== LÓGICA ESPECÍFICA: AGREGAR GASTO MENSUAL =====
@@ -207,45 +217,72 @@ function cargarGastosForm() {
         
         gastosManager.loadData();
         if (typeof cargarResumenPeriodos === 'function') cargarResumenPeriodos();
+        if (typeof notifySuccess === 'function') {
+            notifySuccess(gastosManager.t('mensajes.elementoCreado', 'Gasto mensual guardado'));
+        }
     };
 
     // ===== TOGGLE MOSTRAR/OCULTAR ANTIGUOS =====
     window.showOldGastos = false;
     window.showOldGastosReales = false;
-    const toggleBtns = [
+
+    const toggleChecks = [
         document.getElementById('toggleGastosAntiguos'),
         document.getElementById('toggleGastosMensualesAntiguos')
     ].filter(Boolean);
+    const toggleLabels = [
+        document.getElementById('labelToggleGastosAntiguos'),
+        document.getElementById('labelToggleGastosMensualesAntiguos')
+    ].filter(Boolean);
 
-    const toggleBtnsReales = [
+    const toggleChecksReales = [
         document.getElementById('toggleGastosRealesAntiguos')
     ].filter(Boolean);
-    
-    if (toggleBtns.length) {
+    const toggleLabelsReales = [
+        document.getElementById('labelToggleGastosRealesAntiguos')
+    ].filter(Boolean);
+
+    if (toggleChecks.length) {
         const updateAll = () => {
             const textoMostrar = gastosManager.t('gastos.mostrarAntiguos', 'Mostrar antiguos');
             const textoOcultar = gastosManager.t('gastos.ocultarAntiguos', 'Ocultar antiguos');
-            toggleBtns.forEach(b => b.textContent = window.showOldGastos ? textoOcultar : textoMostrar);
+            toggleChecks.forEach(chk => chk.checked = window.showOldGastos);
+            toggleLabels.forEach(lbl => {
+                if (!lbl) return;
+                lbl.textContent = window.showOldGastos ? textoOcultar : textoMostrar;
+            });
         };
-        toggleBtns.forEach(b => b.addEventListener('click', () => {
-            window.showOldGastos = !window.showOldGastos;
-            updateAll();
-            gastosManager.loadData();
-        }));
+
+        toggleChecks.forEach(chk => {
+            chk.addEventListener('change', () => {
+                window.showOldGastos = chk.checked;
+                updateAll();
+                gastosManager.loadData();
+            });
+        });
+
         updateAll();
     }
 
-    if (toggleBtnsReales.length) {
+    if (toggleChecksReales.length) {
         const updateAllReales = () => {
             const textoMostrar = gastosRealesManager.t('gastos.mostrarAntiguos', 'Mostrar antiguos');
             const textoOcultar = gastosRealesManager.t('gastos.ocultarAntiguos', 'Ocultar antiguos');
-            toggleBtnsReales.forEach(b => b.textContent = window.showOldGastosReales ? textoOcultar : textoMostrar);
+            toggleChecksReales.forEach(chk => chk.checked = window.showOldGastosReales);
+            toggleLabelsReales.forEach(lbl => {
+                if (!lbl) return;
+                lbl.textContent = window.showOldGastosReales ? textoOcultar : textoMostrar;
+            });
         };
-        toggleBtnsReales.forEach(b => b.addEventListener('click', () => {
-            window.showOldGastosReales = !window.showOldGastosReales;
-            updateAllReales();
-            gastosRealesManager.loadData();
-        }));
+
+        toggleChecksReales.forEach(chk => {
+            chk.addEventListener('change', () => {
+                window.showOldGastosReales = chk.checked;
+                updateAllReales();
+                gastosRealesManager.loadData();
+            });
+        });
+
         updateAllReales();
     }
 
@@ -269,39 +306,46 @@ function cargarGastosForm() {
     // ===== TOGGLE FRACCIONAMIENTO =====
     const chkFraccionar = document.getElementById('fraccionarGasto');
     const inputPartes = document.getElementById('partesGasto');
-    const spanFraccionar = document.querySelector('span[data-i18n="gastos.fraccionar"]');
+    const fraccionarControl = document.getElementById('fraccionarGastoControl');
+    const partesWrap = document.getElementById('partesGastoWrap');
     
-    if (chkFraccionar && inputPartes) {
+    if (chkFraccionar && inputPartes && partesWrap) {
         const setVisible = (visible) => {
-            inputPartes.style.display = visible ? 'inline-block' : 'none';
+            partesWrap.classList.toggle('is-hidden', !visible);
+            inputPartes.disabled = !visible;
             inputPartes.setAttribute('aria-hidden', visible ? 'false' : 'true');
+            if (fraccionarControl) {
+                fraccionarControl.classList.toggle('is-active', visible);
+            }
+            if (visible && (!inputPartes.value || Number(inputPartes.value) < 2)) {
+                inputPartes.value = '2';
+            }
         };
+
         setVisible(!!chkFraccionar.checked);
+
         chkFraccionar.addEventListener('change', () => {
             setVisible(!!chkFraccionar.checked);
-            if (!chkFraccionar.checked) inputPartes.value = '1';
+            if (!chkFraccionar.checked) inputPartes.value = '2';
         });
-        
-        if (spanFraccionar) {
-            spanFraccionar.style.cursor = 'pointer';
-            spanFraccionar.addEventListener('click', () => {
-                chkFraccionar.checked = !chkFraccionar.checked;
-                chkFraccionar.dispatchEvent(new Event('change'));
-            });
-        }
     }
 
     // ===== LISTENER PARA CAMBIOS DE IDIOMA =====
     document.addEventListener('idiomaActualizado', () => {
-        if (toggleBtns.length) {
-            const textoMostrar = gastosManager.t('gastos.mostrarAntiguos', 'Mostrar antiguos');
-            const textoOcultar = gastosManager.t('gastos.ocultarAntiguos', 'Ocultar antiguos');
-            toggleBtns.forEach(b => b.textContent = window.showOldGastos ? textoOcultar : textoMostrar);
-        }
-        if (toggleBtnsReales.length) {
-            const textoMostrar = gastosRealesManager.t('gastos.mostrarAntiguos', 'Mostrar antiguos');
-            const textoOcultar = gastosRealesManager.t('gastos.ocultarAntiguos', 'Ocultar antiguos');
-            toggleBtnsReales.forEach(b => b.textContent = window.showOldGastosReales ? textoOcultar : textoMostrar);
-        }
+        const textoMostrar = gastosManager.t('gastos.mostrarAntiguos', 'Mostrar antiguos');
+        const textoOcultar = gastosManager.t('gastos.ocultarAntiguos', 'Ocultar antiguos');
+
+        toggleLabels.forEach(lbl => {
+            if (!lbl) return;
+            lbl.textContent = window.showOldGastos ? textoOcultar : textoMostrar;
+        });
+
+        const textoMostrarReales = gastosRealesManager.t('gastos.mostrarAntiguos', 'Mostrar antiguos');
+        const textoOcultarReales = gastosRealesManager.t('gastos.ocultarAntiguos', 'Ocultar antiguos');
+        toggleLabelsReales.forEach(lbl => {
+            if (!lbl) return;
+            lbl.textContent = window.showOldGastosReales ? textoOcultarReales : textoMostrarReales;
+        });
     });
 }
+

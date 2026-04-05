@@ -488,6 +488,12 @@ class GestorTemas {
             root.style.setProperty(`--${propiedad}`, valor);
         });
 
+        // Variables RGB derivadas para efectos con rgba(var(--...)).
+        const primaryRgb = this._hexToRgbString(tema.primary, '22, 163, 74');
+        const primaryDarkRgb = this._hexToRgbString(tema.primaryDark, '21, 128, 61');
+        root.style.setProperty('--bg-primary-rgb', primaryRgb);
+        root.style.setProperty('--bg-primary-dark-rgb', primaryDarkRgb);
+
         // Aplicar gradientes derivados del tema
         root.style.setProperty('--gradient-primary', `linear-gradient(135deg, ${tema.primary} 0%, ${tema.primaryDark} 100%)`);
         root.style.setProperty('--gradient-success', `linear-gradient(135deg, ${tema.success} 0%, rgba(34, 197, 94, 0.8) 100%)`);
@@ -496,6 +502,28 @@ class GestorTemas {
         root.style.setProperty('--gradient-info', `linear-gradient(135deg, ${tema.info} 0%, #0891b2 100%)`);
         root.style.setProperty('--gradient-hucha', `linear-gradient(135deg, ${tema.info} 0%, #0369a1 100%)`);
         root.style.setProperty('--gradient-bruto', `linear-gradient(135deg, ${tema.warning} 0%, ${tema.info} 100%)`);
+    }
+
+    /**
+     * Convierte un color hex a formato "r, g, b" para usar con rgba(var(--x), a)
+     * @private
+     */
+    _hexToRgbString(hexColor, fallback) {
+        if (typeof hexColor !== 'string') return fallback;
+
+        const raw = hexColor.trim().replace('#', '');
+        const normalized = raw.length === 3
+            ? raw.split('').map((char) => `${char}${char}`).join('')
+            : raw;
+
+        if (!/^[0-9a-fA-F]{6}$/.test(normalized)) {
+            return fallback;
+        }
+
+        const r = parseInt(normalized.slice(0, 2), 16);
+        const g = parseInt(normalized.slice(2, 4), 16);
+        const b = parseInt(normalized.slice(4, 6), 16);
+        return `${r}, ${g}, ${b}`;
     }
 
     /**

@@ -10,6 +10,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
     <script src="https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.css">
@@ -20,6 +22,9 @@
 
 <div class="app-layout">
     <aside class="sidebar" data-i18n-aria-label="nav.navegacionPrincipal" aria-label="Navegación principal">
+        <div class="sidebar-logo" aria-hidden="true">
+            <i class="fas fa-chart-line"></i>
+        </div>
         <nav class="sidebar-nav">
             <button class="tablink active" data-tab="inicio" data-i18n-title="nav.inicio" data-i18n-aria-label="nav.inicio" title="Inicio" aria-label="Inicio"><i class="fas fa-house"></i></button>
             <button class="tablink" data-tab="dashboard" data-i18n-title="nav.dashboard" data-i18n-aria-label="nav.dashboard" title="Dashboard" aria-label="Dashboard"><i class="fas fa-tachometer-alt"></i></button>

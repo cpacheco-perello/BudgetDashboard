@@ -11,6 +11,81 @@ const modalConfirm = document.getElementById('customModalConfirm');
 const modalCancel = document.getElementById('customModalCancel');
 
 let modalResolve = null;
+let toastContainer = null;
+
+function ensureToastContainer() {
+    if (toastContainer && document.body.contains(toastContainer)) return toastContainer;
+
+    toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toastContainer';
+        toastContainer.className = 'toast-container';
+        toastContainer.setAttribute('role', 'status');
+        toastContainer.setAttribute('aria-live', 'polite');
+        toastContainer.setAttribute('aria-atomic', 'false');
+        document.body.appendChild(toastContainer);
+    }
+    return toastContainer;
+}
+
+window.showToast = function(message, type = 'info', duration = 2600) {
+    if (!message) return;
+
+    const container = ensureToastContainer();
+    const toast = document.createElement('div');
+    const safeType = ['success', 'error', 'warning', 'info'].includes(type) ? type : 'info';
+    toast.className = `toast toast-${safeType}`;
+    toast.setAttribute('role', safeType === 'error' ? 'alert' : 'status');
+    toast.setAttribute('aria-live', safeType === 'error' ? 'assertive' : 'polite');
+
+    const iconMap = {
+        success: 'fa-circle-check',
+        error: 'fa-circle-xmark',
+        warning: 'fa-triangle-exclamation',
+        info: 'fa-circle-info'
+    };
+
+    toast.innerHTML = `
+        <i class="fas ${iconMap[safeType]}" aria-hidden="true"></i>
+        <span>${String(message)}</span>
+        <button type="button" class="toast-close" aria-label="Cerrar">
+            <i class="fas fa-xmark" aria-hidden="true"></i>
+        </button>
+    `;
+
+    const closeToast = () => {
+        toast.classList.add('is-leaving');
+        setTimeout(() => {
+            toast.remove();
+        }, 180);
+    };
+
+    toast.querySelector('.toast-close')?.addEventListener('click', closeToast);
+
+    container.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('is-visible'));
+    setTimeout(closeToast, Math.max(1200, Number(duration) || 2600));
+};
+
+window.notifySuccess = function(message) {
+    window.showToast(message, 'success');
+};
+
+window.notifyError = function(message) {
+    window.showToast(message, 'error', 3200);
+};
+
+window.notifyInfo = function(message) {
+    window.showToast(message, 'info');
+};
+
+if (modal) {
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'customModalTitle');
+    modal.setAttribute('aria-describedby', 'customModalMessage');
+}
 
 /**
  * Función para mostrar alertas personalizadas

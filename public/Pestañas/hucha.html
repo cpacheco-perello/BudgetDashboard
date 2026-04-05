@@ -1,26 +1,117 @@
-<section id="hucha" class="tab" style="display:block;">
+<section id="hucha" class="tab hucha-tab" style="display:block;">
   <h2 data-i18n="nav.hucha">Hucha Real</h2>
 
-  <div class="mb-15"></div>
+  <!-- BOTONES SUBPESTAÑAS -->
+  <div class="mb-15">
+    <button class="subtab-btn" data-target="tabHuchaPrincipal"
+      data-i18n="hucha.principal">Hucha Principal</button>
+    <button class="subtab-btn" data-target="tabSubHuchas"
+      data-i18n="subHucha.titulo">Huchas Secundarias</button>
+    <button class="subtab-btn" data-target="tabSubHuchaPuntuales"
+      data-i18n="subHucha.aportacionesPuntuales">Aportaciones Puntuales</button>
+  </div>
 
-  <table id="tablaHucha">
-    <thead>
-      <tr>
-        <th data-i18n="hucha.concepto">Concepto</th>
-        <th data-i18n="hucha.cantidad">Cantidad</th>
-        <th class="w-120" data-i18n="tablas.acciones">Acciones</th>
-      </tr>
-      <tr class="insert-row">
-        <td><input type="text" id="conceptoHucha" data-i18n-placeholder="hucha.placeholderConcepto"></td>
-        <td>
-          <div class="input-euro flex-gap-8">
-            <span>€</span>
-            <input type="number" id="cantidadHucha" step="0.01" data-i18n-placeholder="formularios.placeholderMonto" style="width:100px;">
-          </div>
-        </td>
-        <td><button id="btnAgregarHucha"><i class="fas fa-plus"></i></button></td>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <!-- ===== HUCHA PRINCIPAL ===== -->
+  <div id="tabHuchaPrincipal" class="subtab">
+    <h3 data-i18n="hucha.principal">Hucha Principal</h3>
+    <div class="table-container">
+      <table id="tablaHucha">
+        <thead>
+          <tr>
+            <th data-i18n="hucha.concepto">Concepto</th>
+            <th data-i18n="hucha.cantidad">Cantidad</th>
+            <th class="w-120" data-i18n="tablas.acciones">Acciones</th>
+          </tr>
+          <tr class="insert-row">
+            <td><input type="text" id="conceptoHucha" data-i18n-placeholder="hucha.placeholderConcepto"></td>
+            <td>
+              <div class="input-euro flex-gap-8">
+                <span>€</span>
+                <input type="number" id="cantidadHucha" step="0.01" data-i18n-placeholder="formularios.placeholderMonto" style="width:100px;">
+              </div>
+            </td>
+            <td><button id="btnAgregarHucha"><i class="fas fa-plus"></i></button></td>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== SUB-HUCHAS ===== -->
+  <div id="tabSubHuchas" class="subtab display-none">
+    <h3 data-i18n="subHucha.titulo">Huchas Secundarias</h3>
+    <div class="table-container">
+      <table id="tablaSubHuchas">
+        <thead>
+          <tr>
+            <th data-i18n="subHucha.nombre">Nombre</th>
+            <th data-i18n="subHucha.aportacionInicial">Aportación inicial</th>
+            <th data-i18n="subHucha.aportacionMensual">Aportación mensual</th>
+            <th data-i18n="formularios.desde">Desde</th>
+            <th data-i18n="formularios.hasta">Hasta</th>
+            <th data-i18n="subHucha.saldoActual">Saldo actual</th>
+            <th class="w-120" data-i18n="tablas.acciones">Acciones</th>
+          </tr>
+          <tr class="insert-row">
+            <td><input type="text" id="subHuchaNombre" data-i18n-placeholder="subHucha.placeholderNombre"></td>
+            <td>
+              <div class="input-euro flex-gap-8">
+                <span>€</span>
+                <input type="number" id="subHuchaInicial" step="0.01" value="0" style="width:90px;">
+              </div>
+            </td>
+            <td>
+              <div class="input-euro flex-gap-8">
+                <span>€</span>
+                <input type="number" id="subHuchaMensual" step="0.01" value="0" style="width:90px;">
+              </div>
+            </td>
+            <td>
+              <input type="text" id="subHuchaDesde" data-i18n-placeholder="formularios.placeholderYYYYMM" maxlength="7"
+                pattern="\d{4}-\d{2}" data-i18n-title="formularios.formatoYYYYMM" title="Formato: YYYY-MM">
+            </td>
+            <td>
+              <input type="text" id="subHuchaHasta" data-i18n-placeholder="formularios.placeholderYYYYMM" maxlength="7"
+                pattern="\d{4}-\d{2}" data-i18n-title="formularios.formatoYYYYMM" title="Formato: YYYY-MM">
+            </td>
+            <td>—</td>
+            <td><button id="btnAgregarSubHucha"><i class="fas fa-plus"></i></button></td>
+          </tr>
+        </thead>
+        <tbody id="tbodySubHuchas"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== APORTACIONES PUNTUALES ===== -->
+  <div id="tabSubHuchaPuntuales" class="subtab display-none">
+    <h3 data-i18n="subHucha.aportacionesPuntuales">Aportaciones Puntuales</h3>
+    <div class="table-container">
+      <table id="tablaSubHuchaPuntuales">
+        <thead>
+          <tr>
+            <th data-i18n="subHucha.hucha">Hucha</th>
+            <th data-i18n="formularios.fecha">Fecha</th>
+            <th data-i18n="formularios.descripcion">Descripción</th>
+            <th data-i18n="formularios.monto">Monto</th>
+            <th class="w-120" data-i18n="tablas.acciones">Acciones</th>
+          </tr>
+          <tr class="insert-row">
+            <td><select id="subHuchaPuntualSelect"></select></td>
+            <td><input type="date" id="subHuchaPuntualFecha"></td>
+            <td><input type="text" id="subHuchaPuntualDesc" data-i18n-placeholder="formularios.descripcion"></td>
+            <td>
+              <div class="input-euro flex-gap-8">
+                <span>€</span>
+                <input type="number" id="subHuchaPuntualMonto" step="0.01" style="width:100px;">
+              </div>
+            </td>
+            <td><button id="btnAgregarSubHuchaPuntual"><i class="fas fa-plus"></i></button></td>
+          </tr>
+        </thead>
+        <tbody id="tbodySubHuchaPuntuales"></tbody>
+      </table>
+    </div>
+  </div>
 </section>

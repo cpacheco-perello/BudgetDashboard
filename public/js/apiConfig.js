@@ -202,6 +202,34 @@ window.API = {
             return await window.electronAPI.deleteHucha(body);
         }
 
+        // Sub-Huchas
+        if (url === '/sub_huchas' && method === 'GET') {
+            return await window.electronAPI.getSubHuchas();
+        }
+        if (url === '/add/sub_hucha' && method === 'POST') {
+            return await window.electronAPI.addSubHucha(body);
+        }
+        if (url === '/update/sub_hucha' && method === 'POST') {
+            return await window.electronAPI.updateSubHucha(body);
+        }
+        if (url === '/delete/sub_hucha' && method === 'POST') {
+            return await window.electronAPI.deleteSubHucha(body);
+        }
+        if (url.match(/^\/sub_huchas\/\d+\/puntuales$/) && method === 'GET') {
+            const id = url.split('/')[2];
+            return await window.electronAPI.getSubHuchaPuntuales(Number(id));
+        }
+        if (url === '/add/sub_hucha_puntual' && method === 'POST') {
+            return await window.electronAPI.addSubHuchaPuntual(body);
+        }
+        if (url === '/delete/sub_hucha_puntual' && method === 'POST') {
+            return await window.electronAPI.deleteSubHuchaPuntual(body);
+        }
+        if (url.startsWith('/sub_huchas/total') && method === 'GET') {
+            const params = new URLSearchParams(url.split('?')[1]);
+            return await window.electronAPI.getSubHuchasTotal(params.get('mes'));
+        }
+
         // Cuenta Remunerada
         if (url === '/cuenta_remunerada' && method === 'GET') {
             return await window.electronAPI.getCuentaRemunerada();

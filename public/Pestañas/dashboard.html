@@ -1,31 +1,7 @@
 <section id="dashboard" class="dashboard-container">
   <div class="dashboard-header">
-    <h2 data-i18n="dashboard.titulo"><i class="fas fa-chart-pie"></i> Resumen Financiero</h2>
-    
     <!-- FILTROS MEJORADOS -->
     <div class="filtros-dashboard">
-      <!-- SELECTORES DE TIEMPO RÁPIDO -->
-      <div class="filtro-group">
-        <label data-i18n="dashboard.periodoRapido">Período Rápido:</label>
-        <div class="quick-periods">
-          <button class="quick-period-btn" data-days="30" data-i18n="periodos.un_mes">
-            <i class="fas fa-calendar-day"></i> 1 Mes
-          </button>
-          <button class="quick-period-btn" data-days="90" data-i18n="periodos.tres_meses">
-            <i class="fas fa-calendar-week"></i> 3 Meses
-          </button>
-          <button class="quick-period-btn" data-days="180" data-i18n="periodos.seis_meses">
-            <i class="fas fa-calendar-alt"></i> 6 Meses
-          </button>
-          <button class="quick-period-btn" data-days="365" data-i18n="periodos.un_anio">
-            <i class="fas fa-calendar"></i> 1 Año
-          </button>
-          <button class="quick-period-btn" data-days="1825" data-i18n="periodos.cinco_anios">
-            <i class="fas fa-calendar-check"></i> 5 Años
-          </button>
-        </div>
-      </div>
-
       <!-- FILTROS PERSONALIZADOS -->
       <div class="filtro-group">
         <label for="dashDesde" data-i18n="dashboard.desde">Desde:</label>
@@ -59,6 +35,48 @@
     </div>
   </div>
 
+  <section class="dashboard-kpis" aria-label="Resumen del periodo">
+    <article class="dashboard-kpi kpi-1">
+      <p class="dashboard-kpi-label" data-i18n="dashboard.totalIngresos">Total Ingresos</p>
+      <p class="dashboard-kpi-value" id="dashKpiIngresos">€0,00</p>
+      <div class="dashboard-kpi-sparkline">
+        <canvas id="dashSparkIngresos"></canvas>
+      </div>
+      <p class="dashboard-kpi-meta" id="dashKpiPeriodoIngresos">Periodo activo</p>
+      <p class="dashboard-kpi-delta" id="dashKpiDeltaIngresos">Sin comparativa</p>
+    </article>
+
+    <article class="dashboard-kpi kpi-4">
+      <p class="dashboard-kpi-label" data-i18n="dashboard.ingresoNeto">Ingreso Neto</p>
+      <p class="dashboard-kpi-value" id="dashKpiNeto">€0,00</p>
+      <div class="dashboard-kpi-sparkline">
+        <canvas id="dashSparkNeto"></canvas>
+      </div>
+      <p class="dashboard-kpi-meta" id="dashKpiPeriodoNeto">Periodo activo</p>
+      <p class="dashboard-kpi-delta" id="dashKpiDeltaNeto">Sin comparativa</p>
+    </article>
+
+    <article class="dashboard-kpi kpi-2">
+      <p class="dashboard-kpi-label" data-i18n="dashboard.gastosImpuestosOtros">Gastos + Impuestos (otros)</p>
+      <p class="dashboard-kpi-value" id="dashKpiGastos">€0,00</p>
+      <div class="dashboard-kpi-sparkline">
+        <canvas id="dashSparkGastos"></canvas>
+      </div>
+      <p class="dashboard-kpi-meta" id="dashKpiPeriodoGastos">Periodo activo</p>
+      <p class="dashboard-kpi-delta" id="dashKpiDeltaGastos">Sin comparativa</p>
+    </article>
+
+    <article class="dashboard-kpi kpi-3">
+      <p class="dashboard-kpi-label" data-i18n="dashboard.ahorros">Ahorros</p>
+      <p class="dashboard-kpi-value" id="dashKpiAhorros">€0,00</p>
+      <div class="dashboard-kpi-sparkline">
+        <canvas id="dashSparkAhorros"></canvas>
+      </div>
+      <p class="dashboard-kpi-meta" id="dashKpiRatio">0%</p>
+      <p class="dashboard-kpi-delta" id="dashKpiDeltaAhorros">Sin comparativa</p>
+    </article>
+  </section>
+
   <!-- GRID DE GRÁFICOS -->
   <div class="dashboard-grid">
     <!-- Loader mientras se cargan los gráficos -->
@@ -68,38 +86,15 @@
     </div>
     
     <!-- Fila 1: Totales y Porcentajes -->
-    <div class="chart-card card-primary">
-      <h3 data-i18n="dashboard.totalPeriodo"><i class="fas fa-calculator icon-primary"></i> Totales Período</h3>
+    <div class="chart-card card-primary chart-internal-header chart-ingresos-main">
       <canvas id="chartTotales"></canvas>
     </div>
 
-    <div class="chart-card card-info">
-      <h3 data-i18n="dashboard.porcentajes"><i class="fas fa-percentage icon-info"></i> Análisis de Porcentajes</h3>
-      <canvas id="chartPorcentajes"></canvas>
+    <div class="chart-card card-info chart-internal-header chart-porcentajes-side">
+      <div id="chartPorcentajes" class="porcentajes-3d" aria-label="Porcentajes bruto y neto"></div>
     </div>
 
-
-  <!-- Fila 2: Ingresos, Gastos por Mes, Ahorros -->
-  <div class="chart-card card-success">
-    <h3 style="color: var(--success);">
-      <i class="fas fa-arrow-up icon-success"></i> 
-      <span data-i18n="dashboard.ingresos">Ingresos</span>
-    </h3>
-    <canvas id="chartIngresos"></canvas>
-  </div>
-
-    <div class="chart-card card-info ">
-      <h3 class="chart-title" style="color: var(--info);">
-        <i class="fas fa-piggy-bank"></i> 
-        <span data-i18n="dashboard.ahorros">Ahorros</span>
-      </h3>
-      <canvas id="chartAhorros"></canvas>
-    </div>
-
-
-    <!-- Fila 3: Ahorros full-width -->
-
-
+  <!-- Fila 2 -->
   <div class="chart-card card-warning full-width">
     <div class="chart-header">
       <h3 data-i18n="dashboard.gastosMesCategoria"><i class="fas fa-chart-bar icon-warning"></i> Gastos por Mes</h3>
@@ -114,12 +109,12 @@
     <!-- Fila 4: Distribución por categoría -->
     <div class="chart-card  third-width">
       <h3 data-i18n="dashboard.ingresosPorCategoria"><i class="fas fa-tag icon-primary"></i> Ingresos por Categoría</h3>
-      <canvas id="chartIngresosCategoria"></canvas>
+      <div id="chartIngresosCategoria" class="inicio-categorias-list"></div>
     </div>
 
     <div class="chart-card third-width">
       <h3 data-i18n="dashboard.gastosPorCategoria"><i class="fas fa-tag icon-warning"></i> Gastos por Categoría</h3>
-      <canvas id="chartGastosCategoria"></canvas>
+      <div id="chartGastosCategoria" class="inicio-categorias-list"></div>
     </div>
   </div>
 </section>

@@ -3,18 +3,25 @@
 
   <!-- BOTONES SUBPESTAÑAS -->
   <div class="mb-15">
-    <button id="tabGastosPuntualesBtn" class="subtab-btn" data-target="tabGastosPuntuales" data-i18n="gastos.puntuales">Gastos Puntuales</button>
-    <button id="tabGastosMensualesBtn" class="subtab-btn" data-target="tabGastosMensuales" data-i18n="gastos.mensuales">Gastos Mensuales</button>
-    <button id="tabGastosRealesBtn" class="subtab-btn" data-target="tabGastosReales" data-i18n="dashboard.gastosReales">Gastos Reales</button>
+    <button id="tabGastosPuntualesBtn" class="subtab-btn" data-target="tabGastosPuntuales"
+      data-i18n="gastos.puntuales">Gastos Puntuales</button>
+    <button id="tabGastosMensualesBtn" class="subtab-btn" data-target="tabGastosMensuales"
+      data-i18n="gastos.mensuales">Gastos Mensuales</button>
+    <button id="tabGastosRealesBtn" class="subtab-btn" data-target="tabGastosReales"
+      data-i18n="dashboard.gastosReales">Gastos Reales</button>
   </div>
 
   <!-- GASTOS PUNTUALES -->
   <div id="tabGastosPuntuales" class="subtab">
     <h3 data-i18n="gastos.puntuales">Gastos Puntuales</h3>
     <div class="mb-8">
-      <button id="toggleGastosAntiguos" class="small-btn" data-i18n="gastos.mostrarAntiguos">Mostrar antiguos</button>
+      <label class="switch">
+        <input type="checkbox" id="toggleGastosAntiguos" />
+        <span class="slider"></span>
+        <span class="switch-label" id="labelToggleGastosAntiguos" data-i18n="gastos.mostrarAntiguos">Mostrar antiguos</span>
+      </label>
     </div>
-    
+
     <table id="tablaGastosPuntuales">
       <thead>
         <tr>
@@ -30,11 +37,23 @@
           <td>
             <div class="input-euro flex-gap-8">
               <span>€</span>
-              <input type="number" id="montoGasto" step="0.01" data-i18n-placeholder="formularios.placeholderMonto" style="width:100px;">
+              <input type="number" id="montoGasto" step="0.01" data-i18n-placeholder="formularios.placeholderMonto"
+                style="width:100px;">
             </div>
-            <div>
-              <input type="checkbox" id="fraccionarGasto" style="cursor:pointer;">
-              <input type="number" id="partesGasto" min="1" value="1" data-i18n-placeholder="formularios.placeholderNumeroPartes" class="display-none" style="width:60px;margin-left:6px;color:#000;background:#fff;padding:2px 4px;border:1px solid #ccc;" data-i18n-title="formularios.numeroPartes" title="Número de partes" aria-hidden="true">
+            <div class="fraccionar-gasto-control" id="fraccionarGastoControl">
+              <label class="fraccionar-gasto-toggle" for="fraccionarGasto">
+                <input type="checkbox" id="fraccionarGasto">
+                <span class="fraccionar-gasto-chip">
+                  <i class="fas fa-layer-group" aria-hidden="true"></i>
+                  <span data-i18n="gastos.fraccionar">Fraccionar</span>
+                </span>
+              </label>
+              <div class="fraccionar-gasto-parts is-hidden" id="partesGastoWrap">
+                <span class="fraccionar-gasto-multiplier">x</span>
+                <input type="number" id="partesGasto" min="2" value="2"
+                  data-i18n-placeholder="formularios.placeholderNumeroPartes" class="fraccionar-gasto-input"
+                  data-i18n-title="formularios.numeroPartes" title="Número de partes" aria-hidden="true" disabled>
+              </div>
             </div>
           </td>
           <td><select id="categoriaGasto"></select></td>
@@ -49,7 +68,11 @@
   <div id="tabGastosMensuales" class="subtab display-none">
     <h3 data-i18n="gastos.mensuales">Gastos Mensuales</h3>
     <div class="mb-8">
-      <button id="toggleGastosMensualesAntiguos" class="small-btn" data-i18n="gastos.mostrarAntiguos">Mostrar antiguos</button>
+      <label class="switch">
+        <input type="checkbox" id="toggleGastosMensualesAntiguos" />
+        <span class="slider"></span>
+        <span class="switch-label" id="labelToggleGastosMensualesAntiguos" data-i18n="gastos.mostrarAntiguos">Mostrar antiguos</span>
+      </label>
     </div>
     <table id="tablaGastosMensuales">
       <thead>
@@ -65,26 +88,12 @@
         </tr>
         <tr class="insert-row">
           <td>
-            <input 
-              type="text"
-              id="desdeGasto"
-              data-i18n-placeholder="formularios.placeholderYYYYMM"
-              maxlength="7"
-              pattern="\\d{4}-\\d{2}"
-              data-i18n-title="formularios.formatoYYYYMM"
-              title="Formato: YYYY-MM"
-            >
+            <input type="text" id="desdeGasto" data-i18n-placeholder="formularios.placeholderYYYYMM" maxlength="7"
+              pattern="\\d{4}-\\d{2}" data-i18n-title="formularios.formatoYYYYMM" title="Formato: YYYY-MM">
           </td>
           <td>
-            <input 
-              type="text"
-              id="hastaGasto"
-              data-i18n-placeholder="formularios.placeholderYYYYMM"
-              maxlength="7"
-              pattern="\\d{4}-\\d{2}"
-              data-i18n-title="formularios.formatoYYYYMM"
-              title="Formato: YYYY-MM"
-            >
+            <input type="text" id="hastaGasto" data-i18n-placeholder="formularios.placeholderYYYYMM" maxlength="7"
+              pattern="\\d{4}-\\d{2}" data-i18n-title="formularios.formatoYYYYMM" title="Formato: YYYY-MM">
           </td>
           <td><input type="text" id="descMensual" data-i18n-placeholder="gastos.descripcion"></td>
           <td>
@@ -94,7 +103,8 @@
             </div>
           </td>
           <td>
-            <input type="number" id="ipcMensual" step="0.01" min="0" data-i18n-placeholder="gastos.ipcPlaceholder" style="width:70px;">
+            <input type="number" id="ipcMensual" step="0.01" min="0" data-i18n-placeholder="gastos.ipcPlaceholder"
+              style="width:70px;">
           </td>
           <td>—</td>
           <td><select id="categoriaMensual"></select></td>
@@ -109,7 +119,11 @@
   <div id="tabGastosReales" class="subtab display-none">
     <h3 data-i18n="dashboard.gastosReales">Gastos Reales</h3>
     <div class="mb-8">
-      <button id="toggleGastosRealesAntiguos" class="small-btn" data-i18n="gastos.mostrarAntiguos">Mostrar antiguos</button>
+      <label class="switch">
+        <input type="checkbox" id="toggleGastosRealesAntiguos" />
+        <span class="slider"></span>
+        <span class="switch-label" id="labelToggleGastosRealesAntiguos" data-i18n="gastos.mostrarAntiguos">Mostrar antiguos</span>
+      </label>
     </div>
 
     <table id="tablaGastosReales">
@@ -127,7 +141,8 @@
           <td>
             <div class="input-euro flex-gap-8">
               <span>€</span>
-              <input type="number" id="montoGastoReal" step="0.01" data-i18n-placeholder="formularios.placeholderMonto" style="width:100px;">
+              <input type="number" id="montoGastoReal" step="0.01" data-i18n-placeholder="formularios.placeholderMonto"
+                style="width:100px;">
             </div>
           </td>
           <td><select id="categoriaGastoReal"></select></td>

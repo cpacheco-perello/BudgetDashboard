@@ -62,6 +62,9 @@ async function inicializarTaxes() {
         
         impuestosManager.loadData();
         if (typeof cargarResumenPeriodos === 'function') cargarResumenPeriodos();
+        if (typeof notifySuccess === 'function') {
+            notifySuccess(impuestosManager.t('mensajes.elementoCreado', 'Impuesto guardado'));
+        }
     };
 
     // ===== AGREGAR IMPUESTO MENSUAL =====
@@ -94,23 +97,35 @@ async function inicializarTaxes() {
         
         impuestosManager.loadData();
         if (typeof cargarResumenPeriodos === 'function') cargarResumenPeriodos();
+        if (typeof notifySuccess === 'function') {
+            notifySuccess(impuestosManager.t('mensajes.elementoCreado', 'Impuesto mensual guardado'));
+        }
     };
 
     // ===== TOGGLE MOSTRAR/OCULTAR ANTIGUOS =====
     window.showOldImpuestos = false;
-    const toggleBtns = [
+    const toggleChecks = [
         document.getElementById('toggleImpuestosPuntualesAntiguos'),
         document.getElementById('toggleImpuestosMensualesAntiguos')
     ].filter(Boolean);
-    
-    if (toggleBtns.length) {
+
+    const toggleLabels = [
+        document.getElementById('labelToggleImpuestosPuntualesAntiguos'),
+        document.getElementById('labelToggleImpuestosMensualesAntiguos')
+    ].filter(Boolean);
+
+    if (toggleChecks.length) {
         const updateAll = () => {
             const textoMostrar = impuestosManager.t('taxes.mostrarAntiguos', 'Mostrar antiguos');
             const textoOcultar = impuestosManager.t('taxes.ocultarAntiguos', 'Ocultar antiguos');
-            toggleBtns.forEach(b => b.textContent = window.showOldImpuestos ? textoOcultar : textoMostrar);
+            toggleChecks.forEach(chk => chk.checked = window.showOldImpuestos);
+            toggleLabels.forEach(lbl => {
+                if (!lbl) return;
+                lbl.textContent = window.showOldImpuestos ? textoOcultar : textoMostrar;
+            });
         };
-        toggleBtns.forEach(b => b.addEventListener('click', () => {
-            window.showOldImpuestos = !window.showOldImpuestos;
+        toggleChecks.forEach(chk => chk.addEventListener('change', () => {
+            window.showOldImpuestos = chk.checked;
             updateAll();
             impuestosManager.loadData();
         }));
@@ -143,10 +158,11 @@ async function inicializarTaxes() {
 
     // ===== LISTENER PARA CAMBIOS DE IDIOMA =====
     document.addEventListener('idiomaActualizado', () => {
-        if (toggleBtns.length) {
-            const textoMostrar = impuestosManager.t('taxes.mostrarAntiguos', 'Mostrar antiguos');
-            const textoOcultar = impuestosManager.t('taxes.ocultarAntiguos', 'Ocultar antiguos');
-            toggleBtns.forEach(b => b.textContent = window.showOldImpuestos ? textoOcultar : textoMostrar);
-        }
+        const textoMostrar = impuestosManager.t('taxes.mostrarAntiguos', 'Mostrar antiguos');
+        const textoOcultar = impuestosManager.t('taxes.ocultarAntiguos', 'Ocultar antiguos');
+        toggleLabels.forEach(lbl => {
+            if (!lbl) return;
+            lbl.textContent = window.showOldImpuestos ? textoOcultar : textoMostrar;
+        });
     });
 }

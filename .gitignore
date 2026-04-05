@@ -15,3 +15,6 @@ finanzas.db
 commandosBuild.txt
 commandosBuild.sh
 comandosBuild.txt
+scriptVersion.js
+
+.github/prompts/

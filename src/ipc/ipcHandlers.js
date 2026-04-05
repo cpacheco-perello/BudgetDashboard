@@ -23,6 +23,7 @@ const {
 const PuntualService = require('../services/PuntualService');
 const MensualService = require('../services/MensualService');
 const HuchaService = require('../services/HuchaService');
+const SubHuchaService = require('../services/SubHuchaService');
 const yahooFinanceService = require('../services/yahooFinanceService');
 const {
     getDashboardData,
@@ -47,6 +48,7 @@ const ingresosMensualesService = new MensualService('ingresos_mensuales');
 const impuestosPuntualesService = new PuntualService('impuestos_puntuales');
 const impuestosMensualesService = new MensualService('impuestos_mensuales');
 const huchaService = new HuchaService();
+    const subHuchaService = new SubHuchaService();
 const gastosRealesService = new PuntualService('gastos_reales');
 const ingresosRealesService = new PuntualService('ingresos_reales');
 
@@ -487,6 +489,46 @@ function registerIpcHandlers() {
         return { success: true };
     });
 
+    // ============= SUB-HUCHAS =============
+
+    ipcMain.handle('get-sub-huchas', async () => {
+        return await subHuchaService.getAll();
+    });
+
+    ipcMain.handle('add-sub-hucha', async (event, data) => {
+        await subHuchaService.add(data);
+        return { success: true };
+    });
+
+    ipcMain.handle('update-sub-hucha', async (event, data) => {
+        await subHuchaService.update(data);
+        return { success: true };
+    });
+
+    ipcMain.handle('delete-sub-hucha', async (event, data) => {
+        await subHuchaService.delete(data.id);
+        return { success: true };
+    });
+
+    ipcMain.handle('get-sub-hucha-puntuales', async (event, id) => {
+        return await subHuchaService.getPuntuales(id);
+    });
+
+    ipcMain.handle('add-sub-hucha-puntual', async (event, data) => {
+        await subHuchaService.addPuntual(data);
+        return { success: true };
+    });
+
+    ipcMain.handle('delete-sub-hucha-puntual', async (event, data) => {
+        await subHuchaService.deletePuntual(data.id);
+        return { success: true };
+    });
+
+    ipcMain.handle('get-sub-huchas-total', async (event, mes) => {
+        const total = await subHuchaService.calcularTotalSubHuchas(mes);
+        return { total };
+    });
+
     // ============= CUENTA REMUNERADA =============
     
     ipcMain.handle('get-cuenta-remunerada', async () => {
@@ -669,11 +711,20 @@ function registerIpcHandlers() {
     });
 
     ipcMain.handle('get-asset-history', async (event, ticker, period) => {
+        const safeTicker = String(ticker || '').trim().toUpperCase();
+        const safePeriod = String(period || '1y').trim() || '1y';
         try {
-            const result = await yahooFinanceService.getHistoricalData(ticker, period);
-            return result;
+            return await yahooFinanceService.getHistoricalData(safeTicker, safePeriod);
         } catch (err) {
-            throw new Error(`Error obteniendo datos históricos: ${err.message}`);
+            console.warn(`WARN get-asset-history sin datos para ${safeTicker} (${safePeriod}): ${err.message}`);
+            return {
+                ticker: safeTicker,
+                period: safePeriod,
+                currency: 'EUR',
+                data: [],
+                unavailable: true,
+                mensaje: err.message || 'No se pudieron obtener datos historicos'
+            };
         }
     });
 

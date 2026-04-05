@@ -75,7 +75,8 @@ TRADUCCIONES.es = {
             impuestosPre: 'Pre',
             impuestosPost: 'Post',
             totalHucha: 'Total Hucha',
-            portfolioRendimiento: 'Rendimiento Portfolio'
+            portfolioRendimiento: 'Rendimiento Portfolio',
+            portfolioValorTotal: 'Valor total'
         },
 
         inicio: {
@@ -110,7 +111,20 @@ TRADUCCIONES.es = {
             concepto: 'Concepto',
             cantidad: 'Cantidad',
             placeholderConcepto: 'Concepto...',
-            placeholderCantidad: '0.00'
+            placeholderCantidad: '0.00',
+            principal: 'Hucha Principal'
+        },
+        subHucha: {
+            titulo: 'Huchas secundarias',
+            nombre: 'Nombre',
+            aportacionInicial: 'Aportación inicial',
+            aportacionMensual: 'Aportación mensual',
+            saldoActual: 'Saldo actual',
+            placeholderNombre: 'Nombre de la hucha...',
+            aportacionesPuntuales: 'Aportaciones puntuales',
+            hucha: 'Hucha',
+            camposRequeridos: 'Nombre, desde y hasta son requeridos',
+            camposPuntualRequeridos: 'Hucha, fecha y monto son requeridos'
         },
 
         // ===== NAVEGACIÓN =====
@@ -221,6 +235,7 @@ TRADUCCIONES.es = {
             errorColumnasRequeridas: 'Por favor, selecciona todas las columnas requeridas: Fecha, Concepto e Importe.',
             errorRangoFechas: 'Por favor selecciona un rango de fechas',
             errorSinDatosRango: 'No hay datos en el rango de fechas seleccionado',
+            fechasDisponibles: 'Fechas disponibles',
             exitoGraficos: 'Gráficos actualizados correctamente',
             errorGraficoCategoria: 'Error al generar gráfico de categorías',
             errorGraficoIngresoVsGasto: 'Error al generar gráfico de Ingresos vs Gastos',
@@ -296,6 +311,7 @@ TRADUCCIONES.es = {
             errorHastaMenorDesde: 'La fecha "hasta" no puede ser menor que "desde"',
             seleccionaRango: 'Por favor selecciona un rango de fechas',
             refrescarResumen: 'Refrescar resumen',
+            vsPeriodoAnterior: 'vs período anterior',
             mostrarReales: 'Mostrar reales',
             ingresosReales: 'Ingresos Reales',
             gastosReales: 'Gastos Reales',

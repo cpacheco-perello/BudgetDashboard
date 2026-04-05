@@ -5,6 +5,86 @@ const tabContent = document.getElementById('tab-content');
 // Guardar posición de scroll por pestaña
 const scrollPositions = {};
 
+function setActiveTabButton(tabId) {
+    buttons.forEach((btn) => {
+        const isActive = btn.dataset.tab === tabId;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-current', isActive ? 'page' : 'false');
+        btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+}
+
+function initTabAccessibility() {
+    const tabButtons = Array.from(buttons).filter((btn) => !!btn.dataset.tab);
+    tabButtons.forEach((btn, idx) => {
+        const shortcut = idx < 9 ? `Alt+${idx + 1}` : '';
+        if (shortcut) {
+            btn.setAttribute('aria-keyshortcuts', shortcut);
+            const title = String(btn.getAttribute('title') || '').trim();
+            if (title && !title.includes(`(${shortcut})`)) {
+                btn.setAttribute('title', `${title} (${shortcut})`);
+            }
+        }
+    });
+}
+
+function isEditableTarget(target) {
+    if (!target) return false;
+    const tagName = String(target.tagName || '').toLowerCase();
+    if (target.isContentEditable) return true;
+    return ['input', 'textarea', 'select'].includes(tagName);
+}
+
+function focusFirstTableFilterControl() {
+    if (!tabContent) return false;
+    const control = tabContent.querySelector('.table-column-filter-control');
+    if (!control) return false;
+    control.focus();
+    if (typeof control.select === 'function' && control.tagName === 'INPUT') {
+        control.select();
+    }
+    return true;
+}
+
+function initKeyboardNavigation() {
+    if (!document.body || document.body.dataset.keyboardNavigationReady === 'true') return;
+    document.body.dataset.keyboardNavigationReady = 'true';
+
+    document.addEventListener('keydown', (event) => {
+        const key = String(event.key || '').toLowerCase();
+
+        // Alt+1..9 cambia de pestaña principal.
+        if (event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
+            const match = String(event.code || '').match(/^Digit([1-9])$/);
+            if (match) {
+                const tabIndex = Number(match[1]) - 1;
+                const tabButtons = Array.from(buttons).filter((btn) => !!btn.dataset.tab);
+                const targetButton = tabButtons[tabIndex];
+                if (targetButton?.dataset?.tab) {
+                    event.preventDefault();
+                    loadTab(targetButton.dataset.tab);
+                }
+                return;
+            }
+        }
+
+        // Ctrl+Alt+F enfoca el primer filtro de tabla de la pestaña activa.
+        if (event.ctrlKey && event.altKey && !event.metaKey && key === 'f') {
+            if (focusFirstTableFilterControl()) {
+                event.preventDefault();
+            }
+            return;
+        }
+
+        // '/' enfoca filtros rápidos cuando no se está escribiendo.
+        if (!event.ctrlKey && !event.metaKey && !event.altKey && event.key === '/') {
+            if (!isEditableTarget(event.target) && focusFirstTableFilterControl()) {
+                event.preventDefault();
+            }
+        }
+    });
+}
+
 // ===== USUARIOS =====
 let activeUser = null;
 let switchingUser = false;
@@ -340,23 +420,28 @@ const assetPriceCache = {};
 const ASSET_CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
 async function getAssetPrice(ticker) {
+    const normalizedTicker = String(ticker || '').trim().toUpperCase();
+    if (!normalizedTicker) return null;
+
     const now = Date.now();
-    if (assetPriceCache[ticker] && (now - assetPriceCache[ticker].timestamp) < ASSET_CACHE_DURATION) {
-        return assetPriceCache[ticker].price;
+    if (assetPriceCache[normalizedTicker] && (now - assetPriceCache[normalizedTicker].timestamp) < ASSET_CACHE_DURATION) {
+        return assetPriceCache[normalizedTicker].price;
     }
     
     try {
-        const res = await fetch(`/asset-price/${ticker}`);
+        const res = await fetch(`/asset-price/${encodeURIComponent(normalizedTicker)}`);
         if (res.ok) {
             const data = await res.json();
-            assetPriceCache[ticker] = {
-                price: data.currentPrice,
+            const parsedPrice = Number(data?.currentPrice);
+            const price = Number.isFinite(parsedPrice) ? parsedPrice : null;
+            assetPriceCache[normalizedTicker] = {
+                price,
                 timestamp: now
             };
-            return data.currentPrice;
+            return price;
         }
     } catch (e) {
-        console.error(`Error obteniendo precio para ${ticker}:`, e);
+        console.error(`Error obteniendo precio para ${normalizedTicker}:`, e);
     }
     return null;
 }
@@ -572,6 +657,8 @@ function renderInicioCategorias(gastosPorCategoria = {}) {
 function renderInicioEvolucion(ahorrosMes = [], ahorrosPrev = []) {
     const canvas = document.getElementById('inicioEvolucionChart');
     if (!canvas || typeof Chart === 'undefined') return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
     const css = getComputedStyle(document.documentElement);
     const successColor = (css.getPropertyValue('--success') || '#22c55e').trim();
@@ -611,6 +698,17 @@ function renderInicioEvolucion(ahorrosMes = [], ahorrosPrev = []) {
     const gastos = puntos.map((m) => Number(m.gastos) || 0);
     const ahorros = puntos.map((m) => Number(m.ahorros) || 0);
 
+    const makeGradient = (color, alphaTop, alphaBottom) => {
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height || 220);
+        gradient.addColorStop(0, hexToRgba(color, alphaTop));
+        gradient.addColorStop(1, hexToRgba(color, alphaBottom));
+        return gradient;
+    };
+
+    const ingresosGradient = makeGradient(successColor, 0.35, 0.03);
+    const gastosGradient = makeGradient(dangerColor, 0.33, 0.03);
+    const ahorrosGradient = makeGradient(primaryColor, 0.3, 0.03);
+
     if (inicioEvolucionChart) {
         inicioEvolucionChart.destroy();
     }
@@ -625,38 +723,44 @@ function renderInicioEvolucion(ahorrosMes = [], ahorrosPrev = []) {
                     label: (typeof gestorIdiomas !== 'undefined') ? gestorIdiomas.obtenerTexto('inicio.graficoIngresosBrutos') : 'Ingresos brutos',
                     data: ingresos,
                     borderColor: successColor,
-                    backgroundColor: hexToRgba(successColor, 0.25),
+                    backgroundColor: ingresosGradient,
                     pointBackgroundColor: successColor,
                     pointBorderColor: '#ffffff',
                     pointBorderWidth: 1,
-                    tension: 0.35,
-                    borderWidth: 2.5,
-                    pointRadius: 2.8
+                    tension: 0.38,
+                    borderWidth: 2.4,
+                    pointRadius: 2.2,
+                    pointHoverRadius: 4,
+                    fill: true
                 },
                 {
                     label: (typeof gestorIdiomas !== 'undefined') ? gestorIdiomas.obtenerTexto('dashboard.gastos') : 'Gastos',
                     data: gastos,
                     borderColor: dangerColor,
-                    backgroundColor: hexToRgba(dangerColor, 0.24),
+                    backgroundColor: gastosGradient,
                     pointBackgroundColor: dangerColor,
                     pointBorderColor: '#ffffff',
                     pointBorderWidth: 1,
-                    tension: 0.35,
-                    borderWidth: 2.5,
-                    pointRadius: 2.8
+                    tension: 0.38,
+                    borderWidth: 2.4,
+                    pointRadius: 2.2,
+                    pointHoverRadius: 4,
+                    fill: true
                 },
                 {
                     label: (typeof gestorIdiomas !== 'undefined') ? gestorIdiomas.obtenerTexto('dashboard.ahorros') : 'Ahorros',
                     data: ahorros,
                     borderColor: primaryColor,
-                    backgroundColor: hexToRgba(primaryColor, 0.2),
+                    backgroundColor: ahorrosGradient,
                     pointBackgroundColor: primaryColor,
                     pointBorderColor: '#ffffff',
                     pointBorderWidth: 1,
-                    tension: 0.35,
-                    borderWidth: 2.5,
+                    tension: 0.38,
+                    borderWidth: 2.4,
                     borderDash: [5, 4],
-                    pointRadius: 2.8
+                    pointRadius: 2.2,
+                    pointHoverRadius: 4,
+                    fill: true
                 }
             ]
         },
@@ -668,14 +772,28 @@ function renderInicioEvolucion(ahorrosMes = [], ahorrosPrev = []) {
                 intersect: false
             },
             plugins: {
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    borderColor: 'rgba(148, 163, 184, 0.45)',
+                    borderWidth: 1,
+                    padding: 10,
+                    titleFont: { size: 12, weight: '700' },
+                    bodyFont: { size: 12 },
+                    callbacks: {
+                        label: function(ctxItem) {
+                            return `${ctxItem.dataset.label}: ${formatearEuro(ctxItem.raw || 0)}`;
+                        }
+                    }
+                },
                 legend: {
-                    position: 'bottom',
+                    position: 'top',
                     labels: {
-                        boxWidth: 12,
-                        boxHeight: 12,
+                        boxWidth: 10,
+                        boxHeight: 10,
+                        usePointStyle: true,
                         color: textColor,
                         font: {
-                            size: 12,
+                            size: 11,
                             weight: '600',
                             family: 'Segoe UI, system-ui, sans-serif'
                         }
@@ -684,17 +802,20 @@ function renderInicioEvolucion(ahorrosMes = [], ahorrosPrev = []) {
             },
             scales: {
                 x: {
-                    grid: { display: false },
+                    grid: { color: hexToRgba(primaryColor, 0.08) },
                     ticks: {
                         color: textColor,
                         font: { size: 11, weight: '600', family: 'Segoe UI, system-ui, sans-serif' }
                     }
                 },
                 y: {
-                    grid: { color: borderLight },
+                    grid: { color: hexToRgba(primaryColor, 0.12) },
                     ticks: {
                         color: textColor,
-                        font: { size: 11, family: 'Segoe UI, system-ui, sans-serif' }
+                        font: { size: 11, family: 'Segoe UI, system-ui, sans-serif' },
+                        callback: function(value) {
+                            return formatearEuro(value);
+                        }
                     }
                 }
             }
@@ -843,6 +964,517 @@ function initAjustes() {
     }
 }
 
+const tableSearchRegistry = new WeakMap();
+const TABLE_FILTER_STATE_KEY = 'dashboardTableFilterStateV1';
+
+function getTableFilterStore() {
+    try {
+        const raw = localStorage.getItem(TABLE_FILTER_STATE_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        return (parsed && typeof parsed === 'object') ? parsed : {};
+    } catch (_) {
+        return {};
+    }
+}
+
+function saveTableFilterStore(store) {
+    try {
+        localStorage.setItem(TABLE_FILTER_STATE_KEY, JSON.stringify(store || {}));
+    } catch (_) {
+        // Ignore storage errors in private mode / full quota.
+    }
+}
+
+function getScopedTableFilterKey(tableId) {
+    const userScope = (activeUser && String(activeUser).trim()) ? String(activeUser).trim() : 'global';
+    return `${userScope}::${tableId}`;
+}
+
+function loadTableFilterState(tableId) {
+    if (!tableId) return {};
+    const store = getTableFilterStore();
+    const scopedKey = getScopedTableFilterKey(tableId);
+    const state = store[scopedKey];
+    return (state && typeof state === 'object') ? state : {};
+}
+
+function saveTableFilterState(tableId, filterControls) {
+    if (!tableId) return;
+    const store = getTableFilterStore();
+    const scopedKey = getScopedTableFilterKey(tableId);
+
+    const nextState = {};
+    (Array.isArray(filterControls) ? filterControls : []).forEach((control) => {
+        const index = Number(control.dataset.columnIndex);
+        if (!Number.isInteger(index) || index < 0) return;
+        const value = String(control.value || '').trim();
+        if (!value) return;
+        nextState[index] = value;
+    });
+
+    if (Object.keys(nextState).length > 0) {
+        store[scopedKey] = nextState;
+    } else {
+        delete store[scopedKey];
+    }
+
+    saveTableFilterStore(store);
+}
+
+function clearTableFilterState(tableId) {
+    if (!tableId) return;
+    const store = getTableFilterStore();
+    const scopedKey = getScopedTableFilterKey(tableId);
+    if (scopedKey in store) {
+        delete store[scopedKey];
+        saveTableFilterStore(store);
+    }
+}
+
+function normalizarTextoBusqueda(value) {
+    return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+}
+
+function obtenerPlaceholderBuscadorTabla() {
+    if (typeof gestorIdiomas !== 'undefined') {
+        const texto = gestorIdiomas.obtenerTexto('tablas.buscar');
+        if (texto && texto !== 'tablas.buscar') return texto;
+    }
+    return 'Buscar en tabla...';
+}
+
+function obtenerTextoTodosFiltro() {
+    if (typeof gestorIdiomas !== 'undefined') {
+        const keys = ['dashboard.todasCategorias', 'importacion.seleccionarTodos', 'categorias.todas'];
+        for (const key of keys) {
+            const text = gestorIdiomas.obtenerTexto(key);
+            if (text && text !== key) return text;
+        }
+    }
+    return 'Todos';
+}
+
+function obtenerTextoInterfaz(key, fallback) {
+    if (typeof gestorIdiomas !== 'undefined') {
+        const text = gestorIdiomas.obtenerTexto(key);
+        if (text && text !== key) return text;
+    }
+    return fallback;
+}
+
+function obtenerTextoLimpiarFiltros() {
+    return obtenerTextoInterfaz('formularios.limpiar', 'Limpiar filtros');
+}
+
+function obtenerTextoAjustaFiltros() {
+    return obtenerTextoInterfaz('tablas.ajustaFiltros', 'Ajusta o limpia filtros');
+}
+
+function obtenerTextoSinDatosTabla() {
+    return obtenerTextoInterfaz('mensajes.noHayDatos', 'No hay datos disponibles');
+}
+
+function obtenerTextoExportarTabla() {
+    return obtenerTextoInterfaz('tablas.exportar', 'Exportar CSV');
+}
+
+function obtenerTextoSinFilasExportables() {
+    return obtenerTextoInterfaz('tablas.sinFilasExportables', 'No hay filas visibles para exportar');
+}
+
+function obtenerTextoExportacionOk() {
+    return obtenerTextoInterfaz('tablas.exportacionOk', 'Archivo CSV exportado');
+}
+
+function obtenerOCrearToolbarFiltros(table) {
+    const wrapper = table.closest('.table-container') || table.parentElement;
+    if (!wrapper) return null;
+
+    let toolbar = wrapper.querySelector(`.table-filter-toolbar[data-table-filter-toolbar="${table.id}"]`);
+    if (!toolbar) {
+        toolbar = document.createElement('div');
+        toolbar.className = 'table-filter-toolbar';
+        toolbar.dataset.tableFilterToolbar = table.id;
+        toolbar.innerHTML = `
+            <span class="table-filter-status"></span>
+            <div class="table-filter-toolbar-actions">
+                <button type="button" class="table-filter-export-btn">
+                    <i class="fas fa-file-export" aria-hidden="true"></i>
+                    <span></span>
+                </button>
+                <button type="button" class="table-filter-clear-btn">
+                    <i class="fas fa-filter-circle-xmark" aria-hidden="true"></i>
+                    <span></span>
+                </button>
+            </div>
+        `;
+        wrapper.insertBefore(toolbar, table);
+    }
+
+    return toolbar;
+}
+
+function actualizarResumenFiltrosTabla(table, filterControls) {
+    const toolbar = obtenerOCrearToolbarFiltros(table);
+    if (!toolbar) return;
+
+    const statusEl = toolbar.querySelector('.table-filter-status');
+    const clearBtn = toolbar.querySelector('.table-filter-clear-btn');
+    const exportBtn = toolbar.querySelector('.table-filter-export-btn');
+    const clearBtnLabel = clearBtn?.querySelector('span');
+    const exportBtnLabel = exportBtn?.querySelector('span');
+
+    const rows = Array.from(table?.tBodies?.[0]?.rows || []);
+    const totalRows = rows.length;
+    const visibleRows = rows.filter((row) => row.style.display !== 'none').length;
+    const activeFilters = (Array.isArray(filterControls) ? filterControls : [])
+        .filter((control) => String(control.value || '').trim() !== '').length;
+
+    if (clearBtnLabel) clearBtnLabel.textContent = obtenerTextoLimpiarFiltros();
+    if (exportBtnLabel) exportBtnLabel.textContent = obtenerTextoExportarTabla();
+    if (clearBtn) clearBtn.disabled = activeFilters === 0;
+
+    if (!statusEl) return;
+
+    if (totalRows === 0) {
+        statusEl.textContent = `${obtenerTextoSinDatosTabla()}. ${obtenerTextoInterfaz('tablas.agregaPrimero', 'Agrega el primer registro desde la fila superior.')}`;
+        statusEl.classList.add('is-empty');
+        statusEl.classList.remove('is-no-results');
+        return;
+    }
+
+    if (visibleRows === 0) {
+        const sinResultados = obtenerTextoInterfaz('tablas.sinResultados', 'Sin resultados');
+        statusEl.textContent = `${sinResultados}. ${obtenerTextoAjustaFiltros()}.`;
+        statusEl.classList.add('is-no-results');
+        statusEl.classList.remove('is-empty');
+        return;
+    }
+
+    const template = obtenerTextoInterfaz('tablas.mostrandoRegistros', 'Mostrando {0} de {1} registros');
+    statusEl.textContent = template.replace('{0}', visibleRows).replace('{1}', totalRows);
+    statusEl.classList.remove('is-empty', 'is-no-results');
+}
+
+
+function escaparCsvValor(value) {
+    const raw = String(value ?? '').replace(/\r?\n|\r/g, ' ').trim();
+    if (raw.includes('"') || raw.includes(',') || raw.includes(';')) {
+        return `"${raw.replace(/"/g, '""')}"`;
+    }
+    return raw;
+}
+
+function exportarFilasVisiblesTabla(table) {
+    if (!table || !table.id) return;
+
+    const headerCells = Array.from(table.querySelectorAll('thead tr:first-child th'));
+    const exportColumns = headerCells
+        .map((th, index) => ({ index, label: obtenerLabelColumna(th, index), isAction: esColumnaAcciones(th) }))
+        .filter((column) => !column.isAction);
+
+    const rows = Array.from(table.tBodies?.[0]?.rows || []).filter((row) => row.style.display !== 'none');
+    if (rows.length === 0) {
+        if (typeof window.notifyInfo === 'function') {
+            window.notifyInfo(obtenerTextoSinFilasExportables());
+        }
+        return;
+    }
+
+    const lines = [];
+    lines.push(exportColumns.map((column) => escaparCsvValor(column.label)).join(';'));
+    rows.forEach((row) => {
+        const values = exportColumns.map((column) => {
+            const text = row.cells?.[column.index]?.textContent || '';
+            return escaparCsvValor(text);
+        });
+        lines.push(values.join(';'));
+    });
+
+    const csvContent = lines.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const dateLabel = new Date().toISOString().slice(0, 10);
+    link.href = url;
+    link.download = `${table.id}-${dateLabel}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    if (typeof window.notifySuccess === 'function') {
+        window.notifySuccess(obtenerTextoExportacionOk());
+    }
+}
+
+function esColumnaAcciones(th) {
+    if (!th) return false;
+    const i18nKey = String(th.getAttribute('data-i18n') || '').toLowerCase();
+    const label = normalizarTextoBusqueda(th.textContent);
+
+    if (i18nKey.includes('acciones')) return true;
+    if (label.includes('accion') || label.includes('actions')) return true;
+    if (th.classList.contains('w-120') || th.classList.contains('w-150')) return true;
+    return false;
+}
+
+function obtenerLabelColumna(th, index) {
+    const text = String(th?.textContent || '').replace(/\s+/g, ' ').trim();
+    if (text) return text;
+    return `Col ${index + 1}`;
+}
+
+function esValorTipoFecha(value) {
+    const normalized = String(value || '').trim();
+    return /^\d{4}-\d{2}-\d{2}$/.test(normalized) || /^\d{4}-\d{2}$/.test(normalized);
+}
+
+function esValorTipoNumero(value) {
+    const normalized = String(value || '').trim();
+    if (!normalized) return false;
+    const cleaned = normalized.replace(/[€$£¥%\s]/g, '').replace(/\./g, '').replace(',', '.');
+    return /^-?\d+(\.\d+)?$/.test(cleaned);
+}
+
+function obtenerValoresUnicosColumna(table, columnIndex, maxValues = 40) {
+    const tbody = table?.tBodies?.[0];
+    if (!tbody) return [];
+
+    const valueMap = new Map();
+    Array.from(tbody.rows || []).forEach((row) => {
+        const value = String(row.cells[columnIndex]?.textContent || '').replace(/\s+/g, ' ').trim();
+        if (!value || value === '—') return;
+        const key = normalizarTextoBusqueda(value);
+        if (!key || valueMap.has(key)) return;
+        valueMap.set(key, value);
+    });
+
+    return Array.from(valueMap.values())
+        .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }))
+        .slice(0, maxValues);
+}
+
+function debeUsarSelectEnColumna(th, valoresUnicos) {
+    if (!th || !Array.isArray(valoresUnicos) || valoresUnicos.length === 0) return false;
+
+    const i18nKey = normalizarTextoBusqueda(th.getAttribute('data-i18n') || '');
+    const label = normalizarTextoBusqueda(th.textContent || '');
+    const contexto = `${i18nKey} ${label}`;
+
+    // Columnas categóricas con muchos posibles valores únicos
+    if (/categoria|tipo|estado|cuenta|origen|metodo|m[eé]todo|banco|moneda|divisa/.test(contexto)) {
+        return valoresUnicos.length <= 60;
+    }
+
+    // Columnas de período (YYYY-MM) y texto corto identificador — select aunque sean fechas
+    if (/\bdesde\b|\bhasta\b|\bticker\b|\bempresa\b|compan|\bconcepto\b/.test(contexto)) {
+        return valoresUnicos.length <= 36;
+    }
+
+    if (valoresUnicos.length > 14) return false;
+
+    const largos = valoresUnicos.filter((value) => String(value).length > 28).length;
+    if (largos > 2) return false;
+
+    const numericosOFecha = valoresUnicos.filter((value) => esValorTipoNumero(value) || esValorTipoFecha(value)).length;
+    if ((numericosOFecha / valoresUnicos.length) >= 0.6) return false;
+
+    return true;
+}
+
+function actualizarOpcionesSelectDeFiltros(table, filterControls) {
+    const selects = (Array.isArray(filterControls) ? filterControls : [])
+        .filter((control) => control.tagName === 'SELECT');
+
+    selects.forEach((selectControl) => {
+        const columnIndex = Number(selectControl.dataset.columnIndex);
+        if (!Number.isInteger(columnIndex) || columnIndex < 0) return;
+
+        const valoresUnicos = obtenerValoresUnicosColumna(table, columnIndex, 80);
+        const selected = selectControl.value;
+        const allText = selectControl.dataset.allText || 'Todos';
+
+        selectControl.innerHTML = '';
+
+        const optionAll = document.createElement('option');
+        optionAll.value = '';
+        optionAll.textContent = allText;
+        selectControl.appendChild(optionAll);
+
+        valoresUnicos.forEach((value) => {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = value;
+            selectControl.appendChild(option);
+        });
+
+        selectControl.value = valoresUnicos.includes(selected) ? selected : '';
+    });
+}
+
+function aplicarFiltroTablaPorColumnas(table, filterControls) {
+    const tbody = table?.tBodies?.[0];
+    if (!tbody) return;
+
+    const filters = (Array.isArray(filterControls) ? filterControls : [])
+        .map((control) => ({
+            columnIndex: Number(control.dataset.columnIndex),
+            query: normalizarTextoBusqueda(control.value || ''),
+            mode: control.dataset.matchMode || 'includes'
+        }))
+        .filter((entry) => Number.isInteger(entry.columnIndex) && entry.columnIndex >= 0);
+
+    Array.from(tbody.rows || []).forEach((row) => {
+        const visible = filters.every(({ columnIndex, query, mode }) => {
+            if (!query) return true;
+            const cellText = normalizarTextoBusqueda(row.cells[columnIndex]?.textContent || '');
+            if (mode === 'exact') {
+                return cellText === query;
+            }
+            return cellText.includes(query);
+        });
+        row.style.display = visible ? '' : 'none';
+    });
+
+    actualizarResumenFiltrosTabla(table, filterControls);
+}
+
+function attachTableSearch(table) {
+    if (!table || !table.id || table.dataset.disableSearch === 'true') return;
+
+    const thead = table.tHead;
+    if (!thead) return;
+
+    const headerCells = Array.from(thead.rows[0]?.cells || []);
+    if (headerCells.length === 0) return;
+
+    const toolbar = obtenerOCrearToolbarFiltros(table);
+
+    // Reutilizar o crear la fila de filtros dentro del thead
+    let filterRow = thead.querySelector('tr.table-filter-row');
+    if (!filterRow) {
+        filterRow = document.createElement('tr');
+        filterRow.className = 'table-filter-row';
+        thead.appendChild(filterRow);
+    }
+
+    const textoTodos = obtenerTextoTodosFiltro();
+    const persistedValuesByColumn = loadTableFilterState(table.id);
+
+    // Guardar valores previos antes de vaciar
+    const previousValuesByColumn = {};
+    Array.from(filterRow.querySelectorAll('.table-column-filter-control')).forEach((control) => {
+        const columnIndex = Number(control.dataset.columnIndex);
+        if (Number.isInteger(columnIndex) && columnIndex >= 0) {
+            previousValuesByColumn[columnIndex] = control.value || '';
+        }
+    });
+    filterRow.innerHTML = '';
+
+    headerCells.forEach((th, index) => {
+        const td = document.createElement('td');
+        td.className = 'table-filter-cell';
+
+        if (esColumnaAcciones(th)) {
+            td.classList.add('is-action');
+            filterRow.appendChild(td);
+            return;
+        }
+
+        const label = obtenerLabelColumna(th, index);
+        const valoresUnicos = obtenerValoresUnicosColumna(table, index);
+        const usarSelect = debeUsarSelectEnColumna(th, valoresUnicos);
+
+        let control;
+        if (usarSelect) {
+            const select = document.createElement('select');
+            select.className = 'table-column-filter-select table-column-filter-control';
+            select.dataset.columnIndex = String(index);
+            select.dataset.matchMode = 'exact';
+            select.dataset.allText = textoTodos;
+            select.setAttribute('aria-label', label);
+            control = select;
+        } else {
+            const input = document.createElement('input');
+            input.type = 'search';
+            input.className = 'table-column-filter-input table-column-filter-control';
+            input.dataset.columnIndex = String(index);
+            input.dataset.matchMode = 'includes';
+            input.placeholder = label;
+            input.setAttribute('aria-label', label);
+            control = input;
+        }
+
+        const previousValue = previousValuesByColumn[index];
+        const persistedValue = persistedValuesByColumn[index];
+        control.value = previousValue || persistedValue || '';
+        td.appendChild(control);
+        filterRow.appendChild(td);
+    });
+
+    const filterControls = Array.from(filterRow.querySelectorAll('.table-column-filter-control'));
+    actualizarOpcionesSelectDeFiltros(table, filterControls);
+
+    filterControls.forEach((control) => {
+        const onFilterChange = () => {
+            saveTableFilterState(table.id, filterControls);
+            aplicarFiltroTablaPorColumnas(table, filterControls);
+        };
+        control.addEventListener('input', onFilterChange);
+        control.addEventListener('change', onFilterChange);
+    });
+
+    if (toolbar) {
+        const clearBtn = toolbar.querySelector('.table-filter-clear-btn');
+        const exportBtn = toolbar.querySelector('.table-filter-export-btn');
+
+        if (exportBtn) {
+            exportBtn.onclick = () => {
+                exportarFilasVisiblesTabla(table);
+            };
+        }
+
+        if (clearBtn) {
+            clearBtn.onclick = () => {
+                filterControls.forEach((control) => {
+                    control.value = '';
+                    control.dispatchEvent(new Event('change'));
+                });
+                clearTableFilterState(table.id);
+                const firstControl = filterControls[0];
+                if (firstControl) firstControl.focus();
+            };
+        }
+    }
+
+    const existingRegistry = tableSearchRegistry.get(table);
+    if (existingRegistry?.observer) {
+        existingRegistry.observer.disconnect();
+    }
+
+    const tbody = table.tBodies?.[0];
+    if (tbody) {
+        const observer = new MutationObserver(() => {
+            actualizarOpcionesSelectDeFiltros(table, filterControls);
+            aplicarFiltroTablaPorColumnas(table, filterControls);
+        });
+        observer.observe(tbody, { childList: true, subtree: true });
+        tableSearchRegistry.set(table, { observer });
+    }
+
+    aplicarFiltroTablaPorColumnas(table, filterControls);
+}
+
+function initTableSearchers(scope = document) {
+    const tables = scope.querySelectorAll('table[id]');
+    tables.forEach((table) => attachTableSearch(table));
+}
+
 async function loadTab(tabId) {
     try {
         // Guardar posición de scroll de la pestaña actual
@@ -850,6 +1482,8 @@ async function loadTab(tabId) {
         if (currentTab) {
             scrollPositions[currentTab.dataset.tab] = window.scrollY;
         }
+
+        setActiveTabButton(tabId);
         
         // Agregar clase de carga para transición suave
         tabContent.style.opacity = '0';
@@ -889,6 +1523,9 @@ async function loadTab(tabId) {
         if (tabId === 'hucha') {
             if (typeof cargarHucha !== 'undefined') await cargarHucha();
         }
+
+        // Añadir filtros por columna a las tablas de la pestaña.
+        initTableSearchers(tabContent);
         
         // Restaurar scroll después de cargar todo
         window.scrollTo({ top: savedPosition, behavior: 'instant' });
@@ -908,8 +1545,6 @@ async function loadTab(tabId) {
 // Evento de clic en las pestañas
 buttons.forEach(btn => {
     btn.addEventListener('click', () => {
-        buttons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
         loadTab(btn.dataset.tab);
     });
 });
@@ -927,6 +1562,13 @@ document.addEventListener('DOMContentLoaded', () => {
         gestorIdiomas.cambiarIdioma(idiomaGuardado);
     }
     setCurrency(monedaGuardada, { silent: true });
+
+    initTabAccessibility();
+    initKeyboardNavigation();
+    const activeBtn = document.querySelector('.tablink.active');
+    if (activeBtn?.dataset?.tab) {
+        setActiveTabButton(activeBtn.dataset.tab);
+    }
 
     initWindowControls();
     initUserSelection();
@@ -1030,15 +1672,19 @@ async function cargarResumenPeriodos() {
                 // Obtener total hucha
                 if (hucha) {
                     try {
-                        const [resHucha, resCR, resAssets] = await Promise.all([
+                        const [resHucha, resCR, resAssets, resSubHuchas, resSubHuchasPunt] = await Promise.all([
                             fetch('/hucha'),
                             fetch('/cuenta_remunerada'),
-                            fetch('/assets')
+                            fetch('/assets'),
+                            fetch('/sub_huchas'),
+                            fetch(`/sub_huchas/total?mes=${getReferenceMonthForPeriod(periodo)}`)
                         ]);
 
                         const dataHucha = resHucha.ok ? await resHucha.json() : [];
                         const dataCR = resCR.ok ? await resCR.json() : [];
                         const dataAssets = resAssets.ok ? await resAssets.json() : [];
+                        const subHuchasList = resSubHuchas.ok ? await resSubHuchas.json() : [];
+                        const subHuchasTotalData = resSubHuchasPunt.ok ? await resSubHuchasPunt.json() : { total: 0 };
 
                         const totalHuchaManual = dataHucha.reduce((acc, item) => acc + (parseFloat(item.cantidad) || 0), 0);
 
@@ -1050,29 +1696,87 @@ async function cargarResumenPeriodos() {
                         let totalAssets = 0;
                         for (const asset of dataAssets) {
                             try {
+                                const shares = Number(asset.shares) || 0;
+                                const fallbackPrice = Number(asset.purchase_price) || 0;
                                 const currentPrice = await window.getAssetPrice(asset.ticker);
-                                if (currentPrice) {
-                                    totalAssets += asset.shares * currentPrice;
-                                }
+                                const appliedPrice = Number.isFinite(currentPrice) ? currentPrice : fallbackPrice;
+                                totalAssets += shares * appliedPrice;
                             } catch (e) {
                                 console.error(`Error obteniendo precio para ${asset.ticker}:`, e);
                             }
                         }
 
                         hucha.textContent = formatearEuro(totalHuchaManual + totalCR + totalAssets);
+
+                        // Sub-huchas: mostrar cada una con nombre y saldo
+                        const subHuchasListEl = document.getElementById('sub-huchas-list');
+                        if (subHuchasListEl) {
+                            subHuchasListEl.innerHTML = '';
+                            if (subHuchasList.length > 0) {
+                                const mesRef = getReferenceMonthForPeriod(periodo);
+                                // Fetch puntuales per sub-hucha to calc individual balances
+                                const puntualsByHucha = {};
+                                await Promise.all(subHuchasList.map(async (sh) => {
+                                    try {
+                                        const r = await fetch(`/sub_huchas/${sh.id}/puntuales`);
+                                        puntualsByHucha[sh.id] = r.ok ? await r.json() : [];
+                                    } catch { puntualsByHucha[sh.id] = []; }
+                                }));
+                                for (const sh of subHuchasList) {
+                                    const inicial = Number(sh.aportacion_inicial) || 0;
+                                    const mensual = Number(sh.aportacion_mensual) || 0;
+                                    const [dY, dM] = sh.desde.split('-').map(Number);
+                                    const [hY, hM] = sh.hasta.split('-').map(Number);
+                                    const [rY, rM] = mesRef.split('-').map(Number);
+                                    const desdeD = new Date(dY, dM - 1);
+                                    const hastaD = new Date(hY, hM - 1);
+                                    const refD = new Date(rY, rM - 1);
+                                    let saldo = 0;
+                                    if (refD >= desdeD) {
+                                        const limD = refD < hastaD ? refD : hastaD;
+                                        const meses = Math.max(0, (limD.getFullYear() - desdeD.getFullYear()) * 12 + (limD.getMonth() - desdeD.getMonth()));
+                                        const punts = (puntualsByHucha[sh.id] || []).filter(p => p.fecha.substring(0, 7) <= mesRef);
+                                        const totalPunt = punts.reduce((a, p) => a + (Number(p.monto) || 0), 0);
+                                        saldo = inicial + meses * mensual + totalPunt;
+                                    }
+                                    const row = document.createElement('div');
+                                    row.className = 'inicio-sub-hucha-row';
+                                    row.innerHTML = `<span class="inicio-sub-hucha-name">${sh.nombre}</span><span class="inicio-sub-hucha-amount">${formatearEuro(saldo)}</span>`;
+                                    subHuchasListEl.appendChild(row);
+                                }
+                            }
+                        }
                     } catch {
                         hucha.textContent = formatearEuro(0);
+                        const subHuchasListEl = document.getElementById('sub-huchas-list');
+                        if (subHuchasListEl) subHuchasListEl.innerHTML = '';
                     }
                 }
                 
                 // Calcular rendimiento del portfolio (con caché de 20 minutos)
                 const portfolio = document.getElementById('portfolio-rendimiento');
+                const portfolioTotalValue = document.getElementById('portfolio-valor-total');
                 if (portfolio) {
+                    const portfolioTotalLabel = (typeof gestorIdiomas !== 'undefined')
+                        ? gestorIdiomas.obtenerTexto('resumen.portfolioValorTotal')
+                        : 'Valor total';
+
+                    const updatePortfolioCard = (textContent, color = '', totalValue = 0) => {
+                        portfolio.textContent = textContent;
+                        portfolio.style.color = color;
+                        if (portfolioTotalValue) {
+                            portfolioTotalValue.textContent = `${portfolioTotalLabel}: ${formatearEuro(totalValue)}`;
+                        }
+                    };
+
                     const now = Date.now();
                     const portfolioCacheKey = `${activeUser || 'anon'}:${periodo}`;
                     if (portfolioResultCache && portfolioResultCache.key === portfolioCacheKey && (now - portfolioResultCache.timestamp) < PORTFOLIO_CACHE_TTL) {
-                        portfolio.textContent = portfolioResultCache.textContent;
-                        portfolio.style.color = portfolioResultCache.color;
+                        updatePortfolioCard(
+                            portfolioResultCache.textContent,
+                            portfolioResultCache.color,
+                            Number(portfolioResultCache.totalValue) || 0
+                        );
                     } else {
                         try {
                             const resAssets = await fetch('/assets');
@@ -1080,19 +1784,21 @@ async function cargarResumenPeriodos() {
                                 const assets = await resAssets.json();
 
                                 if (assets.length === 0) {
-                                    portfolioResultCache = { key: portfolioCacheKey, textContent: '€0 (0%)', color: '', timestamp: now };
-                                    portfolio.textContent = '€0 (0%)';
-                                    portfolio.style.color = '';
+                                    portfolioResultCache = { key: portfolioCacheKey, textContent: '€0 (0%)', color: '', totalValue: 0, timestamp: now };
+                                    updatePortfolioCard('€0 (0%)', '', 0);
                                 } else {
                                     let totalInvested = 0;
                                     let currentValue = 0;
 
                                     for (const asset of assets) {
-                                        const invested = asset.shares * asset.purchase_price;
+                                        const shares = Number(asset.shares) || 0;
+                                        const purchasePrice = Number(asset.purchase_price) || 0;
+                                        const invested = shares * purchasePrice;
                                         totalInvested += invested;
                                         try {
                                             const currentPrice = await window.getAssetPrice(asset.ticker);
-                                            currentValue += asset.shares * (currentPrice || asset.purchase_price);
+                                            const appliedPrice = Number.isFinite(currentPrice) ? currentPrice : purchasePrice;
+                                            currentValue += shares * appliedPrice;
                                         } catch (e) {
                                             currentValue += invested;
                                         }
@@ -1104,18 +1810,15 @@ async function cargarResumenPeriodos() {
                                     const textContent = `${sign}${formatearEuro(profit)} (${sign}${profitPercent.toFixed(2)}%)`;
                                     const color = profit >= 0 ? 'var(--success)' : 'var(--danger)';
 
-                                    portfolioResultCache = { key: portfolioCacheKey, textContent, color, timestamp: now };
-                                    portfolio.textContent = textContent;
-                                    portfolio.style.color = color;
+                                    portfolioResultCache = { key: portfolioCacheKey, textContent, color, totalValue: currentValue, timestamp: now };
+                                    updatePortfolioCard(textContent, color, currentValue);
                                 }
                             } else {
-                                portfolio.textContent = '€0 (0%)';
-                                portfolio.style.color = '';
+                                updatePortfolioCard('€0 (0%)', '', 0);
                             }
                         } catch (e) {
                             console.error('Error calculando rendimiento del portfolio:', e);
-                            portfolio.textContent = '€0 (0%)';
-                            portfolio.style.color = '';
+                            updatePortfolioCard('€0 (0%)', '', 0);
                         }
                     }
                 }
@@ -1199,6 +1902,8 @@ async function cargarResumenPeriodos() {
         if (saldo) saldo.textContent = formatearEuro(0);
         if (taxes) taxes.textContent = formatearEuro(0);
         if (hucha) hucha.textContent = formatearEuro(0);
+        const subHuchasListErr = document.getElementById('sub-huchas-list');
+        if (subHuchasListErr) subHuchasListErr.innerHTML = '';
 
         // Reintentar en 5 segundos
         setTimeout(() => {

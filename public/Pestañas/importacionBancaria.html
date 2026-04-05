@@ -1,5 +1,14 @@
 <div id="importacion-bancaria">
   <div class="importacion-container">
+    <div id="importWizard" class="import-wizard" aria-label="Flujo de importación">
+      <div class="wizard-step active" data-step="archivos"><span>1</span><label data-i18n="importacion.archivosGuardados">Archivos</label></div>
+      <div class="wizard-step" data-step="upload"><span>2</span><label data-i18n="importacion.titulo">Carga</label></div>
+      <div class="wizard-step" data-step="mapeo"><span>3</span><label data-i18n="importacion.mapeoColumnas">Mapeo</label></div>
+      <div class="wizard-step" data-step="seleccionConceptos"><span>4</span><label data-i18n="importacion.seleccionConceptos">Conceptos</label></div>
+      <div class="wizard-step" data-step="seleccionCategorias"><span>5</span><label data-i18n="importacion.seleccionCategorias">Categorías</label></div>
+      <div class="wizard-step" data-step="analisis"><span>6</span><label data-i18n="importacion.analisisMovimientos">Análisis</label></div>
+    </div>
+
     <!-- SECCIÓN 0: Archivos Guardados -->
     <div id="archivosSection" class="card">
       <h3 data-i18n="importacion.archivosGuardados">Archivos Guardados</h3>
@@ -47,6 +56,19 @@
     <div id="mapeoSection" class="card display-none">
       <h3 data-i18n="importacion.mapeoColumnas">Mapeo de Columnas</h3>
       <p data-i18n="importacion.detectadoCampos">Se detectaron los siguientes campos. Por favor, confirma cuál es cada uno:</p>
+
+      <div class="mapeo-preset-toolbar mt-10">
+        <label for="selectPresetMapeo" data-i18n="importacion.presetMapeo">Preset:</label>
+        <select id="selectPresetMapeo" class="mapeo-select preset-select">
+          <option value="">-- Sin preset --</option>
+        </select>
+        <button id="btnGuardarPresetMapeo" class="btn-secondary btn-small" type="button">
+          <i class="fas fa-save"></i> <span data-i18n="importacion.guardarPreset">Guardar preset</span>
+        </button>
+        <button id="btnEliminarPresetMapeo" class="btn-secondary btn-small" type="button">
+          <i class="fas fa-trash"></i> <span data-i18n="importacion.eliminarPreset">Eliminar preset</span>
+        </button>
+      </div>
       
       <div class="mapeo-container">
         <div class="mapeo-field">
@@ -90,6 +112,10 @@
       <!-- PREVIEW DE DATOS -->
       <div id="previewSection" class="mt-20">
         <h4 data-i18n="importacion.vista_previa">Vista Previa de Datos</h4>
+        <div class="preview-tools">
+          <label for="previewFilterInput" data-i18n="tablas.buscar">Buscar:</label>
+          <input id="previewFilterInput" type="search" class="input-control" placeholder="Filtrar vista previa">
+        </div>
         <div class="table-wrapper">
           <table id="previewTable" class="preview-table">
             <thead>
@@ -99,6 +125,32 @@
           </table>
         </div>
         <p class="font-size-11 color-secondary mt-10" id="previewInfo"></p>
+      </div>
+
+      <div id="validacionMapeo" class="import-validation display-none mt-15">
+        <div class="validation-stats">
+          <div class="validation-card"><span data-i18n="importacion.totalFilas">Total</span><strong id="validacionTotal">0</strong></div>
+          <div class="validation-card ok"><span data-i18n="importacion.validas">Válidas</span><strong id="validacionValidas">0</strong></div>
+          <div class="validation-card warn"><span data-i18n="importacion.invalidas">Inválidas</span><strong id="validacionInvalidas">0</strong></div>
+        </div>
+        <div class="validation-actions mb-10">
+          <button id="btnDescargarErroresValidacion" class="btn-secondary btn-small" type="button">
+            <i class="fas fa-file-csv"></i> <span data-i18n="importacion.descargarErrores">Descargar errores</span>
+          </button>
+        </div>
+        <div class="validation-errors table-wrapper max-height-300 overflow-auto">
+          <table class="preview-table" id="tablaValidacionErrores">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th data-i18n="importacion.concepto">Concepto</th>
+                <th data-i18n="importacion.importe">Importe</th>
+                <th data-i18n="importacion.error">Error</th>
+              </tr>
+            </thead>
+            <tbody id="validacionErroresBody"></tbody>
+          </table>
+        </div>
       </div>
 
       <div class="mapeo-actions mt-20">
@@ -111,6 +163,15 @@
     <div id="seleccionConceptosSection" class="card display-none">
       <h3 data-i18n="importacion.seleccionConceptos">Seleccionar Conceptos</h3>
       <p data-i18n="importacion.descripcionSeleccion">Selecciona los conceptos que deseas incluir en el análisis</p>
+
+      <div class="conceptos-toolbar mt-10 mb-10">
+        <input id="conceptoSearchInput" type="search" class="input-control" placeholder="Buscar concepto">
+        <select id="conceptoSortSelect" class="mapeo-select">
+          <option value="impacto">Ordenar por impacto</option>
+          <option value="movimientos">Ordenar por movimientos</option>
+          <option value="alfabetico">Ordenar A-Z</option>
+        </select>
+      </div>
       
       <div class="conceptos-header mt-15 mb-10">
         <button id="btnSeleccionarTodos" class="btn-secondary btn-small mr-10">
@@ -135,6 +196,16 @@
     <div id="seleccionCategoriasSection" class="card display-none">
       <h3 data-i18n="importacion.seleccionCategorias">Seleccionar Categorías</h3>
       <p data-i18n="importacion.descripcionCategorias">Asigna categoría a cada concepto/movimiento</p>
+
+      <div class="categorias-toolbar mt-10 mb-10">
+        <label for="categoriaMasivaSelect" data-i18n="importacion.categoria">Categoría masiva:</label>
+        <select id="categoriaMasivaSelect" class="mapeo-select">
+          <option value="">-- Selecciona --</option>
+        </select>
+        <button id="btnAplicarCategoriaMasiva" class="btn-secondary btn-small" type="button">
+          <i class="fas fa-bolt"></i> <span data-i18n="importacion.aplicar">Aplicar a todas</span>
+        </button>
+      </div>
       
       <div class="categorias-table mt-20">
         <div class="table-wrapper">
@@ -174,6 +245,18 @@
           <input type="date" id="analisisHasta" class="input-control">
         </div>
         <button id="btnActualizarAnalisis" class="btn-secondary" data-i18n="importacion.actualizar">Actualizar</button>
+      </div>
+
+      <div id="analisisKpis" class="analisis-kpis">
+        <div class="analisis-kpi"><span data-i18n="dashboard.ingresos">Ingresos</span><strong id="kpiImportacionIngresos">€0.00</strong></div>
+        <div class="analisis-kpi"><span data-i18n="dashboard.gastos">Gastos</span><strong id="kpiImportacionGastos">€0.00</strong></div>
+        <div class="analisis-kpi"><span data-i18n="dashboard.ingresoNeto">Neto</span><strong id="kpiImportacionNeto">€0.00</strong></div>
+        <div class="analisis-kpi"><span data-i18n="importacion.movimientos">Movimientos</span><strong id="kpiImportacionMovimientos">0</strong></div>
+      </div>
+
+      <div id="analisisLoading" class="analisis-loading display-none" aria-live="polite">
+        <div class="loading-shimmer"></div>
+        <p data-i18n="importacion.procesando">Procesando datos...</p>
       </div>
 
       <!-- GRÁFICOS -->

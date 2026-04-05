@@ -15,6 +15,15 @@ async function getAssetsCategoryId() {
     return cat.id;
 }
 
+function normalizeTicker(ticker) {
+    return String(ticker || '').trim().toUpperCase();
+}
+
+function parsePositiveNumber(value) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
 /**
  * GET /assets - Obtener todos los assets
  */
@@ -38,12 +47,20 @@ router.get('/assets', async (req, res) => {
  */
 router.post('/add/asset', async (req, res) => {
     try {
-        const { company, ticker, shares, purchase_price } = req.body;
+        const company = String(req.body.company || '').trim();
+        const ticker = normalizeTicker(req.body.ticker);
+        const shares = parsePositiveNumber(req.body.shares);
+        const purchasePrice = parsePositiveNumber(req.body.purchase_price);
+
+        if (!company || !ticker || shares === null || purchasePrice === null) {
+            return res.status(400).json({ error: 'Datos de asset inválidos' });
+        }
+
         const categoria_id = await getAssetsCategoryId();
         await dbRun(db, `
             INSERT INTO assets (company, ticker, shares, purchase_price, categoria_id)
             VALUES (?, ?, ?, ?, ?)
-        `, [company, ticker, shares, purchase_price, categoria_id]);
+        `, [company, ticker, shares, purchasePrice, categoria_id]);
         res.json({ success: true });
     } catch (e) {
         console.error(e);
@@ -68,13 +85,22 @@ router.post('/delete/asset', async (req, res) => {
  */
 router.post('/update/asset', async (req, res) => {
     try {
-        const { id, company, ticker, shares, purchase_price } = req.body;
+        const id = Number(req.body.id);
+        const company = String(req.body.company || '').trim();
+        const ticker = normalizeTicker(req.body.ticker);
+        const shares = parsePositiveNumber(req.body.shares);
+        const purchasePrice = parsePositiveNumber(req.body.purchase_price);
+
+        if (!Number.isInteger(id) || id <= 0 || !company || !ticker || shares === null || purchasePrice === null) {
+            return res.status(400).json({ error: 'Datos de asset inválidos' });
+        }
+
         const categoria_id = await getAssetsCategoryId();
         await dbRun(db, `
             UPDATE assets 
             SET company=?, ticker=?, shares=?, purchase_price=?, categoria_id=?
             WHERE id=?
-        `, [company, ticker, shares, purchase_price, categoria_id, id]);
+        `, [company, ticker, shares, purchasePrice, categoria_id, id]);
         res.json({ success: true });
     } catch (e) {
         console.error(e);
@@ -87,20 +113,31 @@ router.post('/update/asset', async (req, res) => {
  */
 router.post('/sell/asset', async (req, res) => {
     try {
-        const { id, sale_price } = req.body;
+        const id = Number(req.body.id);
+        const salePrice = parsePositiveNumber(req.body.sale_price);
+
+        if (!Number.isInteger(id) || id <= 0 || salePrice === null) {
+            return res.status(400).json({ error: 'Datos de venta inválidos' });
+        }
         
         const asset = await dbGet(db, `SELECT * FROM assets WHERE id=?`, [id]);
         if (!asset) {
             return res.status(404).json({ error: 'Asset no encontrado' });
         }
+
+        const shares = Number(asset.shares);
+        const purchasePrice = Number(asset.purchase_price);
+        if (!Number.isFinite(shares) || shares <= 0 || !Number.isFinite(purchasePrice) || purchasePrice <= 0) {
+            return res.status(400).json({ error: 'Asset con datos inválidos' });
+        }
         
-        const totalInvested = asset.shares * asset.purchase_price;
-        const totalSale = asset.shares * sale_price;
+        const totalInvested = shares * purchasePrice;
+        const totalSale = shares * salePrice;
         const profit = totalSale - totalInvested;
         
         const categoryId = await getAssetsCategoryId();
         const fecha = new Date().toISOString().split('T')[0];
-        const descripcion = `Venta ${asset.shares} acciones ${asset.company} (${asset.ticker}) @ €${sale_price.toFixed(2)}`;
+        const descripcion = `Venta ${shares} acciones ${asset.company} (${asset.ticker}) @ €${salePrice.toFixed(2)}`;
         
         if (profit >= 0) {
             await dbRun(db,

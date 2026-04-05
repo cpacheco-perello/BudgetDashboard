@@ -5,16 +5,22 @@
   <div class="mb-15">
     <button class="subtab-btn" data-target="ingresosPuntuales" data-i18n="ingresos.puntuales">Puntuales</button>
     <button class="subtab-btn" data-target="ingresosMensuales" data-i18n="ingresos.mensuales">Mensuales</button>
-    <button class="subtab-btn" data-target="cuentaRemunerada" data-i18n="ingresos.cuenta_remunerada">Cuenta Remunerada</button>
+    <button class="subtab-btn" data-target="cuentaRemunerada" data-i18n="ingresos.cuenta_remunerada">Cuenta
+      Remunerada</button>
     <button class="subtab-btn" data-target="assets" data-i18n="ingresos.assets">Assets</button>
-    <button class="subtab-btn" data-target="ingresosReales" data-i18n="dashboard.ingresosReales">Ingresos Reales</button>
+    <button class="subtab-btn" data-target="ingresosReales" data-i18n="dashboard.ingresosReales">Ingresos
+      Reales</button>
   </div>
 
   <!-- INGRESOS PUNTUALES -->
   <div id="ingresosPuntuales" class="subtab" style="display:block;">
     <h3 data-i18n="ingresos.puntuales">Ingresos Puntuales</h3>
     <div class="mb-8">
-      <button id="toggleIngresosAntiguos" class="small-btn" data-i18n="ingresos.mostrarAntiguos">Mostrar antiguos</button>
+      <label class="switch">
+        <input type="checkbox" id="toggleIngresosAntiguos" />
+        <span class="slider"></span>
+        <span class="switch-label" id="labelToggleIngresosAntiguos" data-i18n="ingresos.mostrarAntiguos">Mostrar antiguos</span>
+      </label>
     </div>
     <table id="tablaIngresosPuntuales">
       <thead>
@@ -32,13 +38,15 @@
           <td>
             <div class="input-euro">
               <span>€</span>
-              <input type="number" id="montoIngresoPuntual" step="0.01" data-i18n-placeholder="ingresos.placeholderMonto">
+              <input type="number" id="montoIngresoPuntual" step="0.01"
+                data-i18n-placeholder="ingresos.placeholderMonto">
             </div>
           </td>
           <td>
             <div class="input-euro">
               <span>€</span>
-              <input type="number" id="brutoIngresoPuntual" step="0.01" data-i18n-placeholder="formularios.placeholderMonto">
+              <input type="number" id="brutoIngresoPuntual" step="0.01"
+                data-i18n-placeholder="formularios.placeholderMonto">
             </div>
           </td>
           <td><select id="categoriaIngresoPuntual"></select></td>
@@ -53,7 +61,11 @@
   <div id="ingresosMensuales" class="subtab display-none">
     <h3 data-i18n="ingresos.mensuales">Ingresos Mensuales</h3>
     <div class="mb-8">
-      <button id="toggleIngresosMensualesAntiguos" class="small-btn" data-i18n="ingresos.mostrarAntiguos">Mostrar antiguos</button>
+      <label class="switch">
+        <input type="checkbox" id="toggleIngresosMensualesAntiguos" />
+        <span class="slider"></span>
+        <span class="switch-label" id="labelToggleIngresosMensualesAntiguos" data-i18n="ingresos.mostrarAntiguos">Mostrar antiguos</span>
+      </label>
     </div>
     <table id="tablaIngresosMensuales">
       <thead>
@@ -68,38 +80,26 @@
         </tr>
         <tr class="insert-row">
           <td>
-            <input 
-              type="text" 
-              id="desdeIngresoMensual" 
-              data-i18n-placeholder="ingresos.placeholderYYYYMM" 
-              maxlength="7"
-              pattern="\\d{4}-\\d{2}"
-              data-i18n-title="formularios.formatoYYYYMM"
-              title="Formato: YYYY-MM"
-            >
+            <input type="text" id="desdeIngresoMensual" data-i18n-placeholder="ingresos.placeholderYYYYMM" maxlength="7"
+              pattern="\\d{4}-\\d{2}" data-i18n-title="formularios.formatoYYYYMM" title="Formato: YYYY-MM">
           </td>
           <td>
-            <input 
-              type="text" 
-              id="hastaIngresoMensual" 
-              data-i18n-placeholder="ingresos.placeholderYYYYMM" 
-              maxlength="7"
-              pattern="\\d{4}-\\d{2}"
-              data-i18n-title="formularios.formatoYYYYMM"
-              title="Formato: YYYY-MM"
-            >
+            <input type="text" id="hastaIngresoMensual" data-i18n-placeholder="ingresos.placeholderYYYYMM" maxlength="7"
+              pattern="\\d{4}-\\d{2}" data-i18n-title="formularios.formatoYYYYMM" title="Formato: YYYY-MM">
           </td>
           <td><input type="text" id="descIngresoMensual" data-i18n-placeholder="ingresos.placeholderDescripcion"></td>
           <td>
             <div class="input-euro">
               <span>€</span>
-              <input type="number" id="montoIngresoMensual" step="0.01" data-i18n-placeholder="ingresos.placeholderMonto">
+              <input type="number" id="montoIngresoMensual" step="0.01"
+                data-i18n-placeholder="ingresos.placeholderMonto">
             </div>
           </td>
           <td>
             <div class="input-euro">
               <span>€</span>
-              <input type="number" id="brutoIngresoMensual" step="0.01" data-i18n-placeholder="formularios.placeholderMonto">
+              <input type="number" id="brutoIngresoMensual" step="0.01"
+                data-i18n-placeholder="formularios.placeholderMonto">
             </div>
           </td>
           <td><select id="categoriaIngresoMensual"></select></td>
@@ -114,7 +114,11 @@
   <div id="cuentaRemunerada" class="subtab display-none">
     <h3 data-i18n="ingresos.cuenta_remunerada">Cuenta Remunerada</h3>
     <div class="mb-8">
-      <button id="toggleCuentaRemuneradaAntiguos" class="small-btn" data-i18n="ingresos.mostrarAntiguos">Mostrar antiguos</button>
+      <label class="switch">
+        <input type="checkbox" id="toggleCuentaRemuneradaAntiguos" />
+        <span class="slider"></span>
+        <span class="switch-label" id="labelToggleCuentaRemuneradaAntiguos" data-i18n="ingresos.mostrarAntiguos">Mostrar antiguos</span>
+      </label>
     </div>
     <div class="table-container">
       <table id="tablaCuentaRemunerada">
@@ -134,45 +138,38 @@
           </tr>
           <tr class="insert-row">
             <td>
-              <input 
-                type="text" 
-                id="desdeCuentaRemunerada" 
-                data-i18n-placeholder="ingresos.placeholderYYYYMM" 
-                maxlength="7"
-                pattern="\\d{4}-\\d{2}"
-                data-i18n-title="formularios.formatoYYYYMM"
-                title="Formato: YYYY-MM"
-              >
+              <input type="text" id="desdeCuentaRemunerada" data-i18n-placeholder="ingresos.placeholderYYYYMM"
+                maxlength="7" pattern="\\d{4}-\\d{2}" data-i18n-title="formularios.formatoYYYYMM"
+                title="Formato: YYYY-MM">
             </td>
             <td>
-              <input 
-                type="text" 
-                id="hastaCuentaRemunerada" 
-                data-i18n-placeholder="ingresos.placeholderYYYYMM" 
-                maxlength="7"
-                pattern="\\d{4}-\\d{2}"
-                data-i18n-title="formularios.formatoYYYYMM"
-                title="Formato: YYYY-MM"
-              >
+              <input type="text" id="hastaCuentaRemunerada" data-i18n-placeholder="ingresos.placeholderYYYYMM"
+                maxlength="7" pattern="\\d{4}-\\d{2}" data-i18n-title="formularios.formatoYYYYMM"
+                title="Formato: YYYY-MM">
             </td>
-            <td><input type="text" id="descCuentaRemunerada" data-i18n-placeholder="ingresos.placeholderDescripcion"></td>
+            <td><input type="text" id="descCuentaRemunerada" data-i18n-placeholder="ingresos.placeholderDescripcion">
+            </td>
             <td>
               <div class="input-euro">
                 <span>€</span>
-                <input type="number" id="montoCuentaRemunerada" step="0.01" data-i18n-placeholder="ingresos.placeholderMonto">
+                <input type="number" id="montoCuentaRemunerada" step="0.01"
+                  data-i18n-placeholder="ingresos.placeholderMonto">
               </div>
             </td>
             <td>
               <div class="input-euro">
                 <span>€</span>
-                <input type="number" id="aportacionMensualCR" step="0.01" data-i18n-placeholder="ingresos.placeholderAportacion">
+                <input type="number" id="aportacionMensualCR" step="0.01"
+                  data-i18n-placeholder="ingresos.placeholderAportacion">
               </div>
             </td>
             <td>
-              <input type="number" id="interesCuentaRemunerada" step="0.01" data-i18n-placeholder="ingresos.placeholderInteres">
+              <input type="number" id="interesCuentaRemunerada" step="0.01"
+                data-i18n-placeholder="ingresos.placeholderInteres">
             </td>
             <td>
-              <input type="number" id="retencionCuentaRemunerada" step="0.01" min="0" max="100" data-i18n-placeholder="ingresos.placeholderRetencion" title="Retención fiscal sobre intereses (%)">
+              <input type="number" id="retencionCuentaRemunerada" step="0.01" min="0" max="100"
+                data-i18n-placeholder="ingresos.placeholderRetencion" title="Retención fiscal sobre intereses (%)">
             </td>
             <td></td>
             <td></td>
@@ -212,7 +209,8 @@
             <td>
               <div class="input-euro">
                 <span>€</span>
-                <input type="number" id="purchasePriceAsset" step="0.01" data-i18n-placeholder="ingresos.placeholderPrice">
+                <input type="number" id="purchasePriceAsset" step="0.01"
+                  data-i18n-placeholder="ingresos.placeholderPrice">
               </div>
             </td>
             <td></td>
@@ -232,7 +230,11 @@
   <div id="ingresosReales" class="subtab display-none">
     <h3 data-i18n="dashboard.ingresosReales">Ingresos Reales</h3>
     <div class="mb-8">
-      <button id="toggleIngresosRealesAntiguos" class="small-btn" data-i18n="ingresos.mostrarAntiguos">Mostrar antiguos</button>
+      <label class="switch">
+        <input type="checkbox" id="toggleIngresosRealesAntiguos" />
+        <span class="slider"></span>
+        <span class="switch-label" id="labelToggleIngresosRealesAntiguos" data-i18n="ingresos.mostrarAntiguos">Mostrar antiguos</span>
+      </label>
     </div>
     <table id="tablaIngresosReales">
       <thead>
@@ -276,13 +278,15 @@
       <label class="modal-label" data-i18n="ingresos.salePrice">Precio de Venta:</label>
       <div class="input-euro">
         <span>€</span>
-        <input type="number" id="sellPrice" step="0.01" data-i18n-placeholder="ingresos.placeholderMonto" class="modal-input">
+        <input type="number" id="sellPrice" step="0.01" data-i18n-placeholder="ingresos.placeholderMonto"
+          class="modal-input">
       </div>
     </div>
     <div class="modal-info-box">
       <p><strong data-i18n="ingresos.totalInvestment">Total Invertido:</strong> <span id="sellTotalInvested"></span></p>
       <p><strong data-i18n="ingresos.saleValue">Valor Venta:</strong> <span id="sellTotalValue"></span></p>
-      <p class="modal-profit-text"><strong data-i18n="ingresos.profit">Ganancia/Pérdida:</strong> <span id="sellProfit" class="modal-profit"></span></p>
+      <p class="modal-profit-text"><strong data-i18n="ingresos.profit">Ganancia/Pérdida:</strong> <span id="sellProfit"
+          class="modal-profit"></span></p>
     </div>
     <div class="flex-end">
       <button id="cancelSellBtn" class="btn-modal-cancel" data-i18n="formularios.cancelar">Cancelar</button>
@@ -296,14 +300,14 @@
   <div class="modal-content" style="max-width: 900px; width: 90%;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
       <h3 class="modal-title">
-        <span data-i18n="ingresos.historicalChart">Histórico de</span> 
+        <span data-i18n="ingresos.historicalChart">Histórico de</span>
         <span id="historyTickerName"></span>
       </h3>
       <button id="closeHistoryBtn" class="btn-modal-cancel" style="padding: 8px 16px;">
         <i class="fas fa-times"></i>
       </button>
     </div>
-    
+
     <!-- Selectores de período -->
     <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
       <button class="period-btn active" data-period="1mo">1 mes</button>
@@ -313,12 +317,12 @@
       <button class="period-btn" data-period="2y">2 años</button>
       <button class="period-btn" data-period="5y">5 años</button>
     </div>
-    
+
     <!-- Contenedor del gráfico -->
     <div style="position: relative; height: 400px;">
       <canvas id="assetHistoryChart"></canvas>
     </div>
-    
+
     <!-- Indicador de carga -->
     <div id="historyChartLoading" style="display: none; text-align: center; padding: 20px;">
       <i class="fas fa-spinner fa-spin" style="font-size: 24px;"></i>

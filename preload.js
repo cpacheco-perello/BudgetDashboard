@@ -79,6 +79,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     updateHucha: (data) => ipcRenderer.invoke('update-hucha', data),
     deleteHucha: (data) => ipcRenderer.invoke('delete-hucha', data),
 
+    // ============= SUB-HUCHAS =============
+    getSubHuchas: () => ipcRenderer.invoke('get-sub-huchas'),
+    addSubHucha: (data) => ipcRenderer.invoke('add-sub-hucha', data),
+    updateSubHucha: (data) => ipcRenderer.invoke('update-sub-hucha', data),
+    deleteSubHucha: (data) => ipcRenderer.invoke('delete-sub-hucha', data),
+    getSubHuchaPuntuales: (id) => ipcRenderer.invoke('get-sub-hucha-puntuales', id),
+    addSubHuchaPuntual: (data) => ipcRenderer.invoke('add-sub-hucha-puntual', data),
+    deleteSubHuchaPuntual: (data) => ipcRenderer.invoke('delete-sub-hucha-puntual', data),
+    getSubHuchasTotal: (mes) => ipcRenderer.invoke('get-sub-huchas-total', mes),
+
     // ============= CUENTA REMUNERADA =============
     getCuentaRemunerada: () => ipcRenderer.invoke('get-cuenta-remunerada'),
     addCuentaRemunerada: (data) => ipcRenderer.invoke('add-cuenta-remunerada', data),

@@ -89,6 +89,9 @@ function cargarIngresosForm() {
         
         ingresosManager.loadData();
         if (typeof cargarResumenPeriodos === 'function') cargarResumenPeriodos();
+        if (typeof notifySuccess === 'function') {
+            notifySuccess(ingresosManager.t('mensajes.elementoCreado', 'Ingreso guardado'));
+        }
     };
 
     // ===== AGREGAR INGRESO REAL =====
@@ -115,6 +118,9 @@ function cargarIngresosForm() {
 
         ingresosRealesManager.loadData();
         if (typeof cargarResumenPeriodos === 'function') cargarResumenPeriodos();
+        if (typeof notifySuccess === 'function') {
+            notifySuccess(ingresosRealesManager.t('mensajes.elementoCreado', 'Ingreso real guardado'));
+        }
     };
 
     // ===== AGREGAR INGRESO MENSUAL =====
@@ -151,6 +157,9 @@ function cargarIngresosForm() {
         
         ingresosManager.loadData();
         if (typeof cargarResumenPeriodos === 'function') cargarResumenPeriodos();
+        if (typeof notifySuccess === 'function') {
+            notifySuccess(ingresosManager.t('mensajes.elementoCreado', 'Ingreso mensual guardado'));
+        }
     };
 
     // ===== CUENTA REMUNERADA (Usando TransactionManager) =====
@@ -198,6 +207,9 @@ function cargarIngresosForm() {
             
             ingresosManager.loadData();
             if (typeof cargarResumenPeriodos === 'function') cargarResumenPeriodos();
+            if (typeof notifySuccess === 'function') {
+                notifySuccess(ingresosManager.t('mensajes.elementoCreado', 'Cuenta remunerada guardada'));
+            }
         };
     }
 
@@ -281,6 +293,9 @@ function cargarIngresosForm() {
                         body: JSON.stringify({ id: b.dataset.id })
                     });
                     cargarAssets();
+                    if (typeof notifySuccess === 'function') {
+                        notifySuccess(ingresosManager.t('mensajes.elementoEliminado', 'Asset eliminado'));
+                    }
                 };
             });
             
@@ -388,6 +403,9 @@ function cargarIngresosForm() {
                         });
                         
                         cargarAssets();
+                        if (typeof notifySuccess === 'function') {
+                            notifySuccess(ingresosManager.t('mensajes.elementoActualizado', 'Asset actualizado'));
+                        }
                     };
                     
                     actionsCell.querySelector('.cancelAssetBtn').onclick = () => {
@@ -454,6 +472,9 @@ function cargarIngresosForm() {
                     showAlert(ingresosManager.t('ingresos.ventaExitosa', 
                         `Venta exitosa. Ganancia registrada: ${ingresosManager.formatCurrency(data.profit)}`)
                         .replace('{profit}', ingresosManager.formatCurrency(data.profit)));
+                    if (typeof notifySuccess === 'function') {
+                        notifySuccess(ingresosManager.t('ingresos.ventaExitosa', 'Venta realizada'));
+                    }
                     modal.style.display = 'none';
                     cargarAssets();
                     ingresosManager.loadData();
@@ -507,50 +528,77 @@ function cargarIngresosForm() {
             document.getElementById('sharesAsset').value = '';
             document.getElementById('purchasePriceAsset').value = '';
             cargarAssets();
+            if (typeof notifySuccess === 'function') {
+                notifySuccess(ingresosManager.t('mensajes.elementoCreado', 'Asset guardado'));
+            }
         };
     }
 
     // ===== TOGGLE MOSTRAR ANTIGUOS =====
     window.showOldIngresos = false;
     window.showOldIngresosReales = false;
-    
-    const toggleBtns = [
+
+    const toggleChecks = [
         document.getElementById('toggleIngresosAntiguos'),
         document.getElementById('toggleIngresosMensualesAntiguos'),
         document.getElementById('toggleCuentaRemuneradaAntiguos')
     ].filter(Boolean);
 
-    const toggleBtnsReales = [
+    const toggleLabels = [
+        document.getElementById('labelToggleIngresosAntiguos'),
+        document.getElementById('labelToggleIngresosMensualesAntiguos'),
+        document.getElementById('labelToggleCuentaRemuneradaAntiguos')
+    ].filter(Boolean);
+
+    const toggleChecksReales = [
         document.getElementById('toggleIngresosRealesAntiguos')
     ].filter(Boolean);
-    
-    if (toggleBtns.length) {
+
+    const toggleLabelsReales = [
+        document.getElementById('labelToggleIngresosRealesAntiguos')
+    ].filter(Boolean);
+
+    if (toggleChecks.length) {
         const updateAll = () => {
             const textoMostrar = ingresosManager.t('ingresos.mostrarAntiguos', 'Mostrar antiguos');
             const textoOcultar = ingresosManager.t('ingresos.ocultarAntiguos', 'Ocultar antiguos');
-            toggleBtns.forEach(b => b.textContent = window.showOldIngresos ? textoOcultar : textoMostrar);
+            toggleChecks.forEach(chk => chk.checked = window.showOldIngresos);
+            toggleLabels.forEach(lbl => {
+                if (!lbl) return;
+                lbl.textContent = window.showOldIngresos ? textoOcultar : textoMostrar;
+            });
         };
-        
-        toggleBtns.forEach(b => b.addEventListener('click', () => {
-            window.showOldIngresos = !window.showOldIngresos;
-            updateAll();
-            ingresosManager.loadData();
-        }));
-        
+
+        toggleChecks.forEach(chk => {
+            chk.addEventListener('change', () => {
+                window.showOldIngresos = chk.checked;
+                updateAll();
+                ingresosManager.loadData();
+            });
+        });
+
         updateAll();
     }
 
-    if (toggleBtnsReales.length) {
+    if (toggleChecksReales.length) {
         const updateAllReales = () => {
             const textoMostrar = ingresosRealesManager.t('ingresos.mostrarAntiguos', 'Mostrar antiguos');
             const textoOcultar = ingresosRealesManager.t('ingresos.ocultarAntiguos', 'Ocultar antiguos');
-            toggleBtnsReales.forEach(b => b.textContent = window.showOldIngresosReales ? textoOcultar : textoMostrar);
+            toggleChecksReales.forEach(chk => chk.checked = window.showOldIngresosReales);
+            toggleLabelsReales.forEach(lbl => {
+                if (!lbl) return;
+                lbl.textContent = window.showOldIngresosReales ? textoOcultar : textoMostrar;
+            });
         };
-        toggleBtnsReales.forEach(b => b.addEventListener('click', () => {
-            window.showOldIngresosReales = !window.showOldIngresosReales;
-            updateAllReales();
-            ingresosRealesManager.loadData();
-        }));
+
+        toggleChecksReales.forEach(chk => {
+            chk.addEventListener('change', () => {
+                window.showOldIngresosReales = chk.checked;
+                updateAllReales();
+                ingresosRealesManager.loadData();
+            });
+        });
+
         updateAllReales();
     }
 
@@ -581,16 +629,19 @@ function cargarIngresosForm() {
 
     // Listener para cambios de idioma
     document.addEventListener('idiomaActualizado', () => {
-        if (toggleBtns.length) {
-            const textoMostrar = ingresosManager.t('ingresos.mostrarAntiguos', 'Mostrar antiguos');
-            const textoOcultar = ingresosManager.t('ingresos.ocultarAntiguos', 'Ocultar antiguos');
-            toggleBtns.forEach(b => b.textContent = window.showOldIngresos ? textoOcultar : textoMostrar);
-        }
-        if (toggleBtnsReales.length) {
-            const textoMostrar = ingresosRealesManager.t('ingresos.mostrarAntiguos', 'Mostrar antiguos');
-            const textoOcultar = ingresosRealesManager.t('ingresos.ocultarAntiguos', 'Ocultar antiguos');
-            toggleBtnsReales.forEach(b => b.textContent = window.showOldIngresosReales ? textoOcultar : textoMostrar);
-        }
+        const textoMostrar = ingresosManager.t('ingresos.mostrarAntiguos', 'Mostrar antiguos');
+        const textoOcultar = ingresosManager.t('ingresos.ocultarAntiguos', 'Ocultar antiguos');
+        toggleLabels.forEach(lbl => {
+            if (!lbl) return;
+            lbl.textContent = window.showOldIngresos ? textoOcultar : textoMostrar;
+        });
+
+        const textoMostrarReales = ingresosRealesManager.t('ingresos.mostrarAntiguos', 'Mostrar antiguos');
+        const textoOcultarReales = ingresosRealesManager.t('ingresos.ocultarAntiguos', 'Ocultar antiguos');
+        toggleLabelsReales.forEach(lbl => {
+            if (!lbl) return;
+            lbl.textContent = window.showOldIngresosReales ? textoOcultarReales : textoMostrarReales;
+        });
     });
 
     // Cargar Assets
