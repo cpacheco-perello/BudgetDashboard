@@ -14,8 +14,10 @@ function initCategorias() {
 
     // ===== Cargar categorías y distribuir por subtab =====
     async function cargarCategorias() {
-        const res = await fetch('/categorias');
-        const data = await res.json();
+        const service = window.TabCategoryService;
+        const data = (service && typeof service.fetchCategorias === 'function')
+            ? await service.fetchCategorias()
+            : await fetch('/categorias').then((res) => res.json());
 
         tbodyGasto.innerHTML = '';
         tbodyIngreso.innerHTML = '';

@@ -60,7 +60,7 @@
       <div class="mapeo-preset-toolbar mt-10">
         <label for="selectPresetMapeo" data-i18n="importacion.presetMapeo">Preset:</label>
         <select id="selectPresetMapeo" class="mapeo-select preset-select">
-          <option value="">-- Sin preset --</option>
+          <option value="" data-i18n="importacion.opcionSinPreset">-- Sin preset --</option>
         </select>
         <button id="btnGuardarPresetMapeo" class="btn-secondary btn-small" type="button">
           <i class="fas fa-save"></i> <span data-i18n="importacion.guardarPreset">Guardar preset</span>
@@ -113,8 +113,8 @@
       <div id="previewSection" class="mt-20">
         <h4 data-i18n="importacion.vista_previa">Vista Previa de Datos</h4>
         <div class="preview-tools">
-          <label for="previewFilterInput" data-i18n="tablas.buscar">Buscar:</label>
-          <input id="previewFilterInput" type="search" class="input-control" placeholder="Filtrar vista previa">
+          <label for="previewFilterInput" data-i18n="importacion.buscar">Buscar:</label>
+          <input id="previewFilterInput" type="search" class="input-control" data-i18n-placeholder="importacion.filtrarVistaPrevia" placeholder="Filtrar vista previa">
         </div>
         <div class="table-wrapper">
           <table id="previewTable" class="preview-table">
@@ -165,11 +165,11 @@
       <p data-i18n="importacion.descripcionSeleccion">Selecciona los conceptos que deseas incluir en el análisis</p>
 
       <div class="conceptos-toolbar mt-10 mb-10">
-        <input id="conceptoSearchInput" type="search" class="input-control" placeholder="Buscar concepto">
+        <input id="conceptoSearchInput" type="search" class="input-control" data-i18n-placeholder="importacion.buscarConcepto" placeholder="Buscar concepto">
         <select id="conceptoSortSelect" class="mapeo-select">
-          <option value="impacto">Ordenar por impacto</option>
-          <option value="movimientos">Ordenar por movimientos</option>
-          <option value="alfabetico">Ordenar A-Z</option>
+          <option value="impacto" data-i18n="importacion.ordenImpacto">Ordenar por impacto</option>
+          <option value="movimientos" data-i18n="importacion.ordenMovimientos">Ordenar por movimientos</option>
+          <option value="alfabetico" data-i18n="importacion.ordenAlfabetico">Ordenar A-Z</option>
         </select>
       </div>
       
@@ -200,7 +200,7 @@
       <div class="categorias-toolbar mt-10 mb-10">
         <label for="categoriaMasivaSelect" data-i18n="importacion.categoria">Categoría masiva:</label>
         <select id="categoriaMasivaSelect" class="mapeo-select">
-          <option value="">-- Selecciona --</option>
+          <option value="" data-i18n="importacion.opcionSelecciona">-- Selecciona --</option>
         </select>
         <button id="btnAplicarCategoriaMasiva" class="btn-secondary btn-small" type="button">
           <i class="fas fa-bolt"></i> <span data-i18n="importacion.aplicar">Aplicar a todas</span>

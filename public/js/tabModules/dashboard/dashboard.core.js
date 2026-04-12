@@ -1,17 +1,8 @@
 
 function cargarDashboardForm() {
-// ===== UTILIDAD PARA RESTAR FECHAS =====
-function restarFecha(fecha, cantidad, unidad = 'days') {
-    const resultado = new Date(fecha);
-    if (unidad === 'months') {
-        resultado.setMonth(resultado.getMonth() - cantidad);
-    } else if (unidad === 'years') {
-        resultado.setFullYear(resultado.getFullYear() - cantidad);
-    } else { // 'days' por defecto
-        resultado.setDate(resultado.getDate() - cantidad);
-    }
-    return resultado;
-}
+const dashboardCoreUtils = window.DashboardCoreUtils || {};
+const dashboardDateRangeController = window.DashboardDateRangeController || {};
+const dashboardChartHelpers = window.DashboardChartHelpers || {};
 
 // ===== VARIABLES GLOBALES DEL DASHBOARD =====
 let filtroGastoCategoria = null;
@@ -29,15 +20,6 @@ const charts = {
     gastosCat: null,
     gastosMes: null
 };
-
-const kpiSparklines = {
-    ingresos: null,
-    gastos: null,
-    ahorros: null,
-    neto: null
-};
-
-const porcentajeReactRoots = {};
 
 const dashboardConfig = window.dashboardConfig || {};
 const endpoints = {
@@ -74,252 +56,143 @@ let sliderUpdateFromInputs = false;
 const DASHBOARD_RANGE_STORAGE_KEY = 'dashboardDateRange';
 const DASHBOARD_UI_PREFS_KEY = 'dashboardUiPrefsV1';
 
+const restarFecha = typeof dashboardCoreUtils.restarFecha === 'function'
+    ? dashboardCoreUtils.restarFecha
+    : (fecha, cantidad, unidad = 'days') => {
+        const resultado = new Date(fecha);
+        if (unidad === 'months') resultado.setMonth(resultado.getMonth() - cantidad);
+        else if (unidad === 'years') resultado.setFullYear(resultado.getFullYear() - cantidad);
+        else resultado.setDate(resultado.getDate() - cantidad);
+        return resultado;
+    };
+
+const crearResumenPeriodo = typeof dashboardCoreUtils.crearResumenPeriodo === 'function'
+    ? dashboardCoreUtils.crearResumenPeriodo
+    : () => ({
+        ingresosBrutos: 0,
+        gastosConImpuestos: 0,
+        ahorros: 0,
+        ingresoNeto: 0,
+        ratioAhorro: 0
+    });
+
+const formatearEuro = typeof dashboardCoreUtils.formatearEuro === 'function'
+    ? dashboardCoreUtils.formatearEuro
+    : (monto) => {
+        if (typeof window.formatCurrency === 'function') {
+            return window.formatCurrency(monto, { convert: false });
+        }
+        if (monto === null || monto === undefined) return '€0,00';
+        return '€' + parseFloat(monto).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+const formatearFechaInput = typeof dashboardCoreUtils.formatearFechaInput === 'function'
+    ? dashboardCoreUtils.formatearFechaInput
+    : (date) => new Date(date).toISOString().slice(0, 10);
+
+const formatearFechaDisplay = typeof dashboardCoreUtils.formatearFechaDisplay === 'function'
+    ? dashboardCoreUtils.formatearFechaDisplay
+    : (date) => {
+        const d = new Date(date);
+        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    };
+
+const parsearFechaInput = typeof dashboardCoreUtils.parsearFechaInput === 'function'
+    ? dashboardCoreUtils.parsearFechaInput
+    : (valor) => {
+        if (!valor) return null;
+        const date = /^\d{4}-\d{2}-\d{2}$/.test(valor) ? new Date(`${valor}T00:00:00`) : new Date(valor);
+        return Number.isNaN(date.getTime()) ? null : date;
+    };
+
+const clampFecha = typeof dashboardCoreUtils.clampFecha === 'function'
+    ? dashboardCoreUtils.clampFecha
+    : (date, minDate, maxDate) => {
+        const time = Math.min(Math.max(date.getTime(), minDate.getTime()), maxDate.getTime());
+        return new Date(time);
+    };
+
+const obtenerRangoComparativo = typeof dashboardCoreUtils.obtenerRangoComparativo === 'function'
+    ? dashboardCoreUtils.obtenerRangoComparativo
+    : () => null;
+
 function cargarPreferenciasDashboard() {
-    try {
-        const raw = localStorage.getItem(DASHBOARD_UI_PREFS_KEY);
-        if (!raw) return {};
-        const parsed = JSON.parse(raw);
-        return (parsed && typeof parsed === 'object') ? parsed : {};
-    } catch (_) {
-        return {};
+    if (typeof dashboardCoreUtils.cargarPreferenciasDashboard === 'function') {
+        return dashboardCoreUtils.cargarPreferenciasDashboard(DASHBOARD_UI_PREFS_KEY);
     }
+    return {};
 }
 
 function guardarPreferenciasDashboard(nextPrefs = {}) {
-    try {
-        const prev = cargarPreferenciasDashboard();
-        localStorage.setItem(DASHBOARD_UI_PREFS_KEY, JSON.stringify({ ...prev, ...nextPrefs }));
-    } catch (_) {
-        // Ignore storage errors.
+    if (typeof dashboardCoreUtils.guardarPreferenciasDashboard === 'function') {
+        dashboardCoreUtils.guardarPreferenciasDashboard(DASHBOARD_UI_PREFS_KEY, nextPrefs);
+        return;
     }
-}
-
-function obtenerRangoComparativo(desde, hasta) {
-    const desdeDate = parsearFechaInput(desde);
-    const hastaDate = parsearFechaInput(hasta);
-    if (!desdeDate || !hastaDate || hastaDate < desdeDate) return null;
-
-    const msRange = hastaDate.getTime() - desdeDate.getTime();
-    const prevHasta = new Date(desdeDate.getTime() - 24 * 60 * 60 * 1000);
-    const prevDesde = new Date(prevHasta.getTime() - msRange);
-
-    return {
-        desde: formatearFechaInput(prevDesde),
-        hasta: formatearFechaInput(prevHasta)
-    };
-}
-
-function crearResumenPeriodo(dataTotales = []) {
-    if (!Array.isArray(dataTotales) || dataTotales.length === 0) {
-        return {
-            ingresosBrutos: 0,
-            gastosConImpuestos: 0,
-            ahorros: 0,
-            ingresoNeto: 0,
-            ratioAhorro: 0
-        };
-    }
-
-    const ingresosBrutos = dataTotales.reduce((sum, m) => sum + (Number(m.total_ingreso) || ((Number(m.ingresos) || 0) + (Number(m.impuestos_ingresos) || 0) + (Number(m.cuentas_remuneradas) || 0))), 0);
-    const impuestoRenta = dataTotales.reduce((sum, m) => sum + (Number(m.impuesto_renta) || (Number(m.impuestos_ingresos) || 0)), 0);
-    const impuestoOtros = dataTotales.reduce((sum, m) => sum + (Number(m.impuesto_otros) || (Number(m.impuestos_otros) || 0)), 0);
-    const gastos = dataTotales.reduce((sum, m) => sum + (Number(m.total_gastos) || (Number(m.gastos) || 0)), 0);
-    const ahorros = dataTotales.reduce((sum, m) => sum + (Number(m.ahorros) || 0), 0);
-
-    const gastosConImpuestos = gastos + impuestoOtros;
-    const ingresoNeto = ingresosBrutos - impuestoRenta;
-    const ratioAhorro = ingresosBrutos > 0 ? (ahorros / ingresosBrutos) * 100 : 0;
-
-    return {
-        ingresosBrutos,
-        gastosConImpuestos,
-        ahorros,
-        ingresoNeto,
-        ratioAhorro
-    };
-}
-
-// ===== USAR FORMATEO GLOBAL =====
-// Alias para mantener compatibilidad con código existente
-const formatearEuro = (monto) => {
-    if (typeof window.formatCurrency === 'function') {
-        return window.formatCurrency(monto, { convert: false });
-    }
-    if (monto === null || monto === undefined) return '€0,00';
-    return '€' + parseFloat(monto).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-};
-
-function formatearFechaInput(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
-
-function formatearFechaDisplay(date) {
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-}
-
-function parsearFechaInput(valor) {
-    if (!valor) return null;
-    const soloFecha = /^\d{4}-\d{2}-\d{2}$/.test(valor);
-    const date = soloFecha ? new Date(`${valor}T00:00:00`) : new Date(valor);
-    return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function clampFecha(date, minDate, maxDate) {
-    const time = Math.min(Math.max(date.getTime(), minDate.getTime()), maxDate.getTime());
-    return new Date(time);
 }
 
 function actualizarEtiquetasSlider(desde, hasta) {
-    const desdeEl = document.getElementById('sliderDesdeLabel');
-    const hastaEl = document.getElementById('sliderHastaLabel');
-    if (desdeEl) desdeEl.textContent = desde;
-    if (hastaEl) hastaEl.textContent = hasta;
+    if (typeof dashboardDateRangeController.actualizarEtiquetasSlider === 'function') {
+        dashboardDateRangeController.actualizarEtiquetasSlider(desde, hasta);
+    }
 }
 
 function guardarRangoSeleccionado(desde, hasta) {
-    try {
-        localStorage.setItem(DASHBOARD_RANGE_STORAGE_KEY, JSON.stringify({ desde, hasta }));
-    } catch (error) {
-        console.warn('⚠️ No se pudo guardar el rango:', error);
+    if (typeof dashboardCoreUtils.guardarRangoSeleccionado === 'function') {
+        dashboardCoreUtils.guardarRangoSeleccionado(DASHBOARD_RANGE_STORAGE_KEY, desde, hasta);
     }
 }
 
 function cargarRangoSeleccionado() {
-    try {
-        const raw = localStorage.getItem(DASHBOARD_RANGE_STORAGE_KEY);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        if (!parsed?.desde || !parsed?.hasta) return null;
-        return parsed;
-    } catch (error) {
-        return null;
+    if (typeof dashboardCoreUtils.cargarRangoSeleccionado === 'function') {
+        return dashboardCoreUtils.cargarRangoSeleccionado(DASHBOARD_RANGE_STORAGE_KEY);
     }
+    return null;
 }
 
 function actualizarQuickPeriodActivos() {
-    const desdeDate = parsearFechaInput(dashDesde?.value);
-    const hastaDate = parsearFechaInput(dashHasta?.value);
-    if (!desdeDate || !hastaDate) return;
-
-    const diffMs = hastaDate.getTime() - desdeDate.getTime();
-    const diffDays = Math.round(diffMs / (24 * 60 * 60 * 1000));
-
-    document.querySelectorAll('.quick-period-btn').forEach(b => b.classList.remove('active'));
-    if (diffDays < 0) return;
-
-    const matched = document.querySelector(`.quick-period-btn[data-days="${diffDays}"]`);
-    if (matched) {
-        matched.classList.add('active');
-        return;
+    if (typeof dashboardDateRangeController.actualizarQuickPeriodActivos === 'function') {
+        dashboardDateRangeController.actualizarQuickPeriodActivos(parsearFechaInput, dashDesde, dashHasta);
     }
-
-    const fallback = Array.from(document.querySelectorAll('.quick-period-btn'))
-        .find(b => Math.abs(parseInt(b.getAttribute('data-days'), 10) - diffDays) <= 1);
-    if (fallback) fallback.classList.add('active');
 }
 
 function syncSliderWithInputs() {
-    if (!dateRangeSlider || !dashDesde || !dashHasta) return;
-    const desdeDate = parsearFechaInput(dashDesde.value);
-    const hastaDate = parsearFechaInput(dashHasta.value);
-    if (!desdeDate || !hastaDate) return;
-
-    sliderUpdateFromInputs = true;
-    dateRangeSlider.set([desdeDate.getTime(), hastaDate.getTime()]);
-    sliderUpdateFromInputs = false;
-    actualizarEtiquetasSlider(formatearFechaDisplay(desdeDate), formatearFechaDisplay(hastaDate));
+    if (typeof dashboardDateRangeController.syncSliderWithInputs === 'function') {
+        dashboardDateRangeController.syncSliderWithInputs({
+            dateRangeSlider,
+            dashDesde,
+            dashHasta,
+            parsearFechaInput,
+            setSliderUpdateFromInputs: (value) => { sliderUpdateFromInputs = !!value; },
+            formatearFechaDisplay
+        });
+    }
 }
 
 async function obtenerRangoFechasDashboard() {
-    try {
-        if (window.electronAPI?.getDashboardRangoFechas) {
-            return await window.electronAPI.getDashboardRangoFechas();
-        }
-        const res = await fetch(endpoints.rangoFechas);
-        if (!res.ok) return null;
-        const data = await res.json();
-        if (!data || !data.min || !data.max) return null;
-        return { min: data.min, max: data.max };
-    } catch (error) {
-        console.warn('⚠️ Error obteniendo rango de fechas:', error);
-        return null;
+    if (typeof dashboardDateRangeController.obtenerRangoFechasDashboard === 'function') {
+        return dashboardDateRangeController.obtenerRangoFechasDashboard(endpoints);
     }
+    return null;
 }
 
 async function initDateRangeSlider() {
-    const sliderEl = document.getElementById('dashboardDateRangeSlider');
-    if (!sliderEl || typeof noUiSlider === 'undefined') return;
-
-    const rango = await obtenerRangoFechasDashboard();
-    let minDate = parsearFechaInput(rango?.min);
-    let maxDate = parsearFechaInput(rango?.max);
-
-    if (!minDate || !maxDate) {
-        const desdeInput = parsearFechaInput(dashDesde?.value);
-        const hastaInput = parsearFechaInput(dashHasta?.value);
-        minDate = minDate || desdeInput || new Date(hoy.getFullYear() - 1, hoy.getMonth(), hoy.getDate());
-        maxDate = maxDate || hastaInput || new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    if (typeof dashboardDateRangeController.initDateRangeSlider === 'function') {
+        await dashboardDateRangeController.initDateRangeSlider({
+            dashDesde,
+            dashHasta,
+            hoy,
+            parsearFechaInput,
+            formatearFechaInput,
+            formatearFechaDisplay,
+            clampFecha,
+            cargarRangoSeleccionado,
+            actualizarFechas,
+            endpoints,
+            isSliderUpdateFromInputs: () => sliderUpdateFromInputs,
+            setSliderUpdateFromInputs: (value) => { sliderUpdateFromInputs = !!value; },
+            setDateRangeSlider: (slider) => { dateRangeSlider = slider; }
+        });
     }
-
-    if (minDate > maxDate) {
-        const temp = minDate;
-        minDate = maxDate;
-        maxDate = temp;
-    }
-
-    const rangoGuardado = cargarRangoSeleccionado();
-    if (!rangoGuardado && dashDesde && dashHasta) {
-        dashDesde.value = formatearFechaInput(minDate);
-        dashHasta.value = formatearFechaInput(maxDate);
-    }
-
-    const desdeInicial = parsearFechaInput(dashDesde?.value) || minDate;
-    const hastaInicial = parsearFechaInput(dashHasta?.value) || maxDate;
-    const desdeClamped = clampFecha(desdeInicial, minDate, maxDate);
-    const hastaClamped = clampFecha(hastaInicial, minDate, maxDate);
-
-    if (sliderEl.noUiSlider) {
-        sliderEl.noUiSlider.destroy();
-    }
-
-    noUiSlider.create(sliderEl, {
-        start: [desdeClamped.getTime(), hastaClamped.getTime()],
-        connect: true,
-        step: 24 * 60 * 60 * 1000,
-        range: {
-            min: minDate.getTime(),
-            max: maxDate.getTime()
-        }
-    });
-
-    dateRangeSlider = sliderEl.noUiSlider;
-    if (dashDesde) dashDesde.value = formatearFechaInput(desdeClamped);
-    if (dashHasta) dashHasta.value = formatearFechaInput(hastaClamped);
-    actualizarEtiquetasSlider(formatearFechaDisplay(desdeClamped), formatearFechaDisplay(hastaClamped));
-
-    dateRangeSlider.on('update', (values) => {
-        const desde = formatearFechaDisplay(new Date(Number(values[0])));
-        const hasta = formatearFechaDisplay(new Date(Number(values[1])));
-        actualizarEtiquetasSlider(desde, hasta);
-    });
-
-    dateRangeSlider.on('set', (values) => {
-        if (sliderUpdateFromInputs) return;
-        const desde = formatearFechaInput(new Date(Number(values[0])));
-        const hasta = formatearFechaInput(new Date(Number(values[1])));
-
-        if (dashDesde) dashDesde.value = desde;
-        if (dashHasta) dashHasta.value = hasta;
-
-        document.querySelectorAll('.quick-period-btn').forEach(b => b.classList.remove('active'));
-        actualizarFechas();
-    });
 }
 
 // ===== HANDLER PARA RECALCULAR ESTADÍSTICAS AL OCULTAR/MOSTRAR SERIES =====
@@ -463,12 +336,6 @@ const setupQuickPeriodListener = () => {
         quickPeriodsContainer.addEventListener('click', manejarClickPeriodo);
     }
 };
-    function obtenerColorCategoria(categoria, index) {
-        if (!coloresCategorias[categoria]) {
-            coloresCategorias[categoria] = paletaColores[index % paletaColores.length];
-        }
-        return coloresCategorias[categoria];
-    }
 
     // ===== Cargar categorías =====
     async function cargarCategorias() {
@@ -487,12 +354,17 @@ const setupQuickPeriodListener = () => {
 
         try {
             let dataCat = null;
-            const resAll = await fetch('/categorias');
-            if (resAll.ok) {
-                dataCat = await resAll.json();
+            const service = window.TabCategoryService;
+            if (service && typeof service.fetchCategoriasConFallbackPeriodo === 'function') {
+                dataCat = await service.fetchCategoriasConFallbackPeriodo(desde, hasta);
             } else {
-                const resCat = await fetch(`/categorias-periodo?desde=${desde}&hasta=${hasta}`);
-                dataCat = await resCat.json();
+                const resAll = await fetch('/categorias');
+                if (resAll.ok) {
+                    dataCat = await resAll.json();
+                } else {
+                    const resCat = await fetch(`/categorias-periodo?desde=${desde}&hasta=${hasta}`);
+                    dataCat = await resCat.json();
+                }
             }
 
             const textoTodas = typeof gestorIdiomas !== 'undefined' ? gestorIdiomas.obtenerTexto('dashboard.todasCategorias') : 'Todas las categorías';
@@ -648,297 +520,53 @@ function calcularDesviacion(arr) {
 
 // ===== FUNCIONES AUXILIARES PARA CREAR GRÁFICOS =====
 function crearOpcionesGrafico(optComun, titulo, apilado = false, conLegend = true) {
-    const opciones = {
-        ...optComun,
-        plugins: {
-            ...optComun.plugins,
-            legend: {
-                ...optComun.plugins.legend,
-                onClick: crearLegendClickHandler()
-            },
-            title: {
-                display: true,
-                text: titulo,
-                font: { size: 13, weight: '600' },
-                padding: { top: 5, bottom: 10 }
-            }
-        }
-    };
-    
-    if (apilado) {
-        opciones.scales = {
-            ...optComun.scales,
-            x: { ...optComun.scales.x, stacked: true },
-            y: { ...optComun.scales.y, stacked: true }
-        };
+    if (typeof dashboardChartHelpers.crearOpcionesGrafico === 'function') {
+        return dashboardChartHelpers.crearOpcionesGrafico(optComun, titulo, apilado, crearLegendClickHandler);
     }
-    
-    return opciones;
+    return optComun;
 }
 
 function crearDataset(label, data, color, apilado = false) {
-    return {
-        label,
-        data,
-        backgroundColor: aclararColor(color, 0.7),
-        borderColor: color,
-        borderWidth: apilado ? 2 : 3,
-        borderRadius: 0,
-        tension: 0.4,
-        fill: !apilado
-    };
+    if (typeof dashboardChartHelpers.crearDataset === 'function') {
+        return dashboardChartHelpers.crearDataset(label, data, color, apilado, aclararColor);
+    }
+    return { label, data, borderColor: color };
 }
 
 function crearUpdateChartStats(datosOriginales, calcularFn) {
+    if (typeof dashboardChartHelpers.crearUpdateChartStats === 'function') {
+        return dashboardChartHelpers.crearUpdateChartStats(datosOriginales, calcularFn);
+    }
     return function() {
         const datos = calcularFn.call(this, datosOriginales);
-        this.options.plugins.title.text = datos.titulo;
-    };
-}
-
-function obtenerEstiloSparklinePorTendencia(data) {
-    if (!Array.isArray(data) || data.length < 2) {
-        return {
-            lineColor: 'rgba(148, 163, 184, 0.95)',
-            fillColor: 'rgba(148, 163, 184, 0.2)'
-        };
-    }
-
-    const primerValor = Number(data.find(v => Number.isFinite(v)) ?? 0);
-    const ultimoValor = Number([...data].reverse().find(v => Number.isFinite(v)) ?? primerValor);
-    const delta = ultimoValor - primerValor;
-
-    if (delta > 0) {
-        return {
-            lineColor: 'rgba(74, 222, 128, 0.98)',
-            fillColor: 'rgba(74, 222, 128, 0.22)'
-        };
-    }
-
-    if (delta < 0) {
-        return {
-            lineColor: 'rgba(248, 113, 113, 0.98)',
-            fillColor: 'rgba(248, 113, 113, 0.22)'
-        };
-    }
-
-    return {
-        lineColor: 'rgba(125, 211, 252, 0.98)',
-        fillColor: 'rgba(125, 211, 252, 0.22)'
+        if (this?.options?.plugins?.title) this.options.plugins.title.text = datos.titulo;
     };
 }
 
 function crearSparklineKpi(canvasId, chartKey, data) {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas || typeof Chart === 'undefined') return;
-    const safeData = Array.isArray(data) && data.length > 0 ? data : [0, 0];
-    const trendStyle = obtenerEstiloSparklinePorTendencia(safeData);
-
-    if (kpiSparklines[chartKey]) {
-        try {
-            kpiSparklines[chartKey].destroy();
-        } catch (error) {
-            console.warn('⚠️ Error destruyendo sparkline KPI:', error);
-        }
+    if (typeof dashboardChartHelpers.crearSparklineKpi === 'function') {
+        dashboardChartHelpers.crearSparklineKpi(canvasId, chartKey, data);
     }
-
-    kpiSparklines[chartKey] = new Chart(canvas, {
-        type: 'line',
-        data: {
-            labels: safeData.map((_, idx) => idx + 1),
-            datasets: [{
-                data: safeData,
-                borderColor: trendStyle.lineColor,
-                backgroundColor: trendStyle.fillColor,
-                borderWidth: 2,
-                fill: true,
-                tension: 0.38,
-                pointRadius: 0,
-                pointHoverRadius: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: { enabled: false }
-            },
-            scales: {
-                x: { display: false },
-                y: { display: false }
-            },
-            elements: {
-                line: { capBezierPoints: true }
-            }
-        }
-    });
 }
 
 function limpiarSparklinesKpi() {
-    Object.keys(kpiSparklines).forEach((key) => {
-        if (kpiSparklines[key]) {
-            try {
-                kpiSparklines[key].destroy();
-            } catch (error) {
-                console.warn('⚠️ Error limpiando sparkline KPI:', error);
-            }
-            kpiSparklines[key] = null;
-        }
-    });
-}
-
-function escaparHtml(valor) {
-    return String(valor ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+    if (typeof dashboardChartHelpers.limpiarSparklinesKpi === 'function') {
+        dashboardChartHelpers.limpiarSparklinesKpi();
+    }
 }
 
 function renderCilindrosPorcentajes(containerId, config) {
-    const container = document.getElementById(containerId);
-    if (!container) return null;
-
-    if (typeof React === 'undefined' || typeof ReactDOM === 'undefined' || typeof ReactDOM.createRoot !== 'function') {
-        console.warn('⚠️ React/ReactDOM no disponibles para renderizar cilindros 3D');
-        container.innerHTML = '';
-        return {
-            destroy() {
-                container.innerHTML = '';
-            }
-        };
+    if (typeof dashboardChartHelpers.renderCilindrosPorcentajes === 'function') {
+        return dashboardChartHelpers.renderCilindrosPorcentajes(containerId, config);
     }
-
-    const h = React.createElement;
-
-    const titulo = String(config?.title || 'Porcentajes');
-    const columnas = Array.isArray(config?.columns) ? config.columns : [];
-    const legendItems = Array.isArray(config?.legend) ? config.legend : [];
-
-    const columnasNodes = columnas.map((col, colIdx) => {
-        const nombre = String(col.name || '');
-        const segmentos = Array.isArray(col.segments) ? col.segments : [];
-
-        const segmentosNodes = segmentos
-            .filter(seg => Number(seg.value) > 0)
-            .map((seg, segIdx) => {
-                const valor = Math.max(0, Math.min(100, Number(seg.value) || 0));
-                const color = String(seg.color || '#94a3b8');
-                const tooltip = `${String(seg.label || '')}: ${valor.toFixed(1)}%`;
-                return h(
-                    'div',
-                    {
-                        key: `${colIdx}-${segIdx}`,
-                        className: 'cylinder-seg',
-                        title: tooltip,
-                        style: {
-                            height: `${valor}%`,
-                            background: color
-                        }
-                    },
-                    valor >= 10
-                        ? h('span', { className: 'cylinder-seg-label' }, `${valor.toFixed(0)}%`)
-                        : null
-                );
-            });
-
-        return h(
-            'div',
-            { key: `col-${colIdx}`, className: 'cylinder-col' },
-            h('div', { className: 'cylinder-wrap' }, h('div', { className: 'cylinder-stack' }, segmentosNodes)),
-            h('div', { className: 'cylinder-name' }, nombre)
-        );
-    });
-
-    const legendNodes = legendItems.map((item, idx) =>
-        h(
-            'span',
-            { key: `legend-${idx}`, className: 'porcentajes-3d-legend-item' },
-            h('span', {
-                className: 'porcentajes-3d-legend-dot',
-                style: { background: String(item.color || '#94a3b8') }
-            }),
-            String(item.label || '')
-        )
-    );
-
-    const appNode = h(
-        React.Fragment,
-        null,
-        h('div', { className: 'porcentajes-3d-title' }, titulo),
-        h('div', { className: 'porcentajes-3d-grid' }, columnasNodes),
-        h('div', { className: 'porcentajes-3d-legend' }, legendNodes)
-    );
-
-    let root = porcentajeReactRoots[containerId];
-    if (!root) {
-        root = ReactDOM.createRoot(container);
-        porcentajeReactRoots[containerId] = root;
-    }
-    root.render(appNode);
-
-    return {
-        destroy() {
-            const existingRoot = porcentajeReactRoots[containerId];
-            if (existingRoot) {
-                existingRoot.unmount();
-                delete porcentajeReactRoots[containerId];
-            } else {
-                container.innerHTML = '';
-            }
-        }
-    };
+    return null;
 }
 
 function renderDashboardCategoriasLista(containerId, categorias, palette) {
-    const container = document.getElementById(containerId);
-    if (!container) return null;
-
-    const entries = Object.entries(categorias || {})
-        .map(([categoria, total]) => ({ categoria, total: Number(total) || 0 }))
-        .filter(item => item.total > 0)
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 8);
-
-    const total = entries.reduce((acc, item) => acc + item.total, 0);
-    if (entries.length === 0 || total <= 0) {
-        const emptyText = typeof gestorIdiomas !== 'undefined'
-            ? gestorIdiomas.obtenerTexto('inicio.sinDatosPeriodo')
-            : 'Sin datos para este período';
-        container.innerHTML = `<p class="inicio-empty">${escaparHtml(emptyText)}</p>`;
-        return {
-            destroy() {
-                container.innerHTML = '';
-            }
-        };
+    if (typeof dashboardChartHelpers.renderDashboardCategoriasLista === 'function') {
+        return dashboardChartHelpers.renderDashboardCategoriasLista(containerId, categorias, palette);
     }
-
-    const colores = Array.isArray(palette) && palette.length > 0
-        ? palette
-        : ['#4f8ef7', '#3fcf77', '#f472b6', '#fbbf24', '#a78bfa', '#9ca3af'];
-
-    container.innerHTML = entries.map((item, idx) => {
-        const percentage = (item.total / total) * 100;
-        const color = colores[idx % colores.length];
-        return `
-            <div class="inicio-categoria-row">
-                <span class="inicio-categoria-name">${escaparHtml(item.categoria)}</span>
-                <div class="inicio-categoria-bar-wrap">
-                    <div class="inicio-categoria-bar" style="width:${Math.max(4, percentage)}%; background:${escaparHtml(color)};"></div>
-                </div>
-                <span class="inicio-categoria-pct">${percentage.toFixed(0)}%</span>
-            </div>
-        `;
-    }).join('');
-
-    return {
-        destroy() {
-            container.innerHTML = '';
-        }
-    };
+    return null;
 }
 
 function actualizarResumenKpis({ totalIngresos = 0, totalGastosConImpuestos = 0, totalAhorros = 0, ingresoNeto = 0, ratioAhorro = 0, desde = '', hasta = '', comparativa = null }) {

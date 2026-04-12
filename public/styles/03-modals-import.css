@@ -295,6 +295,10 @@
     border-radius: 14px;
     border: 1px solid rgba(var(--bg-primary-rgb), 0.18);
     background: linear-gradient(165deg, #ffffff 0%, #f4fafc 100%);
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
 }
 
 .wizard-step {
@@ -353,6 +357,36 @@
     gap: 0.55rem;
     align-items: center;
     margin-bottom: 0.5rem;
+}
+
+#importacion-bancaria .preview-tools,
+#importacion-bancaria .conceptos-toolbar,
+#importacion-bancaria .categorias-toolbar,
+#importacion-bancaria .mapeo-preset-toolbar {
+    background: linear-gradient(165deg, #ffffff 0%, #f7fbfd 100%);
+    border: 1px solid rgba(var(--bg-primary-rgb), 0.14);
+    border-radius: 10px;
+    padding: 0.55rem;
+}
+
+#importacion-bancaria .preview-tools label,
+#importacion-bancaria .conceptos-toolbar label,
+#importacion-bancaria .categorias-toolbar label,
+#importacion-bancaria .mapeo-preset-toolbar label {
+    font-weight: 700;
+    color: #334155;
+}
+
+#importacion-bancaria .preview-tools .input-control,
+#importacion-bancaria .conceptos-toolbar .input-control {
+    min-width: 220px;
+    flex: 1 1 260px;
+}
+
+#importacion-bancaria .conceptos-toolbar .mapeo-select,
+#importacion-bancaria .categorias-toolbar .mapeo-select,
+#importacion-bancaria .mapeo-preset-toolbar .mapeo-select {
+    min-width: 210px;
 }
 
 .preset-select {
@@ -608,6 +642,10 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
+#importacion-bancaria .table-wrapper {
+    border: 1px solid rgba(var(--bg-primary-rgb), 0.14);
+}
+
 /* Vista Previa */
 .preview-table {
     width: 100%;
@@ -631,6 +669,14 @@
 
 .preview-table tbody tr:hover {
     background: var(--bg-light);
+}
+
+#importacion-bancaria .preview-table tbody tr:nth-child(even) {
+    background: rgba(15, 118, 110, 0.03);
+}
+
+#importacion-bancaria .preview-table tbody tr:nth-child(even):hover {
+    background: rgba(15, 118, 110, 0.08);
 }
 
 /* Tabla de Categorización */
@@ -801,6 +847,18 @@
     flex-wrap: wrap;
 }
 
+#importacion-bancaria .conceptos-actions,
+#importacion-bancaria .categorias-actions,
+#importacion-bancaria .mapeo-actions,
+#importacion-bancaria .analisis-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.86) 0%, #ffffff 45%);
+    border-top: 1px solid rgba(var(--bg-primary-rgb), 0.14);
+    padding-top: 0.65rem;
+}
+
 .btn-primary,
 .btn-secondary {
     padding: var(--spacing-lg) var(--spacing-2xl);
@@ -883,6 +941,34 @@
     .analisis-controls {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    #importacion-bancaria .preview-tools,
+    #importacion-bancaria .conceptos-toolbar,
+    #importacion-bancaria .categorias-toolbar,
+    #importacion-bancaria .mapeo-preset-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    #importacion-bancaria .preview-tools .input-control,
+    #importacion-bancaria .conceptos-toolbar .input-control,
+    #importacion-bancaria .conceptos-toolbar .mapeo-select,
+    #importacion-bancaria .categorias-toolbar .mapeo-select,
+    #importacion-bancaria .mapeo-preset-toolbar .mapeo-select {
+        width: 100%;
+        min-width: 0;
+    }
+
+    #importacion-bancaria .conceptos-actions .btn-primary,
+    #importacion-bancaria .conceptos-actions .btn-secondary,
+    #importacion-bancaria .categorias-actions .btn-primary,
+    #importacion-bancaria .categorias-actions .btn-secondary,
+    #importacion-bancaria .analisis-actions .btn-primary,
+    #importacion-bancaria .analisis-actions .btn-secondary,
+    #importacion-bancaria .mapeo-actions .btn-primary,
+    #importacion-bancaria .mapeo-actions .btn-secondary {
+        width: 100%;
     }
 
     .control-group {

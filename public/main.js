@@ -5,6 +5,18 @@ const tabContent = document.getElementById('tab-content');
 // Guardar posición de scroll por pestaña
 const scrollPositions = {};
 
+const TAB_TEMPLATE_PATHS = {
+    inicio: 'Pestañas/inicio/inicio.html',
+    ajustes: 'Pestañas/ajustes/ajustes.html',
+    categorias: 'Pestañas/categorias/categorias.html',
+    gastos: 'Pestañas/gastos/gastos.html',
+    ingresos: 'Pestañas/ingresos/ingresos.html',
+    impuestos: 'Pestañas/impuestos/impuestos.html',
+    importacionBancaria: 'Pestañas/importacionBancaria/importacionBancaria.html',
+    dashboard: 'Pestañas/dashboard/dashboard.html',
+    hucha: 'Pestañas/hucha/hucha.html'
+};
+
 function setActiveTabButton(tabId) {
     buttons.forEach((btn) => {
         const isActive = btn.dataset.tab === tabId;
@@ -87,8 +99,16 @@ function initKeyboardNavigation() {
 
 async function loadTab(tabId) {
     try {
-        // Guardar posición de scroll de la pestaña actual
         const currentTab = document.querySelector('.tablink.active');
+        if (currentTab?.dataset?.tab === 'importacionBancaria' && typeof window.persistirBorradorImportacion === 'function') {
+            try {
+                window.persistirBorradorImportacion();
+            } catch (persistError) {
+                console.warn('⚠️ No se pudo persistir borrador de importación:', persistError);
+            }
+        }
+
+        // Guardar posición de scroll de la pestaña actual
         if (currentTab) {
             scrollPositions[currentTab.dataset.tab] = window.scrollY;
         }
@@ -101,7 +121,18 @@ async function loadTab(tabId) {
         // Esperar a que termine la transición de fade out
         await new Promise(resolve => setTimeout(resolve, 300));
         
-        const res = await fetch(`Pestañas/${tabId}.html`);
+        const nextTabPath = TAB_TEMPLATE_PATHS[tabId] || `Pestañas/${tabId}/${tabId}.html`;
+        let res = await fetch(nextTabPath);
+        if (!res.ok) {
+            // Fallback para estructuras previas.
+            res = await fetch(`Pestañas/${tabId}/index.html`);
+        }
+        if (!res.ok) {
+            res = await fetch(`Pestañas/${tabId}.html`);
+        }
+        if (!res.ok) {
+            throw new Error(`No se pudo cargar la pestaña ${tabId}`);
+        }
         const html = await res.text();
         
         // Restaurar scroll ANTES de cambiar el contenido

@@ -175,14 +175,33 @@
 <!-- 6. Cuarto: Clases base y utilidades -->
 <script src="js/TransactionManager.js"></script>
 
+<!-- 6.1 Utilidades compartidas entre pestañas -->
+<script src="js/tabModules/utils/textUtils.js"></script>
+<script src="js/tabModules/utils/categoryService.js"></script>
+<script src="js/tabModules/utils/importacionCategoriaUtils.js"></script>
+<script src="js/tabModules/utils/dashboardCoreUtils.js"></script>
+<script src="js/tabModules/utils/importacionCoreUtils.js"></script>
+<script src="js/tabModules/utils/uiCommonUtils.js"></script>
+
 <!-- 7. Quinto: Páginas/Pestañas -->
-<script src="Pestañas/categorias.js"></script>
-<script src="Pestañas/gastos.js"></script>
-<script src="Pestañas/ingresos.js"></script>
-<script src="Pestañas/dashboard.js"></script>
-<script src="Pestañas/impuestos.js"></script>
-<script src="Pestañas/hucha.js"></script>
-<script src="Pestañas/importacionBancaria.js"></script>
+<script src="Pestañas/categorias/categorias.js"></script>
+<script src="Pestañas/gastos/gastos.js"></script>
+<script src="js/tabModules/ingresos/ingresos.assets.js"></script>
+<script src="js/tabModules/ingresos/ingresos.core.js"></script>
+<script src="Pestañas/ingresos/ingresos.js"></script>
+<script src="js/tabModules/dashboard/dashboard.dateRangeController.js"></script>
+<script src="js/tabModules/dashboard/dashboard.chartHelpers.js"></script>
+<script src="js/tabModules/dashboard/dashboard.core.js"></script>
+<script src="Pestañas/dashboard/dashboard.js"></script>
+<script src="Pestañas/impuestos/impuestos.js"></script>
+<script src="js/tabModules/hucha/hucha.subhuchas.js"></script>
+<script src="js/tabModules/hucha/hucha.core.js"></script>
+<script src="Pestañas/hucha/hucha.js"></script>
+<script src="js/tabModules/importacion/importacion.mapping.js"></script>
+<script src="js/tabModules/importacion/importacion.charts.js"></script>
+<script src="js/tabModules/importacion/importacion.savedFiles.js"></script>
+<script src="js/tabModules/importacion/importacion.core.js"></script>
+<script src="Pestañas/importacionBancaria/importacionBancaria.js"></script>
 
 <!-- Librería para leer Excel (local) -->
 <script src="libs/xlsx.full.min.js"></script>
