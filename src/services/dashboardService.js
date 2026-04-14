@@ -42,22 +42,33 @@ const ingresosRealesService = new PuntualService('ingresos_reales');
  */
 async function getDashboardData() {
     const hoy = new Date();
-    const gastos_puntuales_raw = await gastosPuntualesService.getAll(config.QUERY_LIMIT);
-    const gastos_mensuales_raw = await gastosMensualesService.getAll(config.QUERY_LIMIT);
-    const ingresos_puntuales = await ingresosPuntualesService.getAll(config.QUERY_LIMIT);
-    const ingresos_mensuales = await ingresosMensualesService.getAll(config.QUERY_LIMIT);
-    const impuestos_puntuales = await impuestosPuntualesService.getAll(config.QUERY_LIMIT);
-    const impuestos_mensuales = await impuestosMensualesService.getAll(config.QUERY_LIMIT);
-    const gastos_reales = await gastosRealesService.getAll(config.QUERY_LIMIT);
-    const ingresos_reales = await ingresosRealesService.getAll(config.QUERY_LIMIT);
-
-    const cuenta_remunerada = await dbAll(db, `
+    const [
+        gastos_puntuales_raw,
+        gastos_mensuales_raw,
+        ingresos_puntuales,
+        ingresos_mensuales,
+        impuestos_puntuales,
+        impuestos_mensuales,
+        gastos_reales,
+        ingresos_reales,
+        cuenta_remunerada
+    ] = await Promise.all([
+        gastosPuntualesService.getAll(config.QUERY_LIMIT),
+        gastosMensualesService.getAll(config.QUERY_LIMIT),
+        ingresosPuntualesService.getAll(config.QUERY_LIMIT),
+        ingresosMensualesService.getAll(config.QUERY_LIMIT),
+        impuestosPuntualesService.getAll(config.QUERY_LIMIT),
+        impuestosMensualesService.getAll(config.QUERY_LIMIT),
+        gastosRealesService.getAll(config.QUERY_LIMIT),
+        ingresosRealesService.getAll(config.QUERY_LIMIT),
+        dbAll(db, `
         SELECT cr.id, cr.descripcion, cr.monto, cr.aportacion_mensual, cr.interes, cr.retencion, cr.desde, cr.hasta, c.nombre AS categoria
         FROM cuenta_remunerada cr
         JOIN categorias c ON cr.categoria_id = c.id
         ORDER BY cr.desde DESC
         LIMIT ?
-    `, [config.QUERY_LIMIT]);
+    `, [config.QUERY_LIMIT])
+    ]);
 
     const hoyMes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
     const cuenta_remunerada_con_interes = cuenta_remunerada.map(cr => ({
@@ -93,8 +104,10 @@ async function getDashboardData() {
  * Obtener datos base para el dashboard real
  */
 async function getDashboardRealData() {
-    const gastos_reales = await gastosRealesService.getAll(config.QUERY_LIMIT);
-    const ingresos_reales = await ingresosRealesService.getAll(config.QUERY_LIMIT);
+    const [gastos_reales, ingresos_reales] = await Promise.all([
+        gastosRealesService.getAll(config.QUERY_LIMIT),
+        ingresosRealesService.getAll(config.QUERY_LIMIT)
+    ]);
 
     return {
         gastos_reales,
@@ -295,9 +308,25 @@ async function getAhorrosMes(desde, hasta, categoria_id = null) {
     `);
     agregarMensualesPorMes(impuestosM, meses, hastaDate, 'impuestos_otros');
 
-    // Calcular ahorros (retencion_cr se resta porque cuentas_remuneradas usa interés bruto)
-    // Nota: m.ingresos ya es neto (impuestos salario ya descontados), así que NO se restan impuestos_ingresos
-    meses.forEach(m => m.ahorros = (m.ingresos + m.cuentas_remuneradas) - m.gastos - m.impuestos_otros - m.retencion_cr);
+    // Métricas contables consistentes por mes
+    // total_ingreso: neto + renta + cuenta remunerada bruta
+    // ingresos_netos: total_ingreso - impuesto_renta
+    // ahorro: total_ingreso - total_gastos - impuesto_renta - impuesto_otros
+    meses.forEach(m => {
+        const totalIngreso = (m.ingresos || 0) + (m.impuestos_ingresos || 0) + (m.cuentas_remuneradas || 0);
+        const impuestoRenta = (m.impuestos_ingresos || 0);
+        const impuestoOtros = (m.impuestos_otros || 0);
+        const totalGastos = (m.gastos || 0);
+        const ingresosNetos = totalIngreso - impuestoRenta;
+        const ahorro = totalIngreso - totalGastos - impuestoRenta - impuestoOtros;
+
+        m.total_ingreso = totalIngreso;
+        m.ingresos_netos = ingresosNetos;
+        m.total_gastos = totalGastos;
+        m.impuesto_renta = impuestoRenta;
+        m.impuesto_otros = impuestoOtros;
+        m.ahorros = ahorro;
+    });
 
     return meses;
 }
@@ -326,7 +355,19 @@ async function getAhorrosMesReal(desde, hasta, categoria_id = null) {
     agregarPuntualesPorMes(gastosP, meses, 'gastos');
 
     meses.forEach(m => {
-        m.ahorros = (m.ingresos + m.cuentas_remuneradas) - m.gastos - m.impuestos_otros;
+        const totalIngreso = (m.ingresos || 0) + (m.impuestos_ingresos || 0) + (m.cuentas_remuneradas || 0);
+        const impuestoRenta = (m.impuestos_ingresos || 0);
+        const impuestoOtros = (m.impuestos_otros || 0);
+        const totalGastos = (m.gastos || 0);
+        const ingresosNetos = totalIngreso - impuestoRenta;
+        const ahorro = totalIngreso - totalGastos - impuestoRenta - impuestoOtros;
+
+        m.total_ingreso = totalIngreso;
+        m.ingresos_netos = ingresosNetos;
+        m.total_gastos = totalGastos;
+        m.impuesto_renta = impuestoRenta;
+        m.impuesto_otros = impuestoOtros;
+        m.ahorros = ahorro;
     });
 
     return meses;
@@ -664,14 +705,24 @@ async function getResumenPeriodos() {
         let totalImpuestosStandaloneMensuales = 0;
         impuestosMensuales.forEach(i => totalImpuestosStandaloneMensuales += i.monto * contarMesesDesde28(desdeStr, hastaStr, i.desde, i.hasta));
 
-        const totalImpuestos = totalImpuestosPuntuales + totalImpuestosMensuales + impuestosPuntuales + totalImpuestosStandaloneMensuales + totalRetencionCR;
+        const impuestoRenta = totalImpuestosPuntuales + totalImpuestosMensuales + totalRetencionCR;
+        const impuestoOtros = impuestosPuntuales + totalImpuestosStandaloneMensuales;
+        const totalImpuestos = impuestoRenta + impuestoOtros;
+        const ingresosNetos = totalIngresos - impuestoRenta;
+        const ahorro = totalIngresos - totalGastos - impuestoRenta - impuestoOtros;
 
-        // Ingresos: solo netos (puntuales, mensuales, cuentas remuneradas)
         resultado[periodo] = {
+            // Campos legacy
             ingresos: parseFloat(totalIngresos.toFixed(2)),
             gastos: parseFloat(totalGastos.toFixed(2)),
-            ahorro: parseFloat((totalIngresos - totalGastos - totalImpuestos).toFixed(2)),
-            impuestos: parseFloat(totalImpuestos.toFixed(2))
+            ahorro: parseFloat(ahorro.toFixed(2)),
+            impuestos: parseFloat(totalImpuestos.toFixed(2)),
+            // Campos contables explícitos
+            total_ingreso: parseFloat(totalIngresos.toFixed(2)),
+            ingresos_netos: parseFloat(ingresosNetos.toFixed(2)),
+            total_gastos: parseFloat(totalGastos.toFixed(2)),
+            impuesto_renta: parseFloat(impuestoRenta.toFixed(2)),
+            impuesto_otros: parseFloat(impuestoOtros.toFixed(2))
         };
     }
 
